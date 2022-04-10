@@ -99,3 +99,7 @@ endif()
 if(WITH_COMPOSITOR)
   add_subdirectory(smaa_areatex)
 endif()
+
+if(WITH_HDUSD)
+  add_subdirectory(hdusd)
+endif()

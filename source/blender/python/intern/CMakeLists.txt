@@ -362,6 +362,13 @@ if(WITH_HARU)
   add_definitions(-DWITH_HARU)
 endif()
 
+if(WITH_HDUSD)
+  list(APPEND LIB
+    extern_hdusd
+  )
+  add_definitions(-DWITH_HDUSD)
+endif()
+
 blender_add_lib(bf_python "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
 # RNA_prototypes.h

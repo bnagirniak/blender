@@ -8,13 +8,9 @@
 extern "C" {
 #endif
 
-/* create python module _cycles used by addon */
+/* create python module _hdusd used by addon */
 
-void *CCL_python_module_init(void);
-
-void CCL_init_logging(const char *argv0);
-void CCL_start_debug_logging(void);
-void CCL_logging_verbosity_set(int verbosity);
+PyObject *HdUSD_initPython(void);
 
 #ifdef __cplusplus
 }

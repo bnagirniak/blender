@@ -2,14 +2,14 @@
 # Copyright 2011-2022 Blender Foundation
 
 set(INC
-  # ..
+  ../../intern
   # ../../glew-mx
-  # ../../guardedalloc
+  ../../intern/guardedalloc
   # ../../mikktspace
-  # ../../../source/blender/makesdna
-  # ../../../source/blender/makesrna
-  # ../../../source/blender/blenlib
-  # ${CMAKE_BINARY_DIR}/source/blender/makesrna/intern
+  ../../source/blender/makesdna
+  ../../source/blender/makesrna
+  ../../source/blender/blenlib
+  ${CMAKE_BINARY_DIR}/source/blender/makesrna/intern
 )
 
 set(INC_SYS

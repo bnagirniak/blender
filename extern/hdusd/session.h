@@ -3,5 +3,13 @@
 
 #pragma once
 
+#include "RNA_blender_cpp.h"
 
+class BlenderSession {
+public:
+  BlenderSession(BL::RenderEngine &b_engine, BL::BlendData &b_data);
+  ~BlenderSession();
 
+  BL::RenderEngine b_engine;
+  BL::BlendData b_data;
+};

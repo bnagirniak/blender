@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#ifndef __CCL_API_H__
-#define __CCL_API_H__
+#ifndef __HDUSD_PYTHON_API_H__
+#define __HDUSD_PYTHON_API_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,4 +16,4 @@ PyObject *HdUSD_initPython(void);
 }
 #endif
 
-#endif /* __CCL_API_H__ */
+#endif /* __HDUSD_PYTHON_API_H__ */

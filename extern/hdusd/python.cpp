@@ -16,10 +16,23 @@ static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
   Py_RETURN_NONE;
 }
 
-static PyObject *create_func(PyObject * /*self*/, PyObject * /*args*/)
+static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
+  PyObject *pyengine, *pydata;
+  if (!PyArg_ParseTuple(args, "OO", &pyengine, &pydata)) {
+    return NULL;
+  }
+
+  PointerRNA engineptr;
+  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(pyengine), &engineptr);
+  BL::RenderEngine engine(engineptr);
+
+  PointerRNA dataptr;
+  RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
+  BL::BlendData data(dataptr);
+
   /* create session */
-  BlenderSession *session;
+  BlenderSession *session = new BlenderSession(engine, data);
 
   return PyLong_FromVoidPtr(session);
 }
@@ -42,7 +55,34 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  BL::Depsgraph b_depsgraph(depsgraphptr);
+  BL::Depsgraph depsgraph(depsgraphptr);
+
+  ///* Allow Blender to execute other Python scripts. */
+  //python_thread_state_save(&session->python_thread_state);
+
+  //session->render(b_depsgraph);
+
+  //python_thread_state_restore(&session->python_thread_state);
+
+  Py_RETURN_NONE;
+}
+
+static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
+{
+  PyObject *pysession, *pydata, *pydepsgraph;
+
+  if (!PyArg_ParseTuple(args, "OOO", &pysession, &pydata, &pydepsgraph))
+    return NULL;
+
+  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+
+  PointerRNA dataptr;
+  RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
+  BL::BlendData data(dataptr);
+
+  PointerRNA depsgraphptr;
+  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  BL::Depsgraph depsgraph(depsgraphptr);
 
   ///* Allow Blender to execute other Python scripts. */
   //python_thread_state_save(&session->python_thread_state);
@@ -59,6 +99,8 @@ static PyMethodDef methods[] = {
   {"exit", exit_func, METH_VARARGS, ""},
   {"create", create_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
+  {"render", render_func, METH_VARARGS, ""},
+  {"reset", reset_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

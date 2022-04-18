@@ -37,7 +37,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
     # final render
     def update(self, data, depsgraph):
         if not self.session:
-            self.session = _hdusd.create(self, data.as_pointer())
+            self.session = _hdusd.create(self.as_pointer(), data.as_pointer())
 
         _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer())
 
@@ -51,7 +51,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
     def view_update(self, context, depsgraph):
         data = context.blend_data
         if not self.session:
-            self.session = _hdusd.create(self, data.as_pointer())
+            self.session = _hdusd.create(self.as_pointer(), data.as_pointer())
 
         _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer())
 

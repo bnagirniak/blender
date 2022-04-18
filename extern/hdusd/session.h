@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
 class BlenderSession {

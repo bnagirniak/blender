@@ -2,7 +2,7 @@
 # Copyright 2011-2022 Blender Foundation
 
 set(INC
-  ../../intern
+  # ../../intern
   # ../../glew-mx
   ../../intern/guardedalloc
   # ../../mikktspace

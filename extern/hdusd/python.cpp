@@ -44,12 +44,12 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph b_depsgraph(depsgraphptr);
 
-  /* Allow Blender to execute other Python scripts. */
-  python_thread_state_save(&session->python_thread_state);
+  ///* Allow Blender to execute other Python scripts. */
+  //python_thread_state_save(&session->python_thread_state);
 
-  session->render(b_depsgraph);
+  //session->render(b_depsgraph);
 
-  python_thread_state_restore(&session->python_thread_state);
+  //python_thread_state_restore(&session->python_thread_state);
 
   Py_RETURN_NONE;
 }

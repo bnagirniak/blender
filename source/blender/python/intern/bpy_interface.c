@@ -251,6 +251,11 @@ static PyObject *CCL_initPython(void)
 }
 #endif
 
+#ifdef WITH_HDUSD
+/* defined in manta module */
+extern PyObject *HdUSD_initPython(void);
+#endif
+
 static struct _inittab bpy_internal_modules[] = {
     {"mathutils", PyInit_mathutils},
 #if 0
@@ -280,6 +285,9 @@ static struct _inittab bpy_internal_modules[] = {
 #endif
     {"gpu", BPyInit_gpu},
     {"idprop", BPyInit_idprop},
+#ifdef WITH_HDUSD
+    {"_hdusd", HdUSD_initPython},
+#endif
     {NULL, NULL},
 };
 

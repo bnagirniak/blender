@@ -94,6 +94,16 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
+static PyObject *render_frame_finish_func(PyObject * /*self*/, PyObject *args)
+{
+  Py_RETURN_NONE;
+}
+
+static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
+{
+  Py_RETURN_NONE;
+}
+
 static PyMethodDef methods[] = {
   {"init", init_func, METH_VARARGS, ""},
   {"exit", exit_func, METH_VARARGS, ""},
@@ -101,6 +111,8 @@ static PyMethodDef methods[] = {
   {"free", free_func, METH_VARARGS, ""},
   {"render", render_func, METH_VARARGS, ""},
   {"reset", reset_func, METH_VARARGS, ""},
+  {"render_frame_finish", render_frame_finish_func, METH_VARARGS, ""},
+  {"view_draw", view_draw_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

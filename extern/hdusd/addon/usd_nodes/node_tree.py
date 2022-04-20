@@ -139,18 +139,6 @@ class USDTree(bpy.types.ShaderNodeTree):
         # ViewportEngineNodetree.nodetree_output_node_computed(self)
 
 
-class RenderTaskTree(bpy.types.ShaderNodeTree):
-    """
-    Hydra Tasks needed for rendering.  
-    The outputs of this will be AOV's passed to blender.
-    The default tree is simply Hydra Render -> outputs, but other options
-    could be denoising, bloom filters, tone mapping, etc
-    """
-    bl_label = "Hydra Render"
-    bl_icon = "NODETREE"
-    bl_idname = "usd.RenderTaskTree"
-
-
 def get_usd_nodetree():
     ''' return first USD nodetree found '''
     return next((nodetree for nodetree in bpy.data.node_groups if isinstance(nodetree, USDTree)),

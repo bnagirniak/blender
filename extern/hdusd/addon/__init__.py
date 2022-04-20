@@ -30,7 +30,9 @@ if "bpy" in locals():
     # if "properties" in locals():
     #     importlib.reload(properties)
 
+
 from . import engine
+from . import usd_nodes
 
 
 def exit():
@@ -55,6 +57,7 @@ def register():
     # ui.register()
     # operators.register()
     # presets.register()
+    usd_nodes.register()
 
     register_class(engine.HdUSDEngine)
 
@@ -74,5 +77,6 @@ def unregister():
     # operators.unregister()
     # properties.unregister()
     # presets.unregister()
+    usd_nodes.unregister()
 
     unregister_class(engine.HdUSDEngine)

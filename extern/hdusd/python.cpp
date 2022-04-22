@@ -3,6 +3,9 @@
 
 #include <Python.h>
 
+#include <pxr/pxr.h>
+#include <pxr/usd/usd/stage.h>
+
 #include "hdusd_python_api.h"
 #include "session.h"
 
@@ -104,6 +107,22 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
+static PyObject *test_func(PyObject * /*self*/, PyObject *args)
+{
+  char path[1024];
+  if (!PyArg_ParseTuple(args, "s", &path))
+    Py_RETURN_NONE;
+
+  printf("%s\n", path);
+  pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(path);
+  if (stage) {
+    std::string str;
+    stage->ExportToString(&str);
+    printf("%s\n", str.c_str());
+  }
+  Py_RETURN_NONE;
+}
+
 static PyMethodDef methods[] = {
   {"init", init_func, METH_VARARGS, ""},
   {"exit", exit_func, METH_VARARGS, ""},
@@ -113,6 +132,7 @@ static PyMethodDef methods[] = {
   {"reset", reset_func, METH_VARARGS, ""},
   {"render_frame_finish", render_frame_finish_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},
+  {"test", test_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

@@ -131,9 +131,9 @@ static struct PyModuleDef module = {
 PyObject *HdUSD_initPython(void)
 {
   PyObject *mod = PyModule_Create(&module);
-  PyObject *submodule;
+  PyObject *submodule = HdUSD_usd_node_initPython();
 
-  PyModule_AddObject(mod, "usd_node", (submodule = HdUSD_usd_node_initPython()));
+  PyModule_AddObject(mod, "usd_node", submodule);
 
   return mod;
 }

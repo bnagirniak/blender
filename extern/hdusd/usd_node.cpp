@@ -20,61 +20,61 @@ enum class USDNodeType
   TransformByEmptyNode
 };
 
-static void *_compute_BlenderDataNode(void *stage)
+static void *compute_BlenderDataNode(void *node)
 {
   std::cout << "BlenderDataNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_UsdFileNode(void *stage)
+static void *compute_UsdFileNode(void *node)
 {
   std::cout << "UsdFileNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_HydraRenderNode(void *stage)
+static void *compute_HydraRenderNode(void *node)
 {
   std::cout << "HydraRenderNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_WriteFileNode(void *stage)
+static void *compute_WriteFileNode(void *node)
 {
   std::cout << "WriteFileNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_MergeNode(void *stage)
+static void *compute_MergeNode(void *node)
 {
   std::cout << "MergeNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_FilterNode(void *stage)
+static void *compute_FilterNode(void *node)
 {
   std::cout << "FilterNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_RootNode(void *stage)
+static void *compute_RootNode(void *node)
 {
   std::cout << "RootNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_InstancingNode(void *stage)
+static void *compute_InstancingNode(void *node)
 {
   std::cout << "InstancingNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_TransformNode(void *stage)
+static void *compute_TransformNode(void *node)
 {
   std::cout << "TransformNode" << std::endl;
   return NULL;
 }
 
-static void *_compute_TransformByEmptyNode(void *stage)
+static void *compute_TransformByEmptyNode(void *node)
 {
   std::cout << "TransformByEmptyNode" << std::endl;
   return NULL;
@@ -83,56 +83,60 @@ static void *_compute_TransformByEmptyNode(void *stage)
 static PyObject *compute(PyObject *self, PyObject *args)
 {
   USDNodeType usdNodeType;
+  void *node = NULL;
   void *stage = NULL;
 
-  if (!PyArg_ParseTuple(args, "iO:ref", &usdNodeType, &stage)) Py_RETURN_NONE;
+  if (!PyArg_ParseTuple(args, "iO:ref", &usdNodeType, &node)) {
+    Py_RETURN_NONE;
+  }
 
-  if (!stage || stage == Py_None) Py_RETURN_NONE;
+  if (!node || node == Py_None) {
+    Py_RETURN_NONE;
+  }
 
-  switch (usdNodeType)
-  {
+  switch (usdNodeType) {
     case USDNodeType::BlenderDataNode:
-      _compute_BlenderDataNode(stage);
+      stage = compute_BlenderDataNode(node);
       break;
 
     case USDNodeType::UsdFileNode:
-      _compute_UsdFileNode(stage);
+      stage = compute_UsdFileNode(node);
       break;
 
     case USDNodeType::HydraRenderNode:
-      _compute_HydraRenderNode(stage);
+      stage = compute_HydraRenderNode(node);
       break;
 
     case USDNodeType::WriteFileNode:
-      _compute_WriteFileNode(stage);
+      stage = compute_WriteFileNode(node);
       break;
 
     case USDNodeType::MergeNode:
-      _compute_MergeNode(stage);
+      stage = compute_MergeNode(node);
       break;
 
     case USDNodeType::FilterNode:
-      _compute_FilterNode(stage);
+      stage = compute_FilterNode(node);
       break;
 
     case USDNodeType::RootNode:
-      _compute_RootNode(stage);
+      stage = compute_RootNode(node);
       break;
 
     case USDNodeType::InstancingNode:
-      _compute_InstancingNode(stage);
+      stage = compute_InstancingNode(node);
       break;
 
     case USDNodeType::TransformNode:
-      _compute_TransformNode(stage);
+      stage = compute_TransformNode(node);
       break;
 
     case USDNodeType::TransformByEmptyNode:
-      _compute_TransformByEmptyNode(stage);
+      stage = compute_TransformByEmptyNode(node);
       break;
   }
 
-  return Py_BuildValue("O", stage);
+  return PyLong_FromVoidPtr(stage);
 }
 
 static PyMethodDef methods[] = {

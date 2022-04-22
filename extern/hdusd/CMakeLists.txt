@@ -19,6 +19,7 @@ set(INC_SYS
 set(SRC
   python.cpp
   session.cpp
+  usd_node.cpp
 
   hdusd_python_api.h
   session.h

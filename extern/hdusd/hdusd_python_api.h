@@ -11,6 +11,7 @@ extern "C" {
 /* create python module _hdusd used by addon */
 
 PyObject *HdUSD_initPython(void);
+PyObject *HdUSD_usd_node_initPython(void);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2011-2022 Blender Foundation
 
+if(WIN32)
+  add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+endif()
+add_definitions(-DPXR_STATIC)
+
+# USD headers use deprecated TBB headers, silence warning.
+add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
+
 set(INC
   # ../../intern
   # ../../glew-mx
@@ -14,6 +22,9 @@ set(INC
 
 set(INC_SYS
   ${PYTHON_INCLUDE_DIRS}
+  ${USD_INCLUDE_DIRS}
+  ${BOOST_INCLUDE_DIR}
+  ${TBB_INCLUDE_DIR}
 )
 
 set(SRC
@@ -25,9 +36,9 @@ set(SRC
 )
 
 set(LIB
-
   ${PYTHON_LINKFLAGS}
   ${PYTHON_LIBRARIES}
+  ${BOOST_LIBRARIES}
 )
 
 #if(WITH_CYCLES_LOGGING)

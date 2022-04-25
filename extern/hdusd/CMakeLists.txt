@@ -34,6 +34,7 @@ set(SRC
 
   hdusd_python_api.h
   session.h
+  hdusd_utils.h
 )
 
 set(LIB

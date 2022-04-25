@@ -109,7 +109,8 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *test_func(PyObject * /*self*/, PyObject *args)
 {
-  char path[1024];
+  const char *path;
+
   if (!PyArg_ParseTuple(args, "s", &path))
     Py_RETURN_NONE;
 

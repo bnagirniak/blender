@@ -31,10 +31,11 @@ set(SRC
   python.cpp
   session.cpp
   usd_node.cpp
+  utils.cpp
 
   hdusd_python_api.h
   session.h
-  hdusd_utils.h
+  utils.h
 )
 
 set(LIB

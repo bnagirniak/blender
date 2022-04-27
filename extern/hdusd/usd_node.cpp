@@ -3,8 +3,13 @@
 
 #include <Python.h>
 #include <iostream>
+#include <string.h>
+#include <pxr/pxr.h>
+#include <pxr/usd/usd/stage.h>
+#include <pxr/base/tf/stringUtils.h>
 
 #include "hdusd_python_api.h"
+#include "utils.h"
 
 enum class USDNodeType
 {
@@ -20,61 +25,72 @@ enum class USDNodeType
   TransformByEmptyNode
 };
 
-static void *compute_BlenderDataNode(void *node)
+static pxr::UsdStageRefPtr compute_BlenderDataNode(void *node)
 {
   std::cout << "BlenderDataNode" << std::endl;
   return NULL;
 }
 
-static void *compute_UsdFileNode(void *node)
+static pxr::UsdStageRefPtr compute_UsdFileNode(void *node)
 {
   std::cout << "UsdFileNode" << std::endl;
   return NULL;
 }
 
-static void *compute_HydraRenderNode(void *node)
+static pxr::UsdStageRefPtr compute_HydraRenderNode(void *node)
 {
   std::cout << "HydraRenderNode" << std::endl;
   return NULL;
 }
 
-static void *compute_WriteFileNode(void *node)
+static pxr::UsdStageRefPtr compute_WriteFileNode(void *node)
 {
   std::cout << "WriteFileNode" << std::endl;
+
+  //pxr::UsdStage::Export(node->file_path);
+
   return NULL;
 }
 
-static void *compute_MergeNode(void *node)
+static pxr::UsdStageRefPtr compute_MergeNode(void *node)
 {
   std::cout << "MergeNode" << std::endl;
   return NULL;
 }
 
-static void *compute_FilterNode(void *node)
+static pxr::UsdStageRefPtr compute_FilterNode(void *node)
 {
   std::cout << "FilterNode" << std::endl;
   return NULL;
 }
 
-static void *compute_RootNode(void *node)
+static pxr::UsdStageRefPtr compute_RootNode(void *node)
 {
   std::cout << "RootNode" << std::endl;
   return NULL;
 }
 
-static void *compute_InstancingNode(void *node)
+static pxr::UsdStageRefPtr compute_InstancingNode(void *node)
 {
   std::cout << "InstancingNode" << std::endl;
   return NULL;
 }
 
-static void *compute_TransformNode(void *node)
+static pxr::UsdStageRefPtr compute_TransformNode(void *node)
 {
   std::cout << "TransformNode" << std::endl;
+
+  //std::string name = pxr::TfMakeValidIdentifier(node->name);
+
+  //std::string path = hdusd_utils::get_temp_dir().u8string();
+  std::string path = hdusd::get_temp_file(".usda");
+  std::cout << path << std::endl;
+  //pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateNew();
+
   return NULL;
 }
 
-static void *compute_TransformByEmptyNode(void *node)
+static pxr::UsdStageRefPtr compute_TransformByEmptyNode(void *node)
 {
   std::cout << "TransformByEmptyNode" << std::endl;
   return NULL;
@@ -84,7 +100,7 @@ static PyObject *compute(PyObject *self, PyObject *args)
 {
   USDNodeType usdNodeType;
   void *node = NULL;
-  void *stage = NULL;
+  pxr::UsdStageRefPtr stage = NULL;
 
   if (!PyArg_ParseTuple(args, "iO:ref", &usdNodeType, &node)) {
     Py_RETURN_NONE;
@@ -136,7 +152,10 @@ static PyObject *compute(PyObject *self, PyObject *args)
       break;
   }
 
-  return PyLong_FromVoidPtr(stage);
+  /*auto stagePointer = node->cached_stage.Insert(stage).ToLongInt();
+
+  return PyLong_FromVoidPtr(stagePointer);*/
+  return PyLong_FromVoidPtr(node);
 }
 
 static PyMethodDef methods[] = {

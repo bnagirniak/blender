@@ -754,11 +754,13 @@ static char *rna_DashGpencilModifierSegment_path(PointerRNA *ptr)
 
   BLI_assert(dmd != NULL);
 
-  char name_esc[sizeof(dmd->modifier.name) * 2 + 1];
-
+  char name_esc[sizeof(dmd->modifier.name) * 2];
   BLI_str_escape(name_esc, dmd->modifier.name, sizeof(name_esc));
 
-  return BLI_sprintfN("grease_pencil_modifiers[\"%s\"].segments[\"%s\"]", name_esc, ds->name);
+  char ds_name_esc[sizeof(ds->name) * 2];
+  BLI_str_escape(ds_name_esc, ds->name, sizeof(ds_name_esc));
+
+  return BLI_sprintfN("grease_pencil_modifiers[\"%s\"].segments[\"%s\"]", name_esc, ds_name_esc);
 }
 
 static bool dash_segment_name_exists_fn(void *arg, const char *name)
@@ -785,8 +787,11 @@ static void rna_DashGpencilModifierSegment_name_set(PointerRNA *ptr, const char 
   BLI_uniquename_cb(
       dash_segment_name_exists_fn, ds->dmd, "Segment", '.', ds->name, sizeof(ds->name));
 
-  char prefix[256];
-  sprintf(prefix, "grease_pencil_modifiers[\"%s\"].segments", ds->dmd->modifier.name);
+  char name_esc[sizeof(ds->dmd->modifier.name) * 2];
+  BLI_str_escape(name_esc, ds->dmd->modifier.name, sizeof(name_esc));
+
+  char prefix[36 + sizeof(name_esc) + 1];
+  SNPRINTF(prefix, "grease_pencil_modifiers[\"%s\"].segments", name_esc);
 
   /* Fix all the animation data which may link to this. */
   BKE_animdata_fix_paths_rename_all(NULL, prefix, oldname, ds->name);
@@ -4124,6 +4129,13 @@ static void rna_def_modifier_gpencilenvelope(BlenderRNA *brna)
   RNA_def_property_range(prop, 0, FLT_MAX);
   RNA_def_property_ui_range(prop, 0, 1, 10, 3);
   RNA_def_property_ui_text(prop, "Strength", "Multiplier for the strength of the new strokes");
+  RNA_def_property_update(prop, 0, "rna_GpencilModifier_update");
+
+  prop = RNA_def_property(srna, "skip", PROP_INT, PROP_NONE);
+  RNA_def_property_int_sdna(prop, NULL, "skip");
+  RNA_def_property_range(prop, 0, INT_MAX);
+  RNA_def_property_ui_text(
+      prop, "Skip Segments", "The number of generated segments to skip to reduce complexity");
   RNA_def_property_update(prop, 0, "rna_GpencilModifier_update");
 
   prop = RNA_def_property(srna, "invert_layers", PROP_BOOLEAN, PROP_NONE);

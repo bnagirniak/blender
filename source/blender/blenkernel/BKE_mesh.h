@@ -318,8 +318,6 @@ void BKE_mesh_vert_coords_apply_with_mat4(struct Mesh *mesh,
                                           const float mat[4][4]);
 void BKE_mesh_vert_coords_apply(struct Mesh *mesh, const float (*vert_coords)[3]);
 
-void BKE_mesh_anonymous_attributes_remove(struct Mesh *mesh);
-
 /* *** mesh_tessellate.c *** */
 
 /**
@@ -1067,6 +1065,7 @@ extern void (*BKE_mesh_batch_cache_dirty_tag_cb)(struct Mesh *me, eMeshBatchDirt
 extern void (*BKE_mesh_batch_cache_free_cb)(struct Mesh *me);
 
 /* mesh_debug.c */
+
 #ifndef NDEBUG
 char *BKE_mesh_debug_info(const struct Mesh *me)
     ATTR_NONNULL(1) ATTR_MALLOC ATTR_WARN_UNUSED_RESULT;

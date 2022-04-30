@@ -359,7 +359,6 @@ static void node_foreach_cache(ID *id,
   IDCacheKey key = {0};
   key.id_session_uuid = id->session_uuid;
   key.offset_in_ID = offsetof(bNodeTree, previews);
-  key.cache_v = nodetree->previews;
 
   /* TODO: see also `direct_link_nodetree()` in readfile.c. */
 #if 0
@@ -370,7 +369,6 @@ static void node_foreach_cache(ID *id,
     LISTBASE_FOREACH (bNode *, node, &nodetree->nodes) {
       if (node->type == CMP_NODE_MOVIEDISTORTION) {
         key.offset_in_ID = (size_t)BLI_ghashutil_strhash_p(node->name);
-        key.cache_v = node->storage;
         function_callback(id, &key, (void **)&node->storage, 0, user_data);
       }
     }
@@ -489,6 +487,9 @@ static void write_node_socket(BlendWriter *writer, bNodeSocket *sock)
     IDP_BlendWrite(writer, sock->prop);
   }
 
+  /* This property should only be used for group node "interface" sockets. */
+  BLI_assert(sock->default_attribute_name == nullptr);
+
   write_node_socket_default_value(writer, sock);
 }
 static void write_node_socket_interface(BlendWriter *writer, bNodeSocket *sock)
@@ -498,6 +499,8 @@ static void write_node_socket_interface(BlendWriter *writer, bNodeSocket *sock)
   if (sock->prop) {
     IDP_BlendWrite(writer, sock->prop);
   }
+
+  BLO_write_string(writer, sock->default_attribute_name);
 
   write_node_socket_default_value(writer, sock);
 }
@@ -652,6 +655,7 @@ static void direct_link_node_socket(BlendDataReader *reader, bNodeSocket *sock)
   sock->typeinfo = nullptr;
   BLO_read_data_address(reader, &sock->storage);
   BLO_read_data_address(reader, &sock->default_value);
+  BLO_read_data_address(reader, &sock->default_attribute_name);
   sock->total_inputs = 0; /* Clear runtime data set before drawing. */
   sock->cache = nullptr;
   sock->declaration = nullptr;
@@ -721,7 +725,7 @@ void ntreeBlendReadData(BlendDataReader *reader, bNodeTree *ntree)
         }
         case SH_NODE_TEX_POINTDENSITY: {
           NodeShaderTexPointDensity *npd = (NodeShaderTexPointDensity *)node->storage;
-          memset(&npd->pd, 0, sizeof(npd->pd));
+          npd->pd = blender::dna::shallow_zero_initialize();
           break;
         }
         case SH_NODE_TEX_IMAGE: {
@@ -2162,6 +2166,9 @@ static void node_socket_copy(bNodeSocket *sock_dst, const bNodeSocket *sock_src,
       socket_id_user_increment(sock_dst);
     }
   }
+
+  sock_dst->default_attribute_name = static_cast<char *>(
+      MEM_dupallocN(sock_src->default_attribute_name));
 
   sock_dst->stack_index = 0;
   /* XXX some compositor nodes (e.g. image, render layers) still store
@@ -3612,19 +3619,17 @@ void nodeClearActive(bNodeTree *ntree)
 
 void nodeSetActive(bNodeTree *ntree, bNode *node)
 {
-  /* make sure only one node is active, and only one per ID type */
+  const bool is_paint_canvas = nodeSupportsActiveFlag(node, NODE_ACTIVE_PAINT_CANVAS);
+  const bool is_texture_class = nodeSupportsActiveFlag(node, NODE_ACTIVE_TEXTURE);
+  int flags_to_set = NODE_ACTIVE;
+  SET_FLAG_FROM_TEST(flags_to_set, is_paint_canvas, NODE_ACTIVE_PAINT_CANVAS);
+  SET_FLAG_FROM_TEST(flags_to_set, is_texture_class, NODE_ACTIVE_TEXTURE);
+
+  /* Make sure only one node is active per node tree. */
   LISTBASE_FOREACH (bNode *, tnode, &ntree->nodes) {
-    tnode->flag &= ~NODE_ACTIVE;
-
-    if (node->typeinfo->nclass == NODE_CLASS_TEXTURE) {
-      tnode->flag &= ~NODE_ACTIVE_TEXTURE;
-    }
+    tnode->flag &= ~flags_to_set;
   }
-
-  node->flag |= NODE_ACTIVE;
-  if (node->typeinfo->nclass == NODE_CLASS_TEXTURE) {
-    node->flag |= NODE_ACTIVE_TEXTURE;
-  }
+  node->flag |= flags_to_set;
 }
 
 int nodeSocketIsHidden(const bNodeSocket *sock)

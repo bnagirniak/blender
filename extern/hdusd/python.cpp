@@ -6,11 +6,14 @@
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 
+#include "usd_common.h"
+
 #include "hdusd_python_api.h"
 #include "session.h"
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
+  blender::io::usd::ensure_usd_plugin_path_registered();
   Py_RETURN_NONE;
 }
 
@@ -109,17 +112,22 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *test_func(PyObject * /*self*/, PyObject *args)
 {
-  char path[1024];
-  if (!PyArg_ParseTuple(args, "s", &path))
+  char *path;
+  if (!PyArg_ParseTuple(args, "s", &path)) {
     Py_RETURN_NONE;
+  }
 
   printf("%s\n", path);
+
   pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(path);
-  if (stage) {
-    std::string str;
-    stage->ExportToString(&str);
-    printf("%s\n", str.c_str());
+
+  if (!stage) {
+    Py_RETURN_NONE;
   }
+  std::string str;
+  stage->ExportToString(&str);
+  printf("%s\n", str.c_str());
+
   Py_RETURN_NONE;
 }
 

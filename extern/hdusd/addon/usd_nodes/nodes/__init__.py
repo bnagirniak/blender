@@ -56,8 +56,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     input.BlenderDataNode,
     input.UsdFileNode,
 
-    output.HydraRenderNode,
-    output.WriteFileNode,
+    output.OutputNode,
 
     converter.HDUSD_USD_NODETREE_MT_instancing_object,
     converter.MergeNode,

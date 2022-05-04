@@ -15,8 +15,6 @@ enum class USDNodeType
 {
   BlenderDataNode,
   UsdFileNode,
-  HydraRenderNode,
-  WriteFileNode,
   MergeNode,
   FilterNode,
   RootNode,
@@ -35,37 +33,88 @@ static pxr::UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
 {
   char *filePath;
   PyArg_ParseTuple(nodeArgs, "s", &filePath);
-  std::cout << "UsdFileNode " << filePath << std::endl;
-
   return pxr::UsdStage::Open(filePath);
-}
-
-static pxr::UsdStageRefPtr compute_HydraRenderNode(PyObject *nodeArgs)
-{
-  std::cout << "HydraRenderNode" << std::endl;
-  return NULL;
-}
-
-static pxr::UsdStageRefPtr compute_WriteFileNode(PyObject *nodeArgs)
-{
-  std::cout << "WriteFileNode" << std::endl;
-  return NULL;
 }
 
 static pxr::UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
 {
+        //stage = self.cached_stage.create()
+        //UsdGeom.SetStageMetersPerUnit(stage, 1)
+        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        //root_prim = stage.GetPseudoRoot()
+
+        //for ref_stage in ref_stages:
+        //    for prim in ref_stage.GetPseudoRoot().GetAllChildren():
+        //        override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+        //        override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
+
+        //return stage
+
   std::cout << "MergeNode" << std::endl;
   return NULL;
 }
 
 static pxr::UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
 {
+        //# creating search regex pattern and getting filtered rpims
+        //prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
+        //                                  .replace('/', '\/')       # for correct regex pattern
+        //                                  .replace('##', '[\w\/]*') # creation
+        //                                  .replace('#', '\w*'))
+
+        //def get_child_prims(prim):
+        //    if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
+        //        yield prim
+        //        return
+
+        //    for child in prim.GetAllChildren():
+        //        yield from get_child_prims(child)
+
+        //prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
+        //if not prims:
+        //    return None
+
+        //stage = self.cached_stage.create()
+        //UsdGeom.SetStageMetersPerUnit(stage, 1)
+        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        //root_prim = stage.GetPseudoRoot()
+
+        //for i, prim in enumerate(prims, 1):
+        //    override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+        //    override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
+        //                                               prim.GetPath())
+
+        //return stage
+
   std::cout << "FilterNode" << std::endl;
   return NULL;
 }
 
 static pxr::UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
 {
+        //path = f'/{Tf.MakeValidIdentifier(self.name)}'
+        //stage = self.cached_stage.create()
+        //UsdGeom.SetStageMetersPerUnit(stage, 1)
+        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        //# create new root prim according to name and type
+        //if self.type == 'Xform':
+        //    root_prim = UsdGeom.Xform.Define(stage, path)
+        //elif self.type == 'Scope':
+        //    root_prim = UsdGeom.Scope.Define(stage, path)
+        //elif self.type == 'SkelRoot':
+        //    root_prim = UsdSkel.Root.Define(stage, path)
+        //else:
+        //    root_prim = stage.DefinePrim(path)
+
+        //for prim in input_stage.GetPseudoRoot().GetAllChildren():
+        //    override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+        //    override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+
+        //return stage
+
   std::cout << "RootNode" << std::endl;
   return NULL;
 }
@@ -112,14 +161,6 @@ static PyObject *compute(PyObject *self, PyObject *args)
       stage = compute_UsdFileNode(nodeArgs);
       break;
 
-    case USDNodeType::HydraRenderNode:
-      stage = compute_HydraRenderNode(nodeArgs);
-      break;
-
-    case USDNodeType::WriteFileNode:
-      stage = compute_WriteFileNode(nodeArgs);
-      break;
-
     case USDNodeType::MergeNode:
       stage = compute_MergeNode(nodeArgs);
       break;
@@ -148,6 +189,11 @@ static PyObject *compute(PyObject *self, PyObject *args)
   if (!stage) {
     Py_RETURN_NONE;
   }
+
+  std::string str;
+  stage->ExportToString(&str);
+  std::cout << str <<std::endl;
+
   return PyLong_FromVoidPtr(stage.operator->());
 }
 

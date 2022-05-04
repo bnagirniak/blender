@@ -4,7 +4,7 @@
 # <pep8 compliant>
 
 import bpy
-# from pxr import Usd
+import _hdusd
 
 # from ...utils import pass_node_reroute
 #
@@ -17,9 +17,12 @@ class USDNode(bpy.types.Node):
     bl_compatibility = {'HdUSD'}
     bl_width_default = 200
 
+    c_type = None
     input_names = ("Input",)
     output_name = "Output"
     use_hard_reset = True
+    stage = None
+
 
     @classmethod
     def poll(cls, tree):
@@ -37,6 +40,9 @@ class USDNode(bpy.types.Node):
         nodetree.no_update_call(init_)
 
     # COMPUTE FUNCTION
+    def c_compute(self, *args):
+        return _hdusd.usd_node.compute(self.c_type, args)
+
     def compute(self, **kwargs): # -> [Usd.Stage, None]:
         """
         Main compute function which should be overridable in child classes.
@@ -49,16 +55,13 @@ class USDNode(bpy.types.Node):
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        # stage = self.cached_stage()
-        # if not stage:
-        #     # log("compute", self, group_nodes)
-        #     stage = self.compute(group_nodes=group_nodes, **kwargs)
-        #     self.cached_stage.assign(stage)
-        #     self.hdusd.usd_list.update_items()
-        #     self.node_computed()
-        #
-        # return stage
-        return None
+        if not self.stage:
+            # log("compute", self, group_nodes)
+            self.stage = self.compute(group_nodes=group_nodes, **kwargs)
+            #self.hdusd.usd_list.update_items()
+            self.node_computed()
+
+        return self.stage
 
     def _compute_node(self, node, group_node=None, **kwargs):
         """
@@ -109,14 +112,8 @@ class USDNode(bpy.types.Node):
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, **kwargs)
 
-    @property
-    def cached_stage(self):
-        # return self.hdusd.usd_list.cached_stage
-        return None
-
     def free(self):
-        # self.cached_stage.clear()
-        pass
+        self.stage = None
 
     def reset(self, is_hard=False):
         if is_hard or self.use_hard_reset:
@@ -139,6 +136,7 @@ class USDNode(bpy.types.Node):
                 for link in output.links:
                     if link.is_valid:
                         get_nodes(link.to_node)
+
         get_nodes(self)
         for node in nodes_to_reset:
             node.reset(is_hard)
@@ -146,7 +144,7 @@ class USDNode(bpy.types.Node):
     def depsgraph_update(self, depsgraph):
         pass
 
-    def frame_change (self, depsgraph):
+    def frame_change(self, depsgraph):
         self.depsgraph_update(depsgraph)
 
     def material_update(self, material):

@@ -3,15 +3,15 @@
 
 # <pep8 compliant>
 
-import bpy
+from pathlib import Path
 
-# from pxr import UsdGeom
+import bpy
+import _hdusd
 
 from .base_node import USDNode
 # from ...export import object, material, world
 # from ...utils import usd as usd_utils
 # from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
-
 
 #
 # COLLECTION MENU and OPERATORS
@@ -331,6 +331,7 @@ class UsdFileNode(USDNode):
     bl_width_default = 250
     bl_width_min = 250
 
+    c_type = _hdusd.usd_node.type.UsdFileNode
     input_names = ()
     use_hard_reset = False
 
@@ -357,15 +358,16 @@ class UsdFileNode(USDNode):
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
-        # if not self.filename:
-        #     return None
-        #
-        # file_path = bpy.path.abspath(self.filename)
-        # if not os.path.isfile(file_path):
-        #     log.warn("Couldn't find USD file", self.filename, self)
-        #     return None
-        #
-        # input_stage = Usd.Stage.Open(file_path)
+        if not self.filename:
+            return None
+
+        file = Path(bpy.path.abspath(self.filename))
+        if not file.is_file():
+            # log.warn("Couldn't find USD file", file, self)
+            return None
+
+        return self.c_compute(str(file))
+
         #
         # if self.filter_path == '/*':
         #     self.cached_stage.insert(input_stage)
@@ -400,4 +402,3 @@ class UsdFileNode(USDNode):
         #     override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
         #
         # return stage
-        return None

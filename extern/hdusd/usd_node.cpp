@@ -9,6 +9,8 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
+#include "hdusd_python_api.h"
+
 enum class USDNodeType
 {
   BlenderDataNode,
@@ -31,8 +33,11 @@ static pxr::UsdStageRefPtr compute_BlenderDataNode(PyObject *nodeArgs)
 
 static pxr::UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
 {
-  std::cout << "UsdFileNode" << std::endl;
-  return NULL;
+  char *filePath;
+  PyArg_ParseTuple(nodeArgs, "s", &filePath);
+  std::cout << "UsdFileNode " << filePath << std::endl;
+
+  return pxr::UsdStage::Open(filePath);
 }
 
 static pxr::UsdStageRefPtr compute_HydraRenderNode(PyObject *nodeArgs)
@@ -140,6 +145,9 @@ static PyObject *compute(PyObject *self, PyObject *args)
       break;
   }
 
+  if (!stage) {
+    Py_RETURN_NONE;
+  }
   return PyLong_FromVoidPtr(stage.operator->());
 }
 

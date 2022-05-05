@@ -3,6 +3,10 @@
 
 #include <Python.h>
 #include <iostream>
+#include <string.h>
+#include <pxr/pxr.h>
+#include <pxr/usd/usd/stage.h>
+#include <pxr/base/tf/stringUtils.h>
 
 #include <pxr/usd/usd/stage.h>
 
@@ -11,6 +15,7 @@
 
 #include "hdusd_python_api.h"
 #include "session.h"
+#include "utils.h"
 
 enum class USDNodeType
 {
@@ -163,6 +168,14 @@ static pxr::UsdStageRefPtr compute_InstancingNode(PyObject *nodeArgs)
 static pxr::UsdStageRefPtr compute_TransformNode(PyObject *nodeArgs)
 {
   std::cout << "TransformNode" << std::endl;
+
+  //std::string name = pxr::TfMakeValidIdentifier(node->name);
+
+  //std::string path = hdusd_utils::get_temp_dir().u8string();
+  std::string path = hdusd::get_temp_file(".usda");
+  std::cout << path << std::endl;
+  //pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateNew();
+
   return NULL;
 }
 

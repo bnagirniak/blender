@@ -6,9 +6,15 @@
 import bpy
 import _hdusd
 
-# from ...utils import pass_node_reroute
+from ...properties import HdUSDProperties
 #
 # from . import log
+
+
+class NodeProperties(HdUSDProperties):
+    bl_type = bpy.types.Node
+
+    stage: bpy.props.IntProperty()
 
 
 class USDNode(bpy.types.Node):
@@ -21,8 +27,6 @@ class USDNode(bpy.types.Node):
     input_names = ("Input",)
     output_name = "Output"
     use_hard_reset = True
-    stage = None
-
 
     @classmethod
     def poll(cls, tree):
@@ -43,7 +47,7 @@ class USDNode(bpy.types.Node):
     def c_compute(self, *args):
         return _hdusd.usd_node.compute(self.c_type, args)
 
-    def compute(self, **kwargs): # -> [Usd.Stage, None]:
+    def compute(self, **kwargs):
         """
         Main compute function which should be overridable in child classes.
         It should return Prim object or None.
@@ -55,13 +59,14 @@ class USDNode(bpy.types.Node):
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        if not self.stage:
+        if not self.hdusd.stage:
             # log("compute", self, group_nodes)
-            self.stage = self.compute(group_nodes=group_nodes, **kwargs)
+            self.hdusd.stage = self.compute(group_nodes=group_nodes, **kwargs)
             #self.hdusd.usd_list.update_items()
             self.node_computed()
 
-        return self.stage
+        print("final_compute stage:", self.hdusd.stage)
+        return self.hdusd.stage
 
     def _compute_node(self, node, group_node=None, **kwargs):
         """
@@ -113,7 +118,7 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
-        self.stage = None
+        self.hdusd.stage = 0
 
     def reset(self, is_hard=False):
         if is_hard or self.use_hard_reset:
@@ -121,7 +126,7 @@ class USDNode(bpy.types.Node):
 
             self.free()
             self.final_compute()
-            self.hdusd.usd_list.update_items()
+            #self.hdusd.usd_list.update_items()
 
         self._reset_next(is_hard)
 
@@ -138,8 +143,8 @@ class USDNode(bpy.types.Node):
                         get_nodes(link.to_node)
 
         get_nodes(self)
-        for node in nodes_to_reset:
-            node.reset(is_hard)
+        for n in nodes_to_reset:
+            n.reset(is_hard)
 
     def depsgraph_update(self, depsgraph):
         pass

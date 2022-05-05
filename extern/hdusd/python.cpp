@@ -14,11 +14,14 @@
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
   blender::io::usd::ensure_usd_plugin_path_registered();
+  stageCache = std::make_unique<pxr::UsdStageCache>();
+
   Py_RETURN_NONE;
 }
 
 static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
 {
+  stageCache = nullptr;
   Py_RETURN_NONE;
 }
 

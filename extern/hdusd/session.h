@@ -3,8 +3,15 @@
 
 #pragma once
 
+#include <memory>
+
+#include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usd/stageCache.h>
+
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
+
+extern std::unique_ptr<pxr::UsdStageCache> stageCache;
 
 class BlenderSession {
 public:
@@ -14,3 +21,4 @@ public:
   BL::RenderEngine b_engine;
   BL::BlendData b_data;
 };
+

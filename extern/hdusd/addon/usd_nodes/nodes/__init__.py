@@ -26,8 +26,7 @@ node_categories = [
         NodeItem('usd.UsdFileNode'),
     ]),
     USDNodeCategory('HdUSD_USD_OUTPUT', 'Output', items=[
-        NodeItem('usd.HydraRenderNode'),
-        NodeItem('usd.WriteFileNode'),
+        NodeItem('usd.OutputNode'),
     ]),
     USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
         NodeItem('usd.MergeNode'),

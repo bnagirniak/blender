@@ -32,9 +32,9 @@ class USDTree(bpy.types.ShaderNodeTree):
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
 
-    def get_output_node(self, render_type='BOTH'):
-        return next((node for node in self.nodes if isinstance(node, OutputNode) and
-                     node.render_type == render_type), None)
+    @property
+    def output_node(self):
+        return next((node for node in self.nodes if isinstance(node, OutputNode)), None)
 
     def _reset_nodes(self, nodes, is_hard):
         self._is_resetting = True

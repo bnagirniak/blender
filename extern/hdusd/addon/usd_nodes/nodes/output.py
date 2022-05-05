@@ -11,7 +11,7 @@ class OutputNode(USDNode):
     """Output USD Node"""
     bl_idname = 'usd.OutputNode'
     bl_label = "Output"
-    bl_icon = "RESTRICT_RENDER_OFF"
+    bl_icon = "EXPORT"
 
     output_name = ""
 
@@ -21,5 +21,5 @@ class OutputNode(USDNode):
     def node_computed(self):
         # notify USD nodetree that Output node was computed
         nodetree = self.id_data
-        if self.name == nodetree.get_output_node().name:
+        if self.name == nodetree.output_node.name:
             nodetree.output_node_computed()

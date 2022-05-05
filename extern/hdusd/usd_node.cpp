@@ -10,6 +10,7 @@
 #include "RNA_blender_cpp.h"
 
 #include "hdusd_python_api.h"
+#include "session.h"
 
 enum class USDNodeType
 {
@@ -31,9 +32,43 @@ static pxr::UsdStageRefPtr compute_BlenderDataNode(PyObject *nodeArgs)
 
 static pxr::UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
 {
-  char *filePath;
-  PyArg_ParseTuple(nodeArgs, "s", &filePath);
+  char *filePath, *filterPath;
+  PyArg_ParseTuple(nodeArgs, "ss", &filePath, &filterPath);
   return pxr::UsdStage::Open(filePath);
+  
+        //if self.filter_path == '/*':
+        //    self.cached_stage.insert(input_stage)
+        //    return input_stage
+
+        //# creating search regex pattern and getting filtered rpims
+        //prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
+        //                  .replace('/', '\/')       # for correct regex pattern
+        //                  .replace('##', '[\w\/]*') # creation
+        //                  .replace('#', '\w*'))
+
+        //def get_child_prims(prim):
+        //    if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
+        //        yield prim
+        //        return
+
+        //    for child in prim.GetAllChildren():
+        //        yield from get_child_prims(child)
+
+        //prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
+        //if not prims:
+        //    return None
+
+        //stage = self.cached_stage.create()
+        //stage.SetInterpolationType(Usd.InterpolationTypeHeld)
+        //UsdGeom.SetStageMetersPerUnit(stage, 1)
+        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        //root_prim = stage.GetPseudoRoot()
+        //for i, prim in enumerate(prims, 1):
+        //    override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+        //    override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+
+        //return stage
 }
 
 static pxr::UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
@@ -190,11 +225,13 @@ static PyObject *compute(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
   }
 
+  auto id = stageCache->Insert(stage);
+
   std::string str;
   stage->ExportToString(&str);
   std::cout << str <<std::endl;
 
-  return PyLong_FromVoidPtr(stage.operator->());
+  return PyLong_FromLong(id.ToLongInt());
 }
 
 static PyMethodDef methods[] = {
@@ -233,8 +270,6 @@ PyObject *HdUSD_usd_node_initPython(void)
 
   PyModule_AddObject(usdNodeTypeMod, "BlenderDataNode", PyLong_FromLong((int)USDNodeType::BlenderDataNode));
   PyModule_AddObject(usdNodeTypeMod, "UsdFileNode", PyLong_FromLong((int)USDNodeType::UsdFileNode));
-  PyModule_AddObject(usdNodeTypeMod, "HydraRenderNode", PyLong_FromLong((int)USDNodeType::HydraRenderNode));
-  PyModule_AddObject(usdNodeTypeMod, "WriteFileNode", PyLong_FromLong((int)USDNodeType::WriteFileNode));
   PyModule_AddObject(usdNodeTypeMod, "MergeNode", PyLong_FromLong((int)USDNodeType::MergeNode));
   PyModule_AddObject(usdNodeTypeMod, "FilterNode", PyLong_FromLong((int)USDNodeType::FilterNode));
   PyModule_AddObject(usdNodeTypeMod, "RootNode", PyLong_FromLong((int)USDNodeType::RootNode));

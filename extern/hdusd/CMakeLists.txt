@@ -17,6 +17,7 @@ set(INC
   ../../source/blender/makesdna
   ../../source/blender/makesrna
   ../../source/blender/blenlib
+  ../../source/blender/io/usd/intern
   ${CMAKE_BINARY_DIR}/source/blender/makesrna/intern
 )
 
@@ -70,6 +71,11 @@ set(ADDON_USD_NODES_NODES_FILES
   addon/usd_nodes/nodes/transformations.py
 )
 
+set(ADDON_PROPERTIES_FILES
+  addon/properties/__init__.py
+  addon/properties/node.py
+)
+
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
 
 
@@ -77,5 +83,6 @@ blender_add_lib(extern_hdusd "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
 #message(FATAL_ERROR "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}, CYCLES_INSTALL_PATH=${HDUSD_INSTALL_PATH}")
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${HDUSD_INSTALL_PATH})
+delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_PROPERTIES_FILES}" ${HDUSD_INSTALL_PATH}/properties)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_USD_NODES_FILES}" ${HDUSD_INSTALL_PATH}/usd_nodes)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_USD_NODES_NODES_FILES}" ${HDUSD_INSTALL_PATH}/usd_nodes/nodes)

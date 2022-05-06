@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include <stdlib.h>
-
 #include "session.h"
 
+std::unique_ptr<pxr::UsdStageCache> stageCache;
 
 BlenderSession::BlenderSession(BL::RenderEngine &b_engine, BL::BlendData &b_data)
     : b_engine(b_engine)
@@ -15,3 +14,4 @@ BlenderSession::BlenderSession(BL::RenderEngine &b_engine, BL::BlendData &b_data
 BlenderSession::~BlenderSession()
 {
 }
+

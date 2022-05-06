@@ -3,10 +3,8 @@
 
 # <pep8 compliant>
 
-import re
-
 import bpy
-# from pxr import Usd, UsdGeom, UsdSkel, Sdf, Tf, Gf
+import _hdusd
 
 from .base_node import USDNode
 from .input import (
@@ -40,6 +38,8 @@ class FilterNode(USDNode):
     bl_label = "Filter"
     bl_icon = "FILTER"
 
+    c_type = _hdusd.usd_node.type.FilterNode
+
     def update_data(self, context):
         self.reset()
 
@@ -56,41 +56,11 @@ class FilterNode(USDNode):
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
-        # input_stage = self.get_input_link('Input', **kwargs)
-        # if not input_stage:
-        #     return None
-        #
-        # # creating search regex pattern and getting filtered rpims
-        # prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
-        #                                   .replace('/', '\/')       # for correct regex pattern
-        #                                   .replace('##', '[\w\/]*') # creation
-        #                                   .replace('#', '\w*'))
-        #
-        # def get_child_prims(prim):
-        #     if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
-        #         yield prim
-        #         return
-        #
-        #     for child in prim.GetAllChildren():
-        #         yield from get_child_prims(child)
-        #
-        # prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
-        # if not prims:
-        #     return None
-        #
-        # stage = self.cached_stage.create()
-        # UsdGeom.SetStageMetersPerUnit(stage, 1)
-        # UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        #
-        # root_prim = stage.GetPseudoRoot()
-        #
-        # for i, prim in enumerate(prims, 1):
-        #     override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        #     override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
-        #                                                prim.GetPath())
-        #
-        # return stage
-        return None
+        input_stage = self.get_input_link('Input', **kwargs)
+        if not input_stage:
+            return None
+
+        return self.c_compute(input_stage, self.filter_path)
 
 
 class MergeNode(USDNode):
@@ -99,6 +69,7 @@ class MergeNode(USDNode):
     bl_label = "Merge"
     bl_icon = "SELECT_EXTEND"
 
+    c_type = _hdusd.usd_node.type.MergeNode
     input_names = tuple(f"Input {i + 1}" for i in range(MAX_INPUTS_NUMBER))
 
     def update_inputs_number(self, context):
@@ -126,31 +97,19 @@ class MergeNode(USDNode):
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
-        # ref_stages = []
-        # for i in range(len(self.inputs)):
-        #     stage = self.get_input_link(i, **kwargs)
-        #     if stage:
-        #         ref_stages.append(stage)
-        #
-        # if not ref_stages:
-        #     return None
-        #
-        # if len(ref_stages) == 1:
-        #     return ref_stages[0]
-        #
-        # stage = self.cached_stage.create()
-        # UsdGeom.SetStageMetersPerUnit(stage, 1)
-        # UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        #
-        # root_prim = stage.GetPseudoRoot()
-        #
-        # for ref_stage in ref_stages:
-        #     for prim in ref_stage.GetPseudoRoot().GetAllChildren():
-        #         override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        #         override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
-        #
-        # return stage
-        return None
+        ref_stages = []
+        for i in range(len(self.inputs)):
+            stage = self.get_input_link(i, **kwargs)
+            if stage:
+                ref_stages.append(stage)
+
+        if not ref_stages:
+            return None
+
+        if len(ref_stages) == 1:
+            return ref_stages[0]
+
+        return self.c_compute(*ref_stages)
 
 
 class RootNode(USDNode):
@@ -158,6 +117,8 @@ class RootNode(USDNode):
     bl_idname = 'usd.RootNode'
     bl_label = "Root"
     bl_icon = "COLLECTION_NEW"
+
+    c_type = _hdusd.usd_node.type.RootNode
 
     def update_data(self, context):
         self.reset()
@@ -184,35 +145,15 @@ class RootNode(USDNode):
         layout.prop(self, 'type')
 
     def compute(self, **kwargs):
-        # input_stage = self.get_input_link('Input', **kwargs)
-        #
-        # if not input_stage:
-        #     return None
-        #
-        # if not self.name:
-        #     return input_stage
-        #
-        # path = f'/{Tf.MakeValidIdentifier(self.name)}'
-        # stage = self.cached_stage.create()
-        # UsdGeom.SetStageMetersPerUnit(stage, 1)
-        # UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        #
-        # # create new root prim according to name and type
-        # if self.type == 'Xform':
-        #     root_prim = UsdGeom.Xform.Define(stage, path)
-        # elif self.type == 'Scope':
-        #     root_prim = UsdGeom.Scope.Define(stage, path)
-        # elif self.type == 'SkelRoot':
-        #     root_prim = UsdSkel.Root.Define(stage, path)
-        # else:
-        #     root_prim = stage.DefinePrim(path)
-        #
-        # for prim in input_stage.GetPseudoRoot().GetAllChildren():
-        #     override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        #     override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-        #
-        # return stage
-        return None
+        input_stage = self.get_input_link('Input', **kwargs)
+
+        if not input_stage:
+            return None
+
+        if not self.name:
+            return input_stage
+
+        return self.c_compute(input_stage, self.name, self.type)
 
 
 class InstancingNode(USDNode):

@@ -26,8 +26,7 @@ node_categories = [
         NodeItem('usd.UsdFileNode'),
     ]),
     USDNodeCategory('HdUSD_USD_OUTPUT', 'Output', items=[
-        NodeItem('usd.HydraRenderNode'),
-        NodeItem('usd.WriteFileNode'),
+        NodeItem('usd.OutputNode'),
     ]),
     USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
         NodeItem('usd.MergeNode'),
@@ -56,8 +55,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     input.BlenderDataNode,
     input.UsdFileNode,
 
-    output.HydraRenderNode,
-    output.WriteFileNode,
+    output.OutputNode,
 
     converter.HDUSD_USD_NODETREE_MT_instancing_object,
     converter.MergeNode,

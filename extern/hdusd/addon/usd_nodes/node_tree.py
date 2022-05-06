@@ -5,8 +5,7 @@
 
 import bpy
 
-from .nodes.output import HydraRenderNode
-from .nodes.output import WriteFileNode
+from .nodes.output import OutputNode
 
 # from ..viewport import usd_collection
 # from ..engine.viewport_engine import ViewportEngineNodetree
@@ -16,8 +15,8 @@ class USDTree(bpy.types.ShaderNodeTree):
     """
     Holds hierarchy of data and composition of USD for rendering
     The basic (default) graph should be simply
-    
-    Read Blender Data (scene) ---> Hydra Render 
+
+    Read Blender Data (scene) ---> Hydra Render
 
     When nodes or tree is updated, the node computation is re-run
     """
@@ -33,19 +32,9 @@ class USDTree(bpy.types.ShaderNodeTree):
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
 
-    def get_output_node(self, render_type='BOTH'):
-        output_node = next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
-                            node.render_type == render_type), None)
-
-        if output_node:
-            return output_node
-
-        # try other output nodes
-        secondary_output_node = next(
-            (node for node in self.nodes if isinstance(node, WriteFileNode)),
-            None)
-
-        return secondary_output_node
+    @property
+    def output_node(self):
+        return next((node for node in self.nodes if isinstance(node, OutputNode)), None)
 
     def _reset_nodes(self, nodes, is_hard):
         self._is_resetting = True
@@ -120,10 +109,10 @@ class USDTree(bpy.types.ShaderNodeTree):
                 input_node = self.nodes.new("usd.BlenderDataNode")
             input_node.location = (input_node.location[0] - 150, input_node.location[1])
 
-            hydra_output = self.nodes.new("usd.HydraRenderNode")
-            hydra_output.location = (hydra_output.location[0] + 150, hydra_output.location[1])
+            output_node = self.nodes.new("usd.OutputNode")
+            output_node.location = (output_node.location[0] + 150, output_node.location[1])
 
-            self.links.new(input_node.outputs[0], hydra_output.inputs[0])
+            self.links.new(input_node.outputs[0], output_node.inputs[0])
 
         self.no_update_call(create_nodes)
         self.reset()

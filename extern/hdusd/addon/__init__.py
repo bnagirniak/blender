@@ -31,8 +31,11 @@ if "bpy" in locals():
     #     importlib.reload(properties)
 
 
-from . import engine
-from . import usd_nodes
+from . import (
+    engine,
+    usd_nodes,
+    properties,
+)
 
 
 def exit():
@@ -53,7 +56,7 @@ def register():
 
     engine.init()
 
-    # properties.register()
+    properties.register()
     # ui.register()
     # operators.register()
     # presets.register()
@@ -75,7 +78,7 @@ def unregister():
 
     # ui.unregister()
     # operators.unregister()
-    # properties.unregister()
+    properties.unregister()
     # presets.unregister()
     usd_nodes.unregister()
 

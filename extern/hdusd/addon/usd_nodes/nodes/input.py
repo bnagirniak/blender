@@ -3,15 +3,15 @@
 
 # <pep8 compliant>
 
-import bpy
+from pathlib import Path
 
-# from pxr import UsdGeom
+import bpy
+import _hdusd
 
 from .base_node import USDNode
 # from ...export import object, material, world
 # from ...utils import usd as usd_utils
 # from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
-
 
 #
 # COLLECTION MENU and OPERATORS
@@ -331,6 +331,7 @@ class UsdFileNode(USDNode):
     bl_width_default = 250
     bl_width_min = 250
 
+    c_type = _hdusd.usd_node.type.UsdFileNode
     input_names = ()
     use_hard_reset = False
 
@@ -357,47 +358,12 @@ class UsdFileNode(USDNode):
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
-        # if not self.filename:
-        #     return None
-        #
-        # file_path = bpy.path.abspath(self.filename)
-        # if not os.path.isfile(file_path):
-        #     log.warn("Couldn't find USD file", self.filename, self)
-        #     return None
-        #
-        # input_stage = Usd.Stage.Open(file_path)
-        #
-        # if self.filter_path == '/*':
-        #     self.cached_stage.insert(input_stage)
-        #     return input_stage
-        #
-        # # creating search regex pattern and getting filtered rpims
-        # prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
-        #                   .replace('/', '\/')       # for correct regex pattern
-        #                   .replace('##', '[\w\/]*') # creation
-        #                   .replace('#', '\w*'))
-        #
-        # def get_child_prims(prim):
-        #     if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
-        #         yield prim
-        #         return
-        #
-        #     for child in prim.GetAllChildren():
-        #         yield from get_child_prims(child)
-        #
-        # prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
-        # if not prims:
-        #     return None
-        #
-        # stage = self.cached_stage.create()
-        # stage.SetInterpolationType(Usd.InterpolationTypeHeld)
-        # UsdGeom.SetStageMetersPerUnit(stage, 1)
-        # UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        #
-        # root_prim = stage.GetPseudoRoot()
-        # for i, prim in enumerate(prims, 1):
-        #     override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        #     override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-        #
-        # return stage
-        return None
+        if not self.filename:
+            return None
+
+        file = Path(bpy.path.abspath(self.filename))
+        if not file.is_file():
+            # log.warn("Couldn't find USD file", file, self)
+            return None
+
+        return self.c_compute(str(file), self.filter_path)

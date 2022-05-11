@@ -132,7 +132,7 @@ static void color_filter_task_cb(void *__restrict userdata,
         rgb_to_hsv_v(orig_color, hsv_color);
 
         if (hsv_color[1] > 0.001f) {
-          hsv_color[1] = clamp_f(hsv_color[1] + fade, 0.0f, 1.0f);
+          hsv_color[1] = clamp_f(hsv_color[1] + fade * hsv_color[1], 0.0f, 1.0f);
           hsv_to_rgb_v(hsv_color, final_color);
         }
         else {
@@ -328,8 +328,12 @@ static int sculpt_color_filter_invoke(bContext *C, wmOperator *op, const wmEvent
 {
   Object *ob = CTX_data_active_object(C);
   Sculpt *sd = CTX_data_tool_settings(C)->sculpt;
+  View3D *v3d = CTX_wm_view3d(C);
   SculptSession *ss = ob->sculpt;
   PBVH *pbvh = ob->sculpt->pbvh;
+  if (v3d->shading.type == OB_SOLID) {
+    v3d->shading.color_type = V3D_SHADING_VERTEX_COLOR;
+  }
 
   const bool use_automasking = SCULPT_is_automasking_enabled(sd, ss, NULL);
   if (use_automasking) {

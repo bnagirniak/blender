@@ -133,6 +133,12 @@ endif()
 
 # Source: https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
 if(WIN32)
+  file(GLOB MaterialX_libs ${LIBDIR}/MaterialX/*_${MATERIALX_VERSION_BUILD_POSTFIX}.lib)
+
+  foreach(library ${MaterialX_libs})
+    target_link_libraries(bf_usd INTERFACE ${library})
+  endforeach()
+
   target_link_libraries(bf_usd INTERFACE ${USD_LIBRARIES})
 elseif(APPLE)
   target_link_libraries(bf_usd INTERFACE -Wl,-force_load ${USD_LIBRARIES})

@@ -142,10 +142,15 @@ endif()
 
 # Source: https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
 if(WIN32)
-  file(GLOB MaterialX_libs ${LIBDIR}/MaterialX/*_${MATERIALX_VERSION_BUILD_POSTFIX}.lib)
+  file(GLOB MaterialX_libs_release "${LIBDIR}/MaterialX/*_r.lib")
+  file(GLOB MaterialX_libs_debug "${LIBDIR}/MaterialX/*_d.lib")
 
-  foreach(library ${MaterialX_libs})
-    target_link_libraries(bf_usd INTERFACE ${library})
+  foreach(library ${MaterialX_libs_release})
+    target_link_libraries(bf_usd INTERFACE optimized ${library})
+  endforeach()
+
+  foreach(library ${MaterialX_libs_debug})
+    target_link_libraries(bf_usd INTERFACE debug ${library})
   endforeach()
 
   target_link_libraries(bf_usd INTERFACE ${USD_LIBRARIES})

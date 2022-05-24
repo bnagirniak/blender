@@ -20,10 +20,10 @@ class NodeProperties(HdUSDProperties):
 class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
+    bl_idname = ''
     bl_compatibility = {'HdUSD'}
     bl_width_default = 200
 
-    c_type = None
     input_names = ("Input",)
     output_name = "Output"
     use_hard_reset = True
@@ -45,7 +45,7 @@ class USDNode(bpy.types.Node):
 
     # COMPUTE FUNCTION
     def c_compute(self, *args):
-        return _hdusd.usd_node.compute(self.c_type, args)
+        return _hdusd.usd_node.compute(self.bl_idname, args)
 
     def compute(self, **kwargs):
         """

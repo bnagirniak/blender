@@ -3,12 +3,11 @@
 
 #include <Python.h>
 #include <iostream>
-#include <string.h>
+
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usd/stageCache.h>
 #include <pxr/base/tf/stringUtils.h>
-
-#include <pxr/usd/usd/stage.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -16,18 +15,6 @@
 #include "hdusd_python_api.h"
 #include "session.h"
 #include "utils.h"
-
-enum class USDNodeType
-{
-  BlenderDataNode,
-  UsdFileNode,
-  MergeNode,
-  FilterNode,
-  RootNode,
-  InstancingNode,
-  TransformNode,
-  TransformByEmptyNode
-};
 
 static pxr::UsdStageRefPtr compute_BlenderDataNode(PyObject *nodeArgs)
 {
@@ -187,58 +174,33 @@ static pxr::UsdStageRefPtr compute_TransformByEmptyNode(PyObject *nodeArgs)
 
 static PyObject *compute(PyObject *self, PyObject *args)
 {
-  USDNodeType usdNodeType;
+  char *nodeIdname;
   PyObject *nodeArgs;
 
-  if (!PyArg_ParseTuple(args, "iO", &usdNodeType, &nodeArgs)) {
+  if (!PyArg_ParseTuple(args, "sO", &nodeIdname, &nodeArgs)) {
     Py_RETURN_NONE;
   }
   
   pxr::UsdStageRefPtr stage = nullptr;
 
-  //PointerRNA nodeptr;
-  //RNA_pointer_create(NULL, &RNA_Node, (void *)PyLong_AsVoidPtr(pynode), &nodeptr);
-  //BL::Node node(nodeptr);
-
-  switch (usdNodeType) {
-    case USDNodeType::BlenderDataNode:
-      stage = compute_BlenderDataNode(nodeArgs);
-      break;
-
-    case USDNodeType::UsdFileNode:
-      stage = compute_UsdFileNode(nodeArgs);
-      break;
-
-    case USDNodeType::MergeNode:
-      stage = compute_MergeNode(nodeArgs);
-      break;
-
-    case USDNodeType::FilterNode:
-      stage = compute_FilterNode(nodeArgs);
-      break;
-
-    case USDNodeType::RootNode:
-      stage = compute_RootNode(nodeArgs);
-      break;
-
-    case USDNodeType::InstancingNode:
-      stage = compute_InstancingNode(nodeArgs);
-      break;
-
-    case USDNodeType::TransformNode:
-      stage = compute_TransformNode(nodeArgs);
-      break;
-
-    case USDNodeType::TransformByEmptyNode:
-      stage = compute_TransformByEmptyNode(nodeArgs);
-      break;
+  if (strcmp(nodeIdname, "hdusd.UsdFileNode") == 0) {
+    stage = compute_UsdFileNode(nodeArgs);
+  }
+  else if (strcmp(nodeIdname, "hdusd.MergeNode") == 0) {
+    stage = compute_MergeNode(nodeArgs);
+  }
+  else if (strcmp(nodeIdname, "hdusd.FilterNode") == 0) {
+    stage = compute_FilterNode(nodeArgs);
+  }
+  else if (strcmp(nodeIdname, "hdusd.RootNode") == 0) {
+    stage = compute_RootNode(nodeArgs);
   }
 
   if (!stage) {
     Py_RETURN_NONE;
   }
 
-  auto id = stageCache->Insert(stage);
+  pxr::UsdStageCache::Id id = stageCache->Insert(stage);
 
   std::string str;
   stage->ExportToString(&str);

@@ -46,22 +46,13 @@ node_categories = [
 
 # nodes to register
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    input.HDUSD_USD_NODETREE_OP_blender_data_link_collection,
-    input.HDUSD_USD_NODETREE_OP_blender_data_unlink_collection,
-    input.HDUSD_USD_NODETREE_MT_blender_data_collection,
-    input.HDUSD_USD_NODETREE_OP_blender_data_link_object,
-    input.HDUSD_USD_NODETREE_OP_blender_data_unlink_object,
-    input.HDUSD_USD_NODETREE_MT_blender_data_object,
-    input.BlenderDataNode,
     input.UsdFileNode,
 
     output.OutputNode,
 
-    converter.HDUSD_USD_NODETREE_MT_instancing_object,
     converter.MergeNode,
     converter.FilterNode,
     converter.RootNode,
-    converter.InstancingNode,
 
     transformations.HDUSD_USD_NODETREE_OP_transform_add_empty,
     transformations.TransformNode,

@@ -3,11 +3,23 @@
 
 #include <Python.h>
 #include <iostream>
+#include <cstdio>
+#include <regex>
+
+#include <boost/algorithm/string/replace.hpp>
 
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/stageCache.h>
+#include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usd/references.h>
+
 #include <pxr/base/tf/stringUtils.h>
+
+#include <pxr/usd/usdGeom/tokens.h>
+#include <pxr/usd/usdGeom/xform.h>
+#include <pxr/usd/usdGeom/scope.h>
+#include <pxr/usd/usdSkel/root.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -16,17 +28,19 @@
 #include "session.h"
 #include "utils.h"
 
-static pxr::UsdStageRefPtr compute_BlenderDataNode(PyObject *nodeArgs)
+using namespace pxr;
+
+static UsdStageRefPtr compute_BlenderDataNode(PyObject *nodeArgs)
 {
   std::cout << "BlenderDataNode" << std::endl;
   return nullptr;
 }
 
-static pxr::UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
+static UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
 {
   char *filePath, *filterPath;
   PyArg_ParseTuple(nodeArgs, "ss", &filePath, &filterPath);
-  return pxr::UsdStage::Open(filePath);
+  return UsdStage::Open(filePath);
   
         //if self.filter_path == '/*':
         //    self.cached_stage.insert(input_stage)
@@ -63,96 +77,117 @@ static pxr::UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
         //return stage
 }
 
-static pxr::UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
+static UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
 {
-        //stage = self.cached_stage.create()
-        //UsdGeom.SetStageMetersPerUnit(stage, 1)
-        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+  UsdStageRefPtr stage = UsdStage::CreateNew(hdusd::get_temp_file(".usda", "usdnode", true));
+  stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
+  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
 
-        //root_prim = stage.GetPseudoRoot()
+  UsdPrim rootPrim = stage->GetPseudoRoot();
 
-        //for ref_stage in ref_stages:
-        //    for prim in ref_stage.GetPseudoRoot().GetAllChildren():
-        //        override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        //        override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
+  for (int i = 0; i < Py_SIZE(nodeArgs); i++) {
+    long stageId = PyLong_AsLong(PyTuple_GetItem(nodeArgs, i));
+    UsdStageRefPtr refStage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+    auto childPrims = refStage->GetPseudoRoot().GetAllChildren();
+    for (auto prim = childPrims.begin(); prim != childPrims.end(); ++prim) {
+      UsdPrim overridePrim = stage->OverridePrim(rootPrim.GetPath().AppendChild(prim->GetName()));
+      overridePrim.GetReferences().AddReference(refStage->GetRootLayer()->GetRealPath(), prim->GetPath());
+    }
+  }
 
-        //return stage
-
-  std::cout << "MergeNode" << std::endl;
-  return NULL;
+  return stage;
 }
 
-static pxr::UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
+void getChildPrims(std::vector<UsdPrim> &prims, UsdPrim prim, std::regex &reg)
 {
-        //# creating search regex pattern and getting filtered rpims
-        //prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
-        //                                  .replace('/', '\/')       # for correct regex pattern
-        //                                  .replace('##', '[\w\/]*') # creation
-        //                                  .replace('#', '\w*'))
+  if (!prim.IsPseudoRoot() && std::regex_match(prim.GetPath().GetAsString(), reg)) {
+    prims.push_back(prim);
+    return;
+  }
 
-        //def get_child_prims(prim):
-        //    if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
-        //        yield prim
-        //        return
-
-        //    for child in prim.GetAllChildren():
-        //        yield from get_child_prims(child)
-
-        //prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
-        //if not prims:
-        //    return None
-
-        //stage = self.cached_stage.create()
-        //UsdGeom.SetStageMetersPerUnit(stage, 1)
-        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
-        //root_prim = stage.GetPseudoRoot()
-
-        //for i, prim in enumerate(prims, 1):
-        //    override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        //    override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
-        //                                               prim.GetPath())
-
-        //return stage
-
-  std::cout << "FilterNode" << std::endl;
-  return NULL;
+  auto childPrims = prim.GetAllChildren();
+  for (auto child = childPrims.begin(); child != childPrims.end(); ++child) {
+    getChildPrims(prims, *child, reg);
+  }
 }
 
-static pxr::UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
+static UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
 {
-        //path = f'/{Tf.MakeValidIdentifier(self.name)}'
-        //stage = self.cached_stage.create()
-        //UsdGeom.SetStageMetersPerUnit(stage, 1)
-        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+  char *filterPath;
+  long inputStageId;
+  PyArg_ParseTuple(nodeArgs, "ls", &inputStageId, &filterPath);
+  
+  UsdStageRefPtr inputStage = stageCache->Find(UsdStageCache::Id::FromLongInt(inputStageId));
 
-        //# create new root prim according to name and type
-        //if self.type == 'Xform':
-        //    root_prim = UsdGeom.Xform.Define(stage, path)
-        //elif self.type == 'Scope':
-        //    root_prim = UsdGeom.Scope.Define(stage, path)
-        //elif self.type == 'SkelRoot':
-        //    root_prim = UsdSkel.Root.Define(stage, path)
-        //else:
-        //    root_prim = stage.DefinePrim(path)
+  std::string pattern = filterPath;
+  boost::replace_all(pattern, "*", "#");          // temporary replacing '*' to '#'
+  boost::replace_all(pattern, "/", "\\/");        // for correct regex pattern
+  boost::replace_all(pattern, "##", "[\\w\\/]*"); // creation
+  boost::replace_all(pattern, "#", "\\w*");
 
-        //for prim in input_stage.GetPseudoRoot().GetAllChildren():
-        //    override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        //    override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+  std::regex reg(pattern);
+  std::vector<UsdPrim> prims;
+  getChildPrims(prims, inputStage->GetPseudoRoot(), reg);
 
-        //return stage
+  UsdStageRefPtr stage = UsdStage::CreateNew(hdusd::get_temp_file(".usda", "usdnode", true));
+  stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
+  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
 
-  std::cout << "RootNode" << std::endl;
-  return NULL;
+  UsdPrim rootPrim = stage->GetPseudoRoot();
+  for (auto prim = prims.begin(); prim != prims.end(); ++prim) {
+    UsdPrim overridePrim = stage->OverridePrim(rootPrim.GetPath().AppendChild(prim->GetName()));
+    overridePrim.GetReferences().AddReference(inputStage->GetRootLayer()->GetRealPath(), prim->GetPath());
+  }
+
+  return stage;
 }
 
-static pxr::UsdStageRefPtr compute_InstancingNode(PyObject *nodeArgs)
+static UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
+{
+  char *name, *type;
+  long inputStageId;
+  PyArg_ParseTuple(nodeArgs, "lss", &inputStageId, &name, &type);
+
+  UsdStageRefPtr inputStage = stageCache->Find(UsdStageCache::Id::FromLongInt(inputStageId));
+
+  char filename[1024];
+  std::tmpnam(filename);
+
+  UsdStageRefPtr stage = UsdStage::CreateNew(filename);
+  stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
+  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
+
+  SdfPath path = SdfPath::AbsoluteRootPath().AppendChild(TfToken(name));
+  UsdPrim rootPrim;
+  if (strcmp(type, "Xform") == 0) {
+    rootPrim = UsdGeomXform::Define(stage, path).GetPrim();
+  }
+  else if (strcmp(type, "Scope") == 0) {
+    rootPrim = UsdGeomScope::Define(stage, path).GetPrim();
+  }
+  else if (strcmp(type, "SkelRoot") == 0) {
+    rootPrim = UsdSkelRoot::Define(stage, path).GetPrim();
+  }
+  else {
+    rootPrim = stage->DefinePrim(path);
+  }
+
+  auto childPrims = inputStage->GetPseudoRoot().GetAllChildren();
+  for (auto prim = childPrims.begin(); prim != childPrims.end(); ++prim) {
+    UsdPrim overridePrim = stage->OverridePrim(rootPrim.GetPath().AppendChild(prim->GetName()));
+    overridePrim.GetReferences().AddReference(inputStage->GetRootLayer()->GetRealPath(), prim->GetPath());
+  }
+
+  return stage;
+}
+
+static UsdStageRefPtr compute_InstancingNode(PyObject *nodeArgs)
 {
   std::cout << "InstancingNode" << std::endl;
   return NULL;
 }
 
-static pxr::UsdStageRefPtr compute_TransformNode(PyObject *nodeArgs)
+static UsdStageRefPtr compute_TransformNode(PyObject *nodeArgs)
 {
   std::cout << "TransformNode" << std::endl;
 
@@ -166,7 +201,7 @@ static pxr::UsdStageRefPtr compute_TransformNode(PyObject *nodeArgs)
   return NULL;
 }
 
-static pxr::UsdStageRefPtr compute_TransformByEmptyNode(PyObject *nodeArgs)
+static UsdStageRefPtr compute_TransformByEmptyNode(PyObject *nodeArgs)
 {
   std::cout << "TransformByEmptyNode" << std::endl;
   return NULL;
@@ -181,7 +216,7 @@ static PyObject *compute(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
   }
   
-  pxr::UsdStageRefPtr stage = nullptr;
+  UsdStageRefPtr stage = nullptr;
 
   if (strcmp(nodeIdname, "hdusd.UsdFileNode") == 0) {
     stage = compute_UsdFileNode(nodeArgs);
@@ -200,12 +235,7 @@ static PyObject *compute(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
   }
 
-  pxr::UsdStageCache::Id id = stageCache->Insert(stage);
-
-  std::string str;
-  stage->ExportToString(&str);
-  std::cout << str <<std::endl;
-
+  UsdStageCache::Id id = stageCache->Insert(stage);
   return PyLong_FromLong(id.ToLongInt());
 }
 
@@ -241,18 +271,5 @@ static struct PyModuleDef usdNodeTypeModule = {
 PyObject *HdUSD_usd_node_initPython(void)
 {
   PyObject *mod = PyModule_Create(&module);
-  PyObject *usdNodeTypeMod = PyModule_Create(&usdNodeTypeModule);
-
-  PyModule_AddObject(usdNodeTypeMod, "BlenderDataNode", PyLong_FromLong((int)USDNodeType::BlenderDataNode));
-  PyModule_AddObject(usdNodeTypeMod, "UsdFileNode", PyLong_FromLong((int)USDNodeType::UsdFileNode));
-  PyModule_AddObject(usdNodeTypeMod, "MergeNode", PyLong_FromLong((int)USDNodeType::MergeNode));
-  PyModule_AddObject(usdNodeTypeMod, "FilterNode", PyLong_FromLong((int)USDNodeType::FilterNode));
-  PyModule_AddObject(usdNodeTypeMod, "RootNode", PyLong_FromLong((int)USDNodeType::RootNode));
-  PyModule_AddObject(usdNodeTypeMod, "InstancingNode", PyLong_FromLong((int)USDNodeType::InstancingNode));
-  PyModule_AddObject(usdNodeTypeMod, "TransformNode", PyLong_FromLong((int)USDNodeType::TransformNode));
-  PyModule_AddObject(usdNodeTypeMod, "TransformByEmptyNode", PyLong_FromLong((int)USDNodeType::TransformByEmptyNode));
-
-  PyModule_AddObject(mod, "type", usdNodeTypeMod);
-
   return mod;
 }

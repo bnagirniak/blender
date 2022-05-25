@@ -25,6 +25,8 @@ class HdUSDEngine(bpy.types.RenderEngine):
     bl_use_shading_nodes_custom = False
     bl_use_gpu_context = False
 
+    session = None
+
     def __init__(self):
         self.session = None
 

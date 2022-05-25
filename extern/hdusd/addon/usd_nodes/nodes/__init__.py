@@ -22,21 +22,21 @@ class USDNodeCategory(NodeCategory):
 
 node_categories = [
     USDNodeCategory('HdUSD_USD_INPUT', "Input", items=[
-        NodeItem('usd.BlenderDataNode'),
-        NodeItem('usd.UsdFileNode'),
+        # NodeItem('hdusd.BlenderDataNode'),
+        NodeItem('hdusd.UsdFileNode'),
     ]),
     USDNodeCategory('HdUSD_USD_OUTPUT', 'Output', items=[
-        NodeItem('usd.OutputNode'),
+        NodeItem('hdusd.OutputNode'),
     ]),
     USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
-        NodeItem('usd.MergeNode'),
-        NodeItem('usd.FilterNode'),
-        NodeItem('usd.RootNode'),
-        NodeItem('usd.InstancingNode'),
+        NodeItem('hdusd.MergeNode'),
+        NodeItem('hdusd.FilterNode'),
+        NodeItem('hdusd.RootNode'),
+        # NodeItem('hdusd.InstancingNode'),
     ]),
     USDNodeCategory('HdUSD_USD_TRANSFORMATIONS', 'Transformations', items=[
-        NodeItem('usd.TransformNode'),
-        NodeItem('usd.TransformByEmptyNode'),
+        NodeItem('hdusd.TransformNode'),
+        NodeItem('hdusd.TransformByEmptyNode'),
     ]),
     USDNodeCategory('HdUSD_USD_LAYOUT', 'Layout', items=[
         NodeItem('NodeFrame'),

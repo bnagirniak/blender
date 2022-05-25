@@ -61,12 +61,14 @@ class USDNode(bpy.types.Node):
         """
         if not self.hdusd.stage:
             # log("compute", self, group_nodes)
-            self.hdusd.stage = self.compute(group_nodes=group_nodes, **kwargs)
+            if stage := self.compute(group_nodes=group_nodes, **kwargs):
+                self.hdusd.stage = stage
+
             #self.hdusd.usd_list.update_items()
             self.node_computed()
 
-        print("final_compute stage:", self.hdusd.stage)
-        return self.hdusd.stage
+        print("final_compute stage:", self.hdusd.stage, self.name)
+        return self.hdusd.stage if self.hdusd.stage else None
 
     def _compute_node(self, node, group_node=None, **kwargs):
         """
@@ -118,6 +120,7 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
+        _hdusd.stage_free(self.hdusd.stage)
         self.hdusd.stage = 0
 
     def reset(self, is_hard=False):

@@ -22,8 +22,18 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
-from . import node
+from . import node, scene, hdrpr_render
 
 register, unregister = bpy.utils.register_classes_factory((
+    hdrpr_render.QualitySettings,
+    hdrpr_render.InteractiveQualitySettings,
+    hdrpr_render.ContourSettings,
+    hdrpr_render.DenoiseSettings,
+    hdrpr_render.RenderSettings,
+
     node.NodeProperties,
+
+    scene.FinalRenderSettings,
+    scene.ViewportRenderSettings,
+    scene.SceneProperties,
 ))

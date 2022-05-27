@@ -11,6 +11,8 @@
 #include "hdusd_python_api.h"
 #include "session.h"
 
+namespace hdusd {
+
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
   blender::io::usd::ensure_usd_plugin_path_registered();
@@ -206,9 +208,11 @@ static struct PyModuleDef module = {
   NULL,
 };
 
+}   // namespace hdusd
+
 PyObject *HdUSD_initPython(void)
 {
-  PyObject *mod = PyModule_Create(&module);
+  PyObject *mod = PyModule_Create(&hdusd::module);
   PyObject *submodule = HdUSD_usd_node_initPython();
 
   PyModule_AddObject(mod, "usd_node", submodule);

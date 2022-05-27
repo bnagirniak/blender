@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <iostream>
+
 #include <Python.h>
 
 #include <pxr/pxr.h>
@@ -155,6 +157,8 @@ static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
   }
 
   stageCache->Erase(stage);
+  std::cout << "stage_free " << stageId << std::endl;
+
   Py_RETURN_TRUE;
 }
 

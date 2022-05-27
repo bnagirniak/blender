@@ -43,6 +43,9 @@ class USDNode(bpy.types.Node):
         nodetree = self.id_data
         nodetree.no_update_call(init_)
 
+    def draw_buttons(self, context, layout):
+        layout.label(text=f"Stage: {self.hdusd.stage}")
+
     # COMPUTE FUNCTION
     def c_compute(self, *args):
         return _hdusd.usd_node.compute(self.bl_idname, args)
@@ -120,8 +123,19 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
-        _hdusd.stage_free(self.hdusd.stage)
-        self.hdusd.stage = 0
+        from ..node_tree import USDTree
+
+        if not self.hdusd.stage:
+            return
+
+        # count = 0
+        # for nodetree in bpy.data.node_groups:
+        #     if isinstance(nodetree, USDTree):
+        #         for n in nodetree.nodes:
+        #             if isinstance(n, USDNode) and n.hdusd.stage == self.hdusd.stage:
+        #                 count += 1
+        # if count == 1:
+        #     _hdusd.stage_free(self.hdusd.stage)
 
     def reset(self, is_hard=False):
         if is_hard or self.use_hard_reset:

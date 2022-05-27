@@ -22,21 +22,21 @@ class USDNodeCategory(NodeCategory):
 
 node_categories = [
     USDNodeCategory('HdUSD_USD_INPUT', "Input", items=[
-        NodeItem('usd.BlenderDataNode'),
-        NodeItem('usd.UsdFileNode'),
+        # NodeItem('hdusd.BlenderDataNode'),
+        NodeItem('hdusd.UsdFileNode'),
     ]),
     USDNodeCategory('HdUSD_USD_OUTPUT', 'Output', items=[
-        NodeItem('usd.OutputNode'),
+        NodeItem('hdusd.OutputNode'),
     ]),
     USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
-        NodeItem('usd.MergeNode'),
-        NodeItem('usd.FilterNode'),
-        NodeItem('usd.RootNode'),
-        NodeItem('usd.InstancingNode'),
+        NodeItem('hdusd.MergeNode'),
+        NodeItem('hdusd.FilterNode'),
+        NodeItem('hdusd.RootNode'),
+        # NodeItem('hdusd.InstancingNode'),
     ]),
     USDNodeCategory('HdUSD_USD_TRANSFORMATIONS', 'Transformations', items=[
-        NodeItem('usd.TransformNode'),
-        NodeItem('usd.TransformByEmptyNode'),
+        NodeItem('hdusd.TransformNode'),
+        NodeItem('hdusd.TransformByEmptyNode'),
     ]),
     USDNodeCategory('HdUSD_USD_LAYOUT', 'Layout', items=[
         NodeItem('NodeFrame'),
@@ -46,22 +46,13 @@ node_categories = [
 
 # nodes to register
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    input.HDUSD_USD_NODETREE_OP_blender_data_link_collection,
-    input.HDUSD_USD_NODETREE_OP_blender_data_unlink_collection,
-    input.HDUSD_USD_NODETREE_MT_blender_data_collection,
-    input.HDUSD_USD_NODETREE_OP_blender_data_link_object,
-    input.HDUSD_USD_NODETREE_OP_blender_data_unlink_object,
-    input.HDUSD_USD_NODETREE_MT_blender_data_object,
-    input.BlenderDataNode,
     input.UsdFileNode,
 
     output.OutputNode,
 
-    converter.HDUSD_USD_NODETREE_MT_instancing_object,
     converter.MergeNode,
     converter.FilterNode,
     converter.RootNode,
-    converter.InstancingNode,
 
     transformations.HDUSD_USD_NODETREE_OP_transform_add_empty,
     transformations.TransformNode,

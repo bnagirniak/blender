@@ -10,4 +10,4 @@ from . import HdUSDProperties
 class NodeProperties(HdUSDProperties):
     bl_type = bpy.types.Node
 
-    stage: bpy.props.IntProperty()
+    stage: bpy.props.IntProperty(default=0)

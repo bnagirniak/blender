@@ -25,5 +25,5 @@ class HdUSDProperties(bpy.types.PropertyGroup):
 from . import node
 
 register, unregister = bpy.utils.register_classes_factory((
-    node.NodeProperties,
+    #node.NodeProperties,
 ))

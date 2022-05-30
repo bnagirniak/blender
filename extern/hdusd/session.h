@@ -11,6 +11,8 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
+namespace hdusd {
+
 extern std::unique_ptr<pxr::UsdStageCache> stageCache;
 
 class BlenderSession {
@@ -22,3 +24,4 @@ public:
   BL::BlendData b_data;
 };
 
+}   // namespace hdusd

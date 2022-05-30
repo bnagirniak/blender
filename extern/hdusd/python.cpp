@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <iostream>
+
 #include <Python.h>
 
 #include <pxr/pxr.h>
@@ -10,6 +12,8 @@
 
 #include "hdusd_python_api.h"
 #include "session.h"
+
+namespace hdusd {
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
@@ -153,6 +157,8 @@ static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
   }
 
   stageCache->Erase(stage);
+  std::cout << "stage_free " << stageId << std::endl;
+
   Py_RETURN_TRUE;
 }
 
@@ -206,9 +212,11 @@ static struct PyModuleDef module = {
   NULL,
 };
 
+}   // namespace hdusd
+
 PyObject *HdUSD_initPython(void)
 {
-  PyObject *mod = PyModule_Create(&module);
+  PyObject *mod = PyModule_Create(&hdusd::module);
   PyObject *submodule = HdUSD_usd_node_initPython();
 
   PyModule_AddObject(mod, "usd_node", submodule);

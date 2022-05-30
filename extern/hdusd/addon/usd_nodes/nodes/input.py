@@ -39,6 +39,7 @@ class UsdFileNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         layout.prop(self, 'filename')
         layout.prop(self, 'filter_path')
 

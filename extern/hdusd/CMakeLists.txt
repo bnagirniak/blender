@@ -55,6 +55,7 @@ set(LIB
 set(ADDON_FILES
   addon/__init__.py
   addon/engine.py
+  addon/handlers.py
 )
 
 set(ADDON_USD_NODES_FILES
@@ -73,16 +74,20 @@ set(ADDON_USD_NODES_NODES_FILES
 
 set(ADDON_PROPERTIES_FILES
   addon/properties/__init__.py
-  addon/properties/node.py
+)
+
+set(ADDON_UTILS_FILES
+  addon/utils/__init__.py
+  addon/utils/stages.py
 )
 
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
-
 
 blender_add_lib(extern_hdusd "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
 #message(FATAL_ERROR "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}, CYCLES_INSTALL_PATH=${HDUSD_INSTALL_PATH}")
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${HDUSD_INSTALL_PATH})
+delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_UTILS_FILES}" ${HDUSD_INSTALL_PATH}/utils)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_PROPERTIES_FILES}" ${HDUSD_INSTALL_PATH}/properties)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_USD_NODES_FILES}" ${HDUSD_INSTALL_PATH}/usd_nodes)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_USD_NODES_NODES_FILES}" ${HDUSD_INSTALL_PATH}/usd_nodes/nodes)

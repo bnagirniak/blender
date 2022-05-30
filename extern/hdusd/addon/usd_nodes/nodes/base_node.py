@@ -7,6 +7,7 @@ import bpy
 import _hdusd
 
 from ...properties import HdUSDProperties
+from ...utils import stages
 #
 # from . import log
 
@@ -43,6 +44,9 @@ class USDNode(bpy.types.Node):
         nodetree = self.id_data
         nodetree.no_update_call(init_)
 
+    def draw_buttons(self, context, layout):
+        layout.label(text=f"Stage: {stages.get(self)}")
+
     # COMPUTE FUNCTION
     def c_compute(self, *args):
         return _hdusd.usd_node.compute(self.bl_idname, args)
@@ -59,16 +63,18 @@ class USDNode(bpy.types.Node):
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        if not self.hdusd.stage:
+        stage = stages.get(self)
+        if not stage:
             # log("compute", self, group_nodes)
-            if stage := self.compute(group_nodes=group_nodes, **kwargs):
-                self.hdusd.stage = stage
+            stage = self.compute(group_nodes=group_nodes, **kwargs)
+            if stage:
+                stages.set(self, stage)
 
             #self.hdusd.usd_list.update_items()
             self.node_computed()
 
-        print("final_compute stage:", self.hdusd.stage, self.name)
-        return self.hdusd.stage if self.hdusd.stage else None
+        print("final_compute stage:", stage, self.name)
+        return stage if stage else None
 
     def _compute_node(self, node, group_node=None, **kwargs):
         """
@@ -120,8 +126,7 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
-        _hdusd.stage_free(self.hdusd.stage)
-        self.hdusd.stage = 0
+        stages.free(self)
 
     def reset(self, is_hard=False):
         if is_hard or self.use_hard_reset:

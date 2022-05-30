@@ -13,6 +13,7 @@ set(INC
   # ../../intern
   # ../../glew-mx
   ../../intern/guardedalloc
+  ../../intern/glew-mx
   # ../../mikktspace
   ../../source/blender/makesdna
   ../../source/blender/makesrna
@@ -26,6 +27,7 @@ set(INC_SYS
   ${USD_INCLUDE_DIRS}
   ${BOOST_INCLUDE_DIR}
   ${TBB_INCLUDE_DIR}
+  ${GLEW_INCLUDE_PATH}
 )
 
 set(SRC
@@ -37,6 +39,20 @@ set(SRC
   hdusd_python_api.h
   session.h
   utils.h
+
+  camera.h
+  camera.cpp
+
+  view_settings.h
+  view_settings.cpp
+
+  usdImagingLite/engine.cpp
+  usdImagingLite/engine.h
+  usdImagingLite/renderDataDelegate.cpp
+  usdImagingLite/renderDataDelegate.h
+  usdImagingLite/renderTask.cpp
+  usdImagingLite/renderTask.h
+  usdImagingLite/renderParams.h
 )
 
 set(LIB

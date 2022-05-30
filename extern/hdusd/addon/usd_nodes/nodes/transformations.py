@@ -32,7 +32,7 @@ class HDUSD_USD_NODETREE_OP_transform_add_empty(bpy.types.Operator):
 
 class TransformNode(USDNode):
     """Transforms input data"""
-    bl_idname = 'usd.TransformNode'
+    bl_idname = 'hdusd.TransformNode'
     bl_label = "Transform"
     bl_icon = "OBJECT_ORIGIN"
     bl_width_default = 250
@@ -52,6 +52,7 @@ class TransformNode(USDNode):
     scale: bpy.props.FloatVectorProperty(update=update_data, unit='NONE', default=(1.0, 1.0, 1.0))
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         col = layout.column()
         col.prop(self, 'name')
         col.separator()
@@ -96,7 +97,7 @@ class TransformNode(USDNode):
 
 class TransformByEmptyNode(USDNode):
     """Transforms input data based on Empty object"""
-    bl_idname = 'usd.TransformByEmptyNode'
+    bl_idname = 'hdusd.TransformByEmptyNode'
     bl_label = "Transform by Empty object"
     bl_icon = "OBJECT_ORIGIN"
 
@@ -124,9 +125,10 @@ class TransformByEmptyNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         layout.prop(self, 'name')
         row = layout.row(align=True)
-        
+
         if self.object:
             row.prop(self, 'object')
         else:

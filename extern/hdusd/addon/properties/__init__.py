@@ -22,8 +22,8 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
-from . import node
+#from . import node
 
 register, unregister = bpy.utils.register_classes_factory((
-    node.NodeProperties,
+    #node.NodeProperties,
 ))

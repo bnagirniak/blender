@@ -35,6 +35,7 @@ from . import (
     engine,
     usd_nodes,
     properties,
+    handlers,
 )
 
 
@@ -61,10 +62,9 @@ def register():
     # operators.register()
     # presets.register()
     usd_nodes.register()
+    handlers.register()
 
     register_class(engine.HdUSDEngine)
-
-    # bpy.app.handlers.version_update.append(version_update.do_versions)
 
 
 def unregister():
@@ -81,5 +81,6 @@ def unregister():
     properties.unregister()
     # presets.unregister()
     usd_nodes.unregister()
+    handlers.unregister()
 
     unregister_class(engine.HdUSDEngine)

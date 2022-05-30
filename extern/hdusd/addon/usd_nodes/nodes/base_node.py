@@ -7,6 +7,7 @@ import bpy
 import _hdusd
 
 from ...properties import HdUSDProperties
+from ...utils import stages
 #
 # from . import log
 
@@ -20,10 +21,10 @@ class NodeProperties(HdUSDProperties):
 class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
+    bl_idname = ''
     bl_compatibility = {'HdUSD'}
     bl_width_default = 200
 
-    c_type = None
     input_names = ("Input",)
     output_name = "Output"
     use_hard_reset = True
@@ -43,9 +44,12 @@ class USDNode(bpy.types.Node):
         nodetree = self.id_data
         nodetree.no_update_call(init_)
 
+    def draw_buttons(self, context, layout):
+        layout.label(text=f"Stage: {stages.get(self)}")
+
     # COMPUTE FUNCTION
     def c_compute(self, *args):
-        return _hdusd.usd_node.compute(self.c_type, args)
+        return _hdusd.usd_node.compute(self.bl_idname, args)
 
     def compute(self, **kwargs):
         """
@@ -59,14 +63,18 @@ class USDNode(bpy.types.Node):
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        if not self.hdusd.stage:
+        stage = stages.get(self)
+        if not stage:
             # log("compute", self, group_nodes)
-            self.hdusd.stage = self.compute(group_nodes=group_nodes, **kwargs)
+            stage = self.compute(group_nodes=group_nodes, **kwargs)
+            if stage:
+                stages.set(self, stage)
+
             #self.hdusd.usd_list.update_items()
             self.node_computed()
 
-        print("final_compute stage:", self.hdusd.stage)
-        return self.hdusd.stage
+        print("final_compute stage:", stage, self.name)
+        return stage if stage else None
 
     def _compute_node(self, node, group_node=None, **kwargs):
         """
@@ -118,7 +126,7 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
-        self.hdusd.stage = 0
+        stages.free(self)
 
     def reset(self, is_hard=False):
         if is_hard or self.use_hard_reset:

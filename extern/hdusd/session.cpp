@@ -3,6 +3,8 @@
 
 #include "session.h"
 
+namespace hdusd {
+
 std::unique_ptr<pxr::UsdStageCache> stageCache;
 
 BlenderSession::BlenderSession(BL::RenderEngine &b_engine, BL::BlendData &b_data)
@@ -15,3 +17,4 @@ BlenderSession::~BlenderSession()
 {
 }
 
+}   // namespace hdusd

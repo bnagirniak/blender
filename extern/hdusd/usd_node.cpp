@@ -30,6 +30,53 @@
 
 using namespace pxr;
 
+namespace hdusd {
+
+void getChildPrims(std::vector<UsdPrim> &prims, UsdPrim prim, std::regex &reg)
+{
+  if (!prim.IsPseudoRoot() && std::regex_match(prim.GetPath().GetAsString(), reg)) {
+    prims.push_back(prim);
+    return;
+  }
+
+  auto childPrims = prim.GetAllChildren();
+  for (auto child = childPrims.begin(); child != childPrims.end(); ++child) {
+    getChildPrims(prims, *child, reg);
+  }
+}
+
+UsdStageRefPtr getFilteredStage(UsdStageRefPtr inputStage, const std::string filterPath)
+{
+  if (!inputStage) {
+    return nullptr;
+  }
+  if (filterPath == "/*" || filterPath == "/**") {
+    return inputStage;
+  }
+
+  std::string pattern = filterPath;
+  boost::replace_all(pattern, "*", "#");          // temporary replacing '*' to '#'
+  boost::replace_all(pattern, "/", "\\/");        // for correct regex pattern
+  boost::replace_all(pattern, "##", "[\\w\\/]*"); // creation
+  boost::replace_all(pattern, "#", "\\w*");
+
+  std::regex reg(pattern);
+  std::vector<UsdPrim> prims;
+  getChildPrims(prims, inputStage->GetPseudoRoot(), reg);
+
+  UsdStageRefPtr stage = UsdStage::CreateNew(hdusd::get_temp_file(".usda", "usdnode", true));
+  stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
+  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
+
+  UsdPrim rootPrim = stage->GetPseudoRoot();
+  for (auto prim = prims.begin(); prim != prims.end(); ++prim) {
+    UsdPrim overridePrim = stage->OverridePrim(rootPrim.GetPath().AppendChild(prim->GetName()));
+    overridePrim.GetReferences().AddReference(inputStage->GetRootLayer()->GetRealPath(), prim->GetPath());
+  }
+
+  return stage;
+}
+
 static UsdStageRefPtr compute_BlenderDataNode(PyObject *nodeArgs)
 {
   std::cout << "BlenderDataNode" << std::endl;
@@ -40,41 +87,9 @@ static UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
 {
   char *filePath, *filterPath;
   PyArg_ParseTuple(nodeArgs, "ss", &filePath, &filterPath);
-  return UsdStage::Open(filePath);
-  
-        //if self.filter_path == '/*':
-        //    self.cached_stage.insert(input_stage)
-        //    return input_stage
+  UsdStageRefPtr inputStage = UsdStage::Open(filePath);
 
-        //# creating search regex pattern and getting filtered rpims
-        //prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
-        //                  .replace('/', '\/')       # for correct regex pattern
-        //                  .replace('##', '[\w\/]*') # creation
-        //                  .replace('#', '\w*'))
-
-        //def get_child_prims(prim):
-        //    if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
-        //        yield prim
-        //        return
-
-        //    for child in prim.GetAllChildren():
-        //        yield from get_child_prims(child)
-
-        //prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
-        //if not prims:
-        //    return None
-
-        //stage = self.cached_stage.create()
-        //stage.SetInterpolationType(Usd.InterpolationTypeHeld)
-        //UsdGeom.SetStageMetersPerUnit(stage, 1)
-        //UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
-        //root_prim = stage.GetPseudoRoot()
-        //for i, prim in enumerate(prims, 1):
-        //    override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-        //    override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-
-        //return stage
+  return getFilteredStage(inputStage, filterPath);
 }
 
 static UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
@@ -98,19 +113,6 @@ static UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
   return stage;
 }
 
-void getChildPrims(std::vector<UsdPrim> &prims, UsdPrim prim, std::regex &reg)
-{
-  if (!prim.IsPseudoRoot() && std::regex_match(prim.GetPath().GetAsString(), reg)) {
-    prims.push_back(prim);
-    return;
-  }
-
-  auto childPrims = prim.GetAllChildren();
-  for (auto child = childPrims.begin(); child != childPrims.end(); ++child) {
-    getChildPrims(prims, *child, reg);
-  }
-}
-
 static UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
 {
   char *filterPath;
@@ -119,27 +121,7 @@ static UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
   
   UsdStageRefPtr inputStage = stageCache->Find(UsdStageCache::Id::FromLongInt(inputStageId));
 
-  std::string pattern = filterPath;
-  boost::replace_all(pattern, "*", "#");          // temporary replacing '*' to '#'
-  boost::replace_all(pattern, "/", "\\/");        // for correct regex pattern
-  boost::replace_all(pattern, "##", "[\\w\\/]*"); // creation
-  boost::replace_all(pattern, "#", "\\w*");
-
-  std::regex reg(pattern);
-  std::vector<UsdPrim> prims;
-  getChildPrims(prims, inputStage->GetPseudoRoot(), reg);
-
-  UsdStageRefPtr stage = UsdStage::CreateNew(hdusd::get_temp_file(".usda", "usdnode", true));
-  stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
-  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
-
-  UsdPrim rootPrim = stage->GetPseudoRoot();
-  for (auto prim = prims.begin(); prim != prims.end(); ++prim) {
-    UsdPrim overridePrim = stage->OverridePrim(rootPrim.GetPath().AppendChild(prim->GetName()));
-    overridePrim.GetReferences().AddReference(inputStage->GetRootLayer()->GetRealPath(), prim->GetPath());
-  }
-
-  return stage;
+  return getFilteredStage(inputStage, filterPath);
 }
 
 static UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
@@ -268,8 +250,10 @@ static struct PyModuleDef usdNodeTypeModule = {
   NULL,
 };
 
+}   // namespace hdusd
+
 PyObject *HdUSD_usd_node_initPython(void)
 {
-  PyObject *mod = PyModule_Create(&module);
+  PyObject *mod = PyModule_Create(&hdusd::module);
   return mod;
 }

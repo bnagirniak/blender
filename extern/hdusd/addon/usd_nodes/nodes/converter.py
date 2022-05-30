@@ -27,6 +27,7 @@ class FilterNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
@@ -68,6 +69,7 @@ class MergeNode(USDNode):
         self.update_inputs_number(context)
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
@@ -113,6 +115,7 @@ class RootNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         layout.prop(self, 'name')
         layout.prop(self, 'type')
 

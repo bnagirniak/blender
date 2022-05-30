@@ -52,6 +52,7 @@ class TransformNode(USDNode):
     scale: bpy.props.FloatVectorProperty(update=update_data, unit='NONE', default=(1.0, 1.0, 1.0))
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         col = layout.column()
         col.prop(self, 'name')
         col.separator()
@@ -124,6 +125,7 @@ class TransformByEmptyNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
+        super().draw_buttons(context, layout)
         layout.prop(self, 'name')
         row = layout.row(align=True)
 

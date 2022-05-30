@@ -76,12 +76,20 @@ set(ADDON_PROPERTIES_FILES
   addon/properties/node.py
   addon/properties/scene.py
   addon/properties/hdrpr_render.py
+  addon/properties/material.py
+  addon/properties/matlib.py
+  addon/properties/object.py
+  addon/properties/usd_list.py
 )
 
 set(ADDON_UI_FILES
   addon/ui/__init__.py
   addon/ui/render.py
   addon/ui/hdrpr_render.py
+  addon/ui/object.py
+  addon/ui/world.py
+  addon/ui/material.py
+  addon/ui/light.py
 )
 
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")

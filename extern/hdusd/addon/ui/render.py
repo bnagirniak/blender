@@ -14,7 +14,6 @@
 #********************************************************************
 import bpy
 
-from .. import bl_info
 from . import HdUSD_Panel
 
 

@@ -90,6 +90,8 @@ set(ADDON_UI_FILES
   addon/ui/world.py
   addon/ui/material.py
   addon/ui/light.py
+  addon/ui/matlib.py
+  addon/ui/panels.py
 )
 
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")

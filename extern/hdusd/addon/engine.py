@@ -61,5 +61,6 @@ class HdUSDEngine(bpy.types.RenderEngine):
         depsgraph_ptr = depsgraph.as_pointer()
         space_data_ptr = context.space_data.as_pointer()
         region_data_ptr = context.region_data.as_pointer()
+        context_ptr = context.as_pointer()
 
-        _hdusd.view_draw(self.session, depsgraph_ptr, space_data_ptr, region_data_ptr)
+        _hdusd.view_draw(self.session, depsgraph_ptr, context_ptr, space_data_ptr, region_data_ptr)

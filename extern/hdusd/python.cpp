@@ -113,6 +113,49 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
+static PyObject *stage_export_to_str_func(PyObject * /*self*/, PyObject *args)
+{
+  long stageId;
+  int flutten;
+
+  if (!PyArg_ParseTuple(args, "lp", &stageId, &flutten)) {
+    Py_RETURN_NONE;
+  }
+
+  pxr::UsdStageRefPtr stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+
+  if (!stage) {
+    Py_RETURN_NONE;
+  }
+
+  std::string str;
+  if (flutten) {
+    stage->ExportToString(&str);
+  }
+  else {
+    stage->GetRootLayer()->ExportToString(&str);
+  }
+  return PyUnicode_FromString(str.c_str());
+}
+
+static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
+{
+  long stageId;
+
+  if (!PyArg_ParseTuple(args, "l", &stageId)) {
+    Py_RETURN_FALSE;
+  }
+
+  pxr::UsdStageRefPtr stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+
+  if (!stage) {
+    Py_RETURN_FALSE;
+  }
+
+  stageCache->Erase(stage);
+  Py_RETURN_TRUE;
+}
+
 static PyObject *test_func(PyObject * /*self*/, PyObject *args)
 {
   char *path;
@@ -143,6 +186,10 @@ static PyMethodDef methods[] = {
   {"reset", reset_func, METH_VARARGS, ""},
   {"render_frame_finish", render_frame_finish_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},
+
+  {"stage_export_to_str", stage_export_to_str_func, METH_VARARGS, ""},
+  {"stage_free", stage_free_func, METH_VARARGS, ""},
+
   {"test", test_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };

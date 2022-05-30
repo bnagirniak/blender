@@ -9,7 +9,7 @@ from .base_node import USDNode
 
 class OutputNode(USDNode):
     """Output USD Node"""
-    bl_idname = 'usd.OutputNode'
+    bl_idname = 'hdusd.OutputNode'
     bl_label = "Output"
     bl_icon = "EXPORT"
 

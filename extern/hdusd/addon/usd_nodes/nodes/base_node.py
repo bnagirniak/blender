@@ -20,10 +20,10 @@ class NodeProperties(HdUSDProperties):
 class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
+    bl_idname = ''
     bl_compatibility = {'HdUSD'}
     bl_width_default = 200
 
-    c_type = None
     input_names = ("Input",)
     output_name = "Output"
     use_hard_reset = True
@@ -45,7 +45,7 @@ class USDNode(bpy.types.Node):
 
     # COMPUTE FUNCTION
     def c_compute(self, *args):
-        return _hdusd.usd_node.compute(self.c_type, args)
+        return _hdusd.usd_node.compute(self.bl_idname, args)
 
     def compute(self, **kwargs):
         """
@@ -61,12 +61,14 @@ class USDNode(bpy.types.Node):
         """
         if not self.hdusd.stage:
             # log("compute", self, group_nodes)
-            self.hdusd.stage = self.compute(group_nodes=group_nodes, **kwargs)
+            if stage := self.compute(group_nodes=group_nodes, **kwargs):
+                self.hdusd.stage = stage
+
             #self.hdusd.usd_list.update_items()
             self.node_computed()
 
-        print("final_compute stage:", self.hdusd.stage)
-        return self.hdusd.stage
+        print("final_compute stage:", self.hdusd.stage, self.name)
+        return self.hdusd.stage if self.hdusd.stage else None
 
     def _compute_node(self, node, group_node=None, **kwargs):
         """
@@ -118,6 +120,7 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
+        _hdusd.stage_free(self.hdusd.stage)
         self.hdusd.stage = 0
 
     def reset(self, is_hard=False):

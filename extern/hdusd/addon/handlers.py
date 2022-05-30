@@ -28,6 +28,9 @@ def on_load_post(*args):
     """Handler on loading a blend file (after)"""
     # log("on_load_post", args)
     from .usd_nodes import node_tree
+    from .utils import stages
+
+    stages.free_all()
     node_tree.reset()
 
 

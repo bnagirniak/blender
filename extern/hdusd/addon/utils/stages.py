@@ -13,19 +13,26 @@ def key(bl_obj):
     return bl_obj.as_pointer()
 
 
-def get_stage(bl_obj):
+def get(bl_obj):
     return _stages.get(key(bl_obj), 0)
 
 
-def set_stage(bl_obj, stage):
-    free_stage(bl_obj)
+def set(bl_obj, stage):
+    free(bl_obj)
     _stages[key(bl_obj)] = stage
 
 
-def free_stage(bl_obj):
+def free(bl_obj):
     if key(bl_obj) not in _stages:
         return
 
     stage = _stages.pop(key(bl_obj))
     if stage not in _stages.values():
         _hdusd.stage_free(stage)
+
+
+def free_all():
+    for stage in _stages.values():
+        _hdusd.stage_free(stage)
+
+    _stages.clear()

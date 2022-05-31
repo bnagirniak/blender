@@ -26,10 +26,8 @@ from . import (
     scene,
     object,
     usd_list,
-    # node,
     material,
     hdrpr_render,
-    # matlib
 )
 register, unregister = bpy.utils.register_classes_factory((
     hdrpr_render.QualitySettings,
@@ -42,8 +40,6 @@ register, unregister = bpy.utils.register_classes_factory((
     usd_list.UsdListItem,
     usd_list.UsdList,
 
-    #node.NodeProperties,
-
     scene.FinalRenderSettings,
     scene.ViewportRenderSettings,
     scene.SceneProperties,
@@ -51,7 +47,4 @@ register, unregister = bpy.utils.register_classes_factory((
     object.ObjectProperties,
 
     material.MaterialProperties,
-
-    # matlib.MatlibProperties,
-    # matlib.WindowManagerProperties,
 ))

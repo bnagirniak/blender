@@ -13,6 +13,7 @@ CameraData::~CameraData()
 
 CameraData CameraData::init_from_camera(BL::Camera b_camera, BL::Array<float,16> b_transform, float ratio, vector<vector<int>> border)
 {
+  // TODO: add code
   return CameraData();
 }
 
@@ -24,9 +25,9 @@ CameraData CameraData::init_from_context(BL::Context b_context)
 
   CameraData data;
   float ratio = (float)b_context.region().width() / (float)b_context.region().height();
-  if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_PERSP) {  
+  if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_PERSP) {
     data = CameraData();
-    data.mode = "PERSP";
+    data.mode = BL::Camera::type_PERSP;
     data.clip_plane = {((BL::SpaceView3D)b_context.space_data()).clip_start(), ((BL::SpaceView3D)b_context.space_data()).clip_end()};
     data.lens_shift = {0.0, 0.0};
     data.focal_length = ((BL::SpaceView3D)b_context.space_data()).lens();
@@ -37,10 +38,11 @@ CameraData CameraData::init_from_context(BL::Context b_context)
     else {
       data.sensor_size = {VIEWPORT_SENSOR_SIZE * ratio, VIEWPORT_SENSOR_SIZE};
     }
-    vector<vector<float>> vect = hdusd::convert_array_4x4_to_vector(b_context.region_data().view_matrix());
-    data.transform = hdusd::convert_vector_to_array_4x4(hdusd::getInverse(vect));
+    vector<vector<float>> vect = hdusd::matrix::convert_array_4x4_to_vector(b_context.region_data().view_matrix());
+    data.transform = hdusd::matrix::convert_vector_to_array_4x4(hdusd::matrix::get_inverse(vect));
   }
   else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_ORTHO) {
+    // TODO: add code
     data = CameraData();
   }
   else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
@@ -58,7 +60,7 @@ CameraData CameraData::init_from_context(BL::Context b_context)
     data.lens_shift = {(data.lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
                         (data.lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom};
 
-    if (data.mode == "ORTHO") {
+    if (data.mode == BL::Camera::type_ORTHO) {
       data.ortho_size = {data.ortho_size[0] * zoom, data.ortho_size[1] * zoom};
     }
     else {
@@ -79,7 +81,7 @@ pxr::GfCamera CameraData::export_gf(vector<float> tile) {
   vector<float> lens_shift = {(float)(this->lens_shift[0] + tile_pos[0] + tile_size[0] * 0.5 - 0.5) / tile_size[0],
                               (float)(this->lens_shift[1] + tile_pos[1] + tile_size[1] * 0.5 - 0.5) / tile_size[1]};
 
-  if (this->mode == "PERSP") {
+  if (this->mode == BL::Camera::type_PERSP) {
     gf_camera.SetProjection(pxr::GfCamera::Projection::Perspective);
     gf_camera.SetFocalLength(this->focal_length);
 
@@ -91,29 +93,24 @@ pxr::GfCamera CameraData::export_gf(vector<float> tile) {
     gf_camera.SetHorizontalApertureOffset(lens_shift[0] * sensor_size[0]);
     gf_camera.SetVerticalApertureOffset(lens_shift[1] * sensor_size[1]);
   }
-  else if (this->mode == "ORTHO") {
-
+  else if (this->mode == BL::Camera::type_ORTHO) {
+    // TODO: add code
   }
-  else if (this->mode == "PANO") {
+  else if (this->mode == BL::Camera::type_PANO) {
+    // TODO: store panoramic camera settings
   }
 
-  double doubleArray[(sizeof(this->transform.data) / sizeof(this->transform.data[0]))];
+  double double_array[(sizeof(this->transform.data) / sizeof(this->transform.data[0]))];
 
   for (int i = 0 ; i < (sizeof(this->transform.data) / sizeof(this->transform.data[0])); i++) {
-    doubleArray[i] = (double)this->transform.data[i];
+    double_array[i] = (double)this->transform.data[i];
   }
 
-  gf_camera.SetTransform(pxr::GfMatrix4d(doubleArray[0], doubleArray[1], doubleArray[2], doubleArray[3],
-                                         doubleArray[4], doubleArray[5], doubleArray[6], doubleArray[7],
-                                         doubleArray[8], doubleArray[9], doubleArray[10], doubleArray[11],
-                                         doubleArray[12], doubleArray[13], doubleArray[14], doubleArray[15])
+  gf_camera.SetTransform(pxr::GfMatrix4d(double_array[0], double_array[1], double_array[2], double_array[3],
+                                         double_array[4], double_array[5], double_array[6], double_array[7],
+                                         double_array[8], double_array[9], double_array[10], double_array[11],
+                                         double_array[12], double_array[13], double_array[14], double_array[15])
                         );
-
-  /*gf_camera.SetTransform(pxr::GfMatrix4d(doubleArray[0], doubleArray[4], doubleArray[8], doubleArray[12],
-                                         doubleArray[1], doubleArray[5], doubleArray[9], doubleArray[13],
-                                         doubleArray[2], doubleArray[6], doubleArray[10], doubleArray[14],
-                                         doubleArray[3], doubleArray[7], doubleArray[11], doubleArray[15])
-                        );*/
   
   return gf_camera;
 }

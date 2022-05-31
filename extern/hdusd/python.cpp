@@ -111,11 +111,6 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph depsgraph(depsgraphptr);
-  
-  //pxr::TfTokenVector test_lite = UsdImagingLiteEngine::GetRendererPlugins();
-
-  //pxr::TfType rprPluginType = pxr::PlugRegistry::FindTypeByName("HdRprPlugin");
-  //pxr::PlugPluginPtr plugin = pxr::PlugRegistry::GetInstance().GetPluginForType(rprPluginType);
 
   ///* Allow Blender to execute other Python scripts. */
   //python_thread_state_save(&session->python_thread_state);
@@ -181,9 +176,7 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pycontext), &contextptr);
   BL::Context b_context(contextptr);
 
-  BL::Region b_region = b_context.region();
-
-  BL::Scene scene = depsgraph.scene_eval();
+  BL::Scene b_scene = depsgraph.scene_eval();
   BL::RenderEngine b_engine = session->b_engine;
   
   ViewSettings *view_settings = new ViewSettings(b_context);
@@ -201,16 +194,9 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  b_engine.bind_display_space_shader(scene);
-
-  auto a = imagingGLEngine->IsConverged();
+  b_engine.bind_display_space_shader(b_scene);
 
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
-
-  a = imagingGLEngine->IsConverged();
-
-  pxr::VtDictionary stats = imagingGLEngine->GetRenderStats();
-  auto test = stats.find("percentDone");
 
   b_engine.unbind_display_space_shader();
 

@@ -19,13 +19,7 @@ ViewSettings::ViewSettings(BL::Context b_context) {
 
   if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
     if (b_scene.render().use_border()) {
-      // getting border corners from camera view
-      // getting screen camera points
-      /*BL::Object b_scene_camera = b_scene.camera();
-
-      float result_1[3], result_2[3], result_3[3], result_4[3];
-      ((BL::Camera)b_scene_camera.data()).view_frame(b_scene, result_1, result_2, result_3, result_4);*/
-
+      // TODO: add code
     }
   }
   else {

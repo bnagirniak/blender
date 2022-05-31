@@ -15,21 +15,21 @@ using namespace std;
 
 namespace hdusd {
 
-std::string get_random_string(const int len);
-std::filesystem::path get_temp_dir(void);
-std::filesystem::path get_temp_pid_dir(void);
-std::string get_temp_file(std::string suffix, std::string name = "", bool is_rand = false);
+string get_random_string(const int len);
+filesystem::path get_temp_dir(void);
+filesystem::path get_temp_pid_dir(void);
+string get_temp_file(string suffix, string name = "", bool is_rand = false);
 
-float getDeterminant(const vector<vector<float>> vect);
+namespace matrix {
 
-vector<vector<float>> getTranspose(const vector<vector<float>> matrix1);
-
-vector<vector<float>> getCofactor(const vector<vector<float>> vect);
-
-vector<vector<float>> getInverse(const vector<vector<float>> vect);
+float get_determinant(const vector<vector<float>> input_vector);
+vector<vector<float>> get_transpose(const vector<vector<float>> input_vector);
+vector<vector<float>> get_cofactor(const vector<vector<float>> input_vector);
+vector<vector<float>> get_inverse(const vector<vector<float>> input_vector);
 
 vector<vector<float>> convert_array_4x4_to_vector(BL::Array<float, 16> input_array);
-
 BL::Array<float, 16> convert_vector_to_array_4x4(vector<vector<float>> input_vector);
+
+}
 
 } // namespace hdusd

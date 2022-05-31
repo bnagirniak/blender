@@ -227,4 +227,19 @@ class TreeDisplayDataAPI final : public AbstractTreeDisplay {
   ListBase buildTree(const TreeSourceData &source_data) override;
 };
 
+#ifdef WITH_HDUSD
+/* -------------------------------------------------------------------- */
+/* USD Tree-Display */
+
+/**
+ * \brief Tree-Display for the USD Nodetree
+ */
+class TreeDisplayUsdNodetree final : public AbstractTreeDisplay {
+ public:
+  TreeDisplayUsdNodetree(SpaceOutliner &space_outliner);
+
+  ListBase buildTree(const TreeSourceData &source_data) override;
+};
+#endif
+
 }  // namespace blender::ed::outliner

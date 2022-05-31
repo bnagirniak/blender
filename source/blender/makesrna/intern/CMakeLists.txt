@@ -363,6 +363,10 @@ if(WITH_GMP)
   add_definitions(-DWITH_GMP)
 endif()
 
+if(WITH_HDUSD)
+  add_definitions(-DWITH_HDUSD)
+endif()
+
 # Build makesrna executable
 blender_include_dirs(
   .

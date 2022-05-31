@@ -3616,6 +3616,13 @@ static void rna_def_space_outliner(BlenderRNA *brna)
        ICON_ORPHAN_DATA,
        "Orphan Data",
        "Display data-blocks which are unused and/or will be lost when the file is reloaded"},
+#ifdef WITH_HDUSD
+      {SO_USD_NODETREE,
+       "USD_NODETREE",
+       ICON_NODETREE,
+       "USD Nodetree",
+       "Show USD Nodetree prims"},
+#endif
       {0, NULL, 0, NULL, NULL},
   };
 

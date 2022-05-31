@@ -39,6 +39,8 @@ std::unique_ptr<AbstractTreeDisplay> AbstractTreeDisplay::createFromDisplayMode(
       break;
     case SO_VIEW_LAYER:
       return std::make_unique<TreeDisplayViewLayer>(space_outliner);
+    case SO_USD_NODETREE:
+      return std::make_unique<TreeDisplayUsdNodetree>(space_outliner);
   }
 
   BLI_assert_unreachable();

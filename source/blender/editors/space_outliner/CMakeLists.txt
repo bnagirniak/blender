@@ -83,6 +83,12 @@ set(LIB
   bf_editor_undo
 )
 
+if(WITH_HDUSD)
+  list(APPEND SRC
+    tree/tree_display_usd_nodetree.cc
+  )
+  add_definitions(-DWITH_HDUSD)
+endif()
 
 blender_add_lib(bf_editor_space_outliner "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 

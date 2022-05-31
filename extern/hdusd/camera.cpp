@@ -71,7 +71,8 @@ CameraData CameraData::init_from_context(BL::Context b_context)
   return data;
 }
 
-pxr::GfCamera CameraData::export_gf(vector<float> tile) {
+pxr::GfCamera CameraData::export_gf(vector<float> tile)
+{
   vector<float> tile_pos = {tile[0], tile[1]}, tile_size = {tile[2], tile[3]};
 
   pxr::GfCamera gf_camera = pxr::GfCamera();

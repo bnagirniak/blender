@@ -66,7 +66,8 @@ string hdusd::get_temp_file(string suffix, string name, bool is_rand)
   return get_temp_pid_dir().u8string() + "/" + name;
 }
 
-float hdusd::matrix::get_determinant(const vector<vector<float>> input_vector) {
+float hdusd::matrix::get_determinant(const vector<vector<float>> input_vector)
+{
     if(input_vector.size() != input_vector[0].size()) {
         throw runtime_error("Matrix is not quadratic");
     } 
@@ -108,7 +109,8 @@ float hdusd::matrix::get_determinant(const vector<vector<float>> input_vector) {
     return result;
 }
 
-vector<vector<float>> hdusd::matrix::get_transpose(const vector<vector<float>> input_vector) {
+vector<vector<float>> hdusd::matrix::get_transpose(const vector<vector<float>> input_vector)
+{
 
     //Transpose-matrix: height = width(matrix), width = height(matrix)
     vector<vector<float>> solution(input_vector[0].size(), vector<float> (input_vector.size()));
@@ -122,7 +124,8 @@ vector<vector<float>> hdusd::matrix::get_transpose(const vector<vector<float>> i
     return solution;
 }
 
-vector<vector<float>> hdusd::matrix::get_cofactor(const vector<vector<float>> input_vector) {
+vector<vector<float>> hdusd::matrix::get_cofactor(const vector<vector<float>> input_vector)
+{
     if(input_vector.size() != input_vector[0].size()) {
         throw runtime_error("Matrix is not quadratic");
     } 
@@ -156,7 +159,8 @@ vector<vector<float>> hdusd::matrix::get_cofactor(const vector<vector<float>> in
     return solution;
 }
 
-vector<vector<float>> hdusd::matrix::get_inverse(const vector<vector<float>> input_vector) {
+vector<vector<float>> hdusd::matrix::get_inverse(const vector<vector<float>> input_vector)
+{
     if(hdusd::matrix::get_determinant(input_vector) == 0) {
         throw runtime_error("Determinant is 0");
     } 
@@ -181,14 +185,16 @@ vector<vector<float>> hdusd::matrix::get_inverse(const vector<vector<float>> inp
     return solution;
 }
 
-vector<vector<float>> hdusd::matrix::convert_array_4x4_to_vector(BL::Array<float, 16> input_array) {
+vector<vector<float>> hdusd::matrix::convert_array_4x4_to_vector(BL::Array<float, 16> input_array)
+{
   return {{input_array.data[0], input_array.data[1], input_array.data[2], input_array.data[3]}, 
           {input_array.data[4], input_array.data[5], input_array.data[6], input_array.data[7]},
           {input_array.data[8], input_array.data[9], input_array.data[10], input_array.data[11]},
           {input_array.data[12], input_array.data[13], input_array.data[14], input_array.data[15]}};
 };
 
-BL::Array<float, 16> hdusd::matrix::convert_vector_to_array_4x4(vector<vector<float>> input_vector) {
+BL::Array<float, 16> hdusd::matrix::convert_vector_to_array_4x4(vector<vector<float>> input_vector)
+{
   BL::Array<float, 16> arr;
   int i = 0;
   for(auto& row:input_vector){

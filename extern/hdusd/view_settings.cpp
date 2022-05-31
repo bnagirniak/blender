@@ -5,7 +5,8 @@
 
 using namespace std;
 
-ViewSettings::ViewSettings(BL::Context b_context) {
+ViewSettings::ViewSettings(BL::Context b_context)
+{
   this->camera_data = CameraData::init_from_context(b_context);
 
   this->screen_width = b_context.region().width();
@@ -41,15 +42,18 @@ ViewSettings::~ViewSettings()
 {
 }
 
-int ViewSettings::get_width() {
+int ViewSettings::get_width()
+{
   return border[1][0];
 }
 
-int ViewSettings::get_height() {
+int ViewSettings::get_height()
+{
   return border[1][1];
 }
 
-pxr::GfCamera ViewSettings::export_camera() {
+pxr::GfCamera ViewSettings::export_camera()
+{
   return camera_data.export_gf({
             (float)border[0][0] / screen_width, (float)border[0][1] / screen_height,
             (float)border[1][0] / screen_width, (float)border[1][1] / screen_height}

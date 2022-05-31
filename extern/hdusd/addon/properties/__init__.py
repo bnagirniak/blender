@@ -22,15 +22,14 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
-#from . import node
-
 from . import (
     scene,
     object,
     usd_list,
+    # node,
     material,
     hdrpr_render,
-    matlib
+    # matlib
 )
 register, unregister = bpy.utils.register_classes_factory((
     hdrpr_render.QualitySettings,
@@ -53,6 +52,6 @@ register, unregister = bpy.utils.register_classes_factory((
 
     material.MaterialProperties,
 
-    matlib.MatlibProperties,
-    matlib.WindowManagerProperties,
+    # matlib.MatlibProperties,
+    # matlib.WindowManagerProperties,
 ))

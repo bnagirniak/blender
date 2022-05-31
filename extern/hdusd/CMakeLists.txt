@@ -10,6 +10,7 @@ add_definitions(-DPXR_STATIC)
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 
 set(INC
+  ../gflags/src
   # ../../intern
   # ../../glew-mx
   ../../intern/guardedalloc
@@ -26,6 +27,8 @@ set(INC_SYS
   ${USD_INCLUDE_DIRS}
   ${BOOST_INCLUDE_DIR}
   ${TBB_INCLUDE_DIR}
+  ${GLOG_INCLUDE_DIRS}
+  ${GFLAGS_INCLUDE_DIRS}
 )
 
 set(SRC
@@ -44,13 +47,6 @@ set(LIB
   ${PYTHON_LIBRARIES}
   ${BOOST_LIBRARIES}
 )
-
-#if(WITH_CYCLES_LOGGING)
-  list(APPEND LIB
-    ${GLOG_LIBRARIES}
-    ${GFLAGS_LIBRARIES}
-  )
-#endif()
 
 set(ADDON_FILES
   addon/__init__.py
@@ -98,6 +94,11 @@ set(ADDON_UTILS_FILES
 )
 
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
+
+add_definitions(${GFLAGS_DEFINES})
+add_definitions(${GLOG_DEFINES})
+add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
+
 
 blender_add_lib(extern_hdusd "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 

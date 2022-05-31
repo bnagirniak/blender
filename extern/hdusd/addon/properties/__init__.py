@@ -22,8 +22,29 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
-#from . import node
-
+from . import (
+    scene,
+    object,
+    usd_list,
+    material,
+    hdrpr_render,
+)
 register, unregister = bpy.utils.register_classes_factory((
-    #node.NodeProperties,
+    hdrpr_render.QualitySettings,
+    hdrpr_render.InteractiveQualitySettings,
+    hdrpr_render.ContourSettings,
+    hdrpr_render.DenoiseSettings,
+    hdrpr_render.RenderSettings,
+
+    usd_list.PrimPropertyItem,
+    usd_list.UsdListItem,
+    usd_list.UsdList,
+
+    scene.FinalRenderSettings,
+    scene.ViewportRenderSettings,
+    scene.SceneProperties,
+
+    object.ObjectProperties,
+
+    material.MaterialProperties,
 ))

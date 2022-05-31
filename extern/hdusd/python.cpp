@@ -14,8 +14,6 @@
 #include <pxr/base/gf/camera.h>
 #include <pxr/base/plug/registry.h>
 
-#include <GL/glew.h>
-
 #include "usd_common.h"
 
 #include "hdusd_python_api.h"
@@ -24,7 +22,6 @@
 
 pxr::UsdImagingGLRenderParams render_params;
 pxr::UsdStageRefPtr stage;
-pxr::GfCamera gf_camera;
 
 namespace hdusd {
 
@@ -62,9 +59,6 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   /* create session */
   BlenderSession *session = new BlenderSession(engine, data);
 
-  //UsdImagingLiteEngine renderer = UsdImagingLiteEngine();
-  //TfToken plugin = TfToken("HdRprPlugin");
-
   if (imagingGLEngine == nullptr) {
     imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
   }
@@ -76,11 +70,6 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   }
 
   render_params = pxr::UsdImagingGLRenderParams();
-  vector<pxr::GfVec4f> clipPlanes = gf_camera.GetClippingPlanes();
-
-  for (int i = 0; i < clipPlanes.size(); i++) {
-    render_params.clipPlanes.push_back((pxr::GfVec4d)clipPlanes[i]);
-  }
 
   stage = pxr::UsdStage::Open("C:/Users/user/Downloads/untitled_2.usda");
 
@@ -185,22 +174,24 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
     Py_RETURN_NONE;
   };
 
-  gf_camera = view_settings->export_camera();
+  pxr::GfCamera gf_camera = view_settings->export_camera();
+
+  vector<pxr::GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
+
+  for (int i = 0; i < clip_planes.size(); i++) {
+    render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
+  }
 
   imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
                                   gf_camera.GetFrustum().ComputeProjectionMatrix());
   imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings->border[0][0], (double)view_settings->border[0][1],
                                                   (double)view_settings->border[1][0], (double)view_settings->border[1][1]));
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   b_engine.bind_display_space_shader(b_scene);
-
+  
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
   b_engine.unbind_display_space_shader();
-
-  glClear(GL_DEPTH_BUFFER_BIT);
 
   Py_RETURN_NONE;
 }

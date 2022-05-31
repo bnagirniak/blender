@@ -28,7 +28,7 @@ CameraData CameraData::init_from_context(BL::Context b_context)
   if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_PERSP) {
     data = CameraData();
     data.mode = BL::Camera::type_PERSP;
-    data.clip_plane = {((BL::SpaceView3D)b_context.space_data()).clip_start(), ((BL::SpaceView3D)b_context.space_data()).clip_end()};
+    data.clip_range = {((BL::SpaceView3D)b_context.space_data()).clip_start(), ((BL::SpaceView3D)b_context.space_data()).clip_end()};
     data.lens_shift = {0.0, 0.0};
     data.focal_length = ((BL::SpaceView3D)b_context.space_data()).lens();
 
@@ -76,7 +76,7 @@ pxr::GfCamera CameraData::export_gf(vector<float> tile) {
 
   pxr::GfCamera gf_camera = pxr::GfCamera();
 
-  gf_camera.SetClippingRange(pxr::GfRange1f(this->clip_plane[0], this->clip_plane[1]));
+  gf_camera.SetClippingRange(pxr::GfRange1f(this->clip_range[0], this->clip_range[1]));
 
   vector<float> lens_shift = {(float)(this->lens_shift[0] + tile_pos[0] + tile_size[0] * 0.5 - 0.5) / tile_size[0],
                               (float)(this->lens_shift[1] + tile_pos[1] + tile_size[1] * 0.5 - 0.5) / tile_size[1]};

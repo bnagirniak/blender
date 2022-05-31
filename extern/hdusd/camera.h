@@ -23,7 +23,7 @@ class CameraData {
     pxr::GfCamera export_gf(vector<float> tile);
 
     BL::Camera::type_enum mode;
-    vector<float> clip_plane;
+    vector<float> clip_range;
     float focal_length = 0.0;
     vector<float> sensor_size;
     BL::Array<float, 16> transform = {};

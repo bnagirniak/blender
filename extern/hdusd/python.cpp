@@ -44,7 +44,8 @@ static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
 static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
   PyObject *pyengine, *pydata;
-  if (!PyArg_ParseTuple(args, "OO", &pyengine, &pydata)) {
+  int stageId = -1;
+  if (!PyArg_ParseTuple(args, "OOi", &pyengine, &pydata, &stageId)) {
     return NULL;
   }
 
@@ -71,7 +72,7 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 
   render_params = pxr::UsdImagingGLRenderParams();
 
-  stage = pxr::UsdStage::Open("C:/Users/user/Downloads/untitled_2.usda");
+  stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
 
   imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
 

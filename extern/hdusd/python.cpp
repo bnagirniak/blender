@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+
 #include <iostream>
 
 #include <Python.h>
@@ -8,6 +10,7 @@
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 
+#include "glog/logging.h"
 #include "usd_common.h"
 
 #include "hdusd_python_api.h"
@@ -157,7 +160,7 @@ static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
   }
 
   stageCache->Erase(stage);
-  std::cout << "stage_free " << stageId << std::endl;
+  DLOG(INFO) << "stage_free "<< stageId;
 
   Py_RETURN_TRUE;
 }

@@ -6,6 +6,9 @@
 import bpy
 import _hdusd
 
+from .usd_nodes import node_tree
+from .utils import stages
+
 
 def init():
     _hdusd.init()
@@ -52,8 +55,18 @@ class HdUSDEngine(bpy.types.RenderEngine):
     # viewport render
     def view_update(self, context, depsgraph):
         data = context.blend_data
+        usd_nodetree = node_tree.get_usd_nodetree()
+        if not usd_nodetree:
+            return
+
+        output_node = usd_nodetree.output_node
+        if not output_node:
+            return
+
+        stage_id = stages.get(output_node)
+
         if not self.session:
-            self.session = _hdusd.create(self.as_pointer(), data.as_pointer())
+            self.session = _hdusd.create(self.as_pointer(), data.as_pointer(), stage_id)
 
         _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer())
 
@@ -61,5 +74,6 @@ class HdUSDEngine(bpy.types.RenderEngine):
         depsgraph_ptr = depsgraph.as_pointer()
         space_data_ptr = context.space_data.as_pointer()
         region_data_ptr = context.region_data.as_pointer()
+        context_ptr = context.as_pointer()
 
-        _hdusd.view_draw(self.session, depsgraph_ptr, space_data_ptr, region_data_ptr)
+        _hdusd.view_draw(self.session, depsgraph_ptr, context_ptr, space_data_ptr, region_data_ptr)

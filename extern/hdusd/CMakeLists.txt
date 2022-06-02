@@ -40,6 +40,20 @@ set(SRC
   hdusd_python_api.h
   session.h
   utils.h
+
+  camera.h
+  camera.cpp
+
+  view_settings.h
+  view_settings.cpp
+
+  usdImagingLite/engine.cpp
+  usdImagingLite/engine.h
+  usdImagingLite/renderDataDelegate.cpp
+  usdImagingLite/renderDataDelegate.h
+  usdImagingLite/renderTask.cpp
+  usdImagingLite/renderTask.h
+  usdImagingLite/renderParams.h
 )
 
 set(LIB

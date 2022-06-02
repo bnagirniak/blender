@@ -7,6 +7,7 @@
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/stageCache.h>
+#include <pxr/usdImaging/usdImagingGL/engine.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -14,6 +15,7 @@
 namespace hdusd {
 
 extern std::unique_ptr<pxr::UsdStageCache> stageCache;
+extern std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
 
 class BlenderSession {
 public:

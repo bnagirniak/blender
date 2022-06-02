@@ -1230,6 +1230,7 @@ if(WITH_USD)
   add_definitions(-DWITH_USD)
   install(DIRECTORY
     ${USD_LIBRARY_DIR}/usd
+    ${USD_PLUGIN_DIR}
     DESTINATION "${TARGETDIR_VER}/datafiles"
   )
 endif()

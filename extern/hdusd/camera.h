@@ -10,6 +10,8 @@
 
 using namespace std;
 
+namespace hdusd {
+
 class CameraData {
   public:
     CameraData();
@@ -31,3 +33,5 @@ class CameraData {
     vector<float> ortho_size;
     tuple<float, float, int> dof_size;
 };
+
+} // namespace hdusd

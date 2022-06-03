@@ -15,6 +15,8 @@
 #include "renderDataDelegate.h"
 #include "renderTask.h"
 
+namespace hdusd {
+
 /// \class UsdImagingLiteEngine
 ///
 /// The UsdImagingLiteEngine is entry point API for rendering USD scenes for delegates
@@ -161,3 +163,5 @@ private:
 
     SdfPath _GetRendererAovPath(TfToken const &aov) const;
 };
+
+} // namespace hdusd

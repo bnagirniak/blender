@@ -5,6 +5,8 @@
 
 using namespace std;
 
+namespace hdusd {
+
 ViewSettings::ViewSettings(BL::Context b_context)
 {
   this->camera_data = CameraData::init_from_context(b_context);
@@ -59,3 +61,5 @@ pxr::GfCamera ViewSettings::export_camera()
             (float)border[1][0] / screen_width, (float)border[1][1] / screen_height}
          );
 }
+
+} // namespace hdusd

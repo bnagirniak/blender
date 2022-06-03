@@ -15,7 +15,6 @@
 namespace hdusd {
 
 extern std::unique_ptr<pxr::UsdStageCache> stageCache;
-extern std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
 
 class BlenderSession {
 public:
@@ -24,6 +23,10 @@ public:
 
   BL::RenderEngine b_engine;
   BL::BlendData b_data;
+
+  std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
+  pxr::UsdImagingGLRenderParams render_params;
+  pxr::UsdStageRefPtr stage;
 };
 
 }   // namespace hdusd

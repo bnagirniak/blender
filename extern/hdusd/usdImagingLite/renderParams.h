@@ -13,6 +13,8 @@
 
 using namespace pxr;
 
+namespace hdusd {
+
 /// \class UsdImagingLiteRenderParams
 ///
 /// Used as an arguments class for various methods in UsdImagingLiteEngine.
@@ -60,3 +62,5 @@ bool UsdImagingLiteRenderParams::operator==(const UsdImagingLiteRenderParams &ot
         && aovs == other.aovs
         && aovBuffers == other.aovBuffers;
 }
+
+} // namespace hdusd

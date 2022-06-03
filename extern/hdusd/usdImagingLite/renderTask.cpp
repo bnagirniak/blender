@@ -8,6 +8,8 @@
 
 #include "renderTask.h"
 
+namespace hdusd {
+
 HdRenderTask::HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id)
     : HdTask(id)
 {
@@ -146,3 +148,5 @@ bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs)
 {
     return !(lhs == rhs);
 }
+
+} // namespace hdusd

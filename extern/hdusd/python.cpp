@@ -23,9 +23,6 @@
 #include "session.h"
 #include "view_settings.h"
 
-pxr::UsdImagingGLRenderParams render_params;
-pxr::UsdStageRefPtr stage;
-
 namespace hdusd {
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
@@ -39,8 +36,6 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
 {
   stageCache = nullptr;
-  imagingGLEngine.reset();
-  stage.Reset();
   Py_RETURN_NONE;
 }
 
@@ -49,7 +44,7 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   PyObject *pyengine, *pydata;
   int stageId = -1;
   if (!PyArg_ParseTuple(args, "OOi", &pyengine, &pydata, &stageId)) {
-    return NULL;
+    Py_RETURN_NONE;
   }
 
   PointerRNA engineptr;
@@ -63,21 +58,15 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   /* create session */
   BlenderSession *session = new BlenderSession(engine, data);
 
-  if (imagingGLEngine == nullptr) {
-    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
-  }
-
   pxr::TfToken plugin = pxr::TfToken("HdStormRendererPlugin");
 
-  if (!imagingGLEngine->SetRendererPlugin(plugin)) {
+  if (!session->imagingGLEngine->SetRendererPlugin(plugin)) {
     Py_RETURN_NONE;
   }
 
-  render_params = pxr::UsdImagingGLRenderParams();
+  session->stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
 
-  stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
-
-  imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
+  session->imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
 
   return PyLong_FromVoidPtr(session);
 }
@@ -85,10 +74,6 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 static PyObject *free_func(PyObject * /*self*/, PyObject *value)
 {
   delete (BlenderSession *)PyLong_AsVoidPtr(value);
-
-  imagingGLEngine.reset();
-  stage.Reset();
-
   Py_RETURN_NONE;
 }
 
@@ -183,17 +168,17 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   vector<pxr::GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
 
   for (int i = 0; i < clip_planes.size(); i++) {
-    render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
+    session->render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
   }
 
-  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+  session->imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
                                   gf_camera.GetFrustum().ComputeProjectionMatrix());
-  imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings->border[0][0], (double)view_settings->border[0][1],
+  session->imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings->border[0][0], (double)view_settings->border[0][1],
                                                   (double)view_settings->border[1][0], (double)view_settings->border[1][1]));
 
   b_engine.bind_display_space_shader(b_scene);
   
-  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
+  session->imagingGLEngine->Render(session->stage->GetPseudoRoot(), session->render_params);
 
   b_engine.unbind_display_space_shader();
 

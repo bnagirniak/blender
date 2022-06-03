@@ -22,6 +22,8 @@
 #include "engine.h"
 #include "renderDataDelegate.h"
 
+namespace hdusd {
+
 UsdImagingLiteEngine::UsdImagingLiteEngine()
     : _isPopulated(false)
 {
@@ -305,3 +307,5 @@ VtDictionary UsdImagingLiteEngine::GetRenderStats() const
 {
     return _renderDelegate->GetRenderStats();
 }
+
+} // namespace hdusd

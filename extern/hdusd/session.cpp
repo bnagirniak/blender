@@ -7,9 +7,8 @@ namespace hdusd {
 
 std::unique_ptr<pxr::UsdStageCache> stageCache;
 
-BlenderSession::BlenderSession(BL::RenderEngine &b_engine, BL::BlendData &b_data)
+BlenderSession::BlenderSession(BL::RenderEngine &b_engine)
     : b_engine(b_engine)
-    , b_data(b_data)
 {
   imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
 }

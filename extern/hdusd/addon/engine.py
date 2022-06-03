@@ -42,7 +42,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
     # final render
     def update(self, data, depsgraph):
         if not self.session:
-            self.session = _hdusd.create(self.as_pointer(), data.as_pointer())
+            self.session = _hdusd.create(self.as_pointer())
 
         _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer())
 
@@ -63,14 +63,19 @@ class HdUSDEngine(bpy.types.RenderEngine):
         if not output_node:
             return
 
-        stage_id = stages.get(output_node)
+        stage = stages.get(output_node)
+        if not stage:
+            return
 
         if not self.session:
-            self.session = _hdusd.create(self.as_pointer(), data.as_pointer(), stage_id)
+            self.session = _hdusd.create(self.as_pointer())
 
-        _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer())
+        _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer(), stage)
 
     def view_draw(self, context, depsgraph):
+        if not self.session:
+            return
+
         depsgraph_ptr = depsgraph.as_pointer()
         space_data_ptr = context.space_data.as_pointer()
         region_data_ptr = context.region_data.as_pointer()

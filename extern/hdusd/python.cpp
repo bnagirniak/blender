@@ -27,6 +27,7 @@ namespace hdusd {
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
+  DLOG(INFO) << "init_func";
   blender::io::usd::ensure_usd_plugin_path_registered();
   stageCache = std::make_unique<pxr::UsdStageCache>();
 
@@ -35,15 +36,16 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
 {
+  DLOG(INFO) << "exit_func";
   stageCache = nullptr;
   Py_RETURN_NONE;
 }
 
 static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
-  PyObject *pyengine, *pydata;
-  int stageId = -1;
-  if (!PyArg_ParseTuple(args, "OOi", &pyengine, &pydata, &stageId)) {
+  DLOG(INFO) << "create_func";
+  PyObject *pyengine;
+  if (!PyArg_ParseTuple(args, "O", &pyengine)) {
     Py_RETURN_NONE;
   }
 
@@ -51,38 +53,31 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(pyengine), &engineptr);
   BL::RenderEngine engine(engineptr);
 
-  PointerRNA dataptr;
-  RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
-  BL::BlendData data(dataptr);
-
   /* create session */
-  BlenderSession *session = new BlenderSession(engine, data);
-
-  pxr::TfToken plugin = pxr::TfToken("HdStormRendererPlugin");
-
-  if (!session->imagingGLEngine->SetRendererPlugin(plugin)) {
-    Py_RETURN_NONE;
-  }
-
-  session->stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
-
-  session->imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
-
+  BlenderSession *session = new BlenderSession(engine);
   return PyLong_FromVoidPtr(session);
 }
 
-static PyObject *free_func(PyObject * /*self*/, PyObject *value)
+static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 {
-  delete (BlenderSession *)PyLong_AsVoidPtr(value);
+  DLOG(INFO) << "free_func";
+  PyObject *pysession;
+  if (!PyArg_ParseTuple(args, "O", &pysession)) {
+    Py_RETURN_NONE;
+  }
+
+  delete (BlenderSession *)PyLong_AsVoidPtr(pysession);
   Py_RETURN_NONE;
 }
 
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
+  DLOG(INFO) << "render_func";
   PyObject *pysession, *pydepsgraph;
 
-  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
+    Py_RETURN_NONE;
+  }
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
 
@@ -102,10 +97,12 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
+  DLOG(INFO) << "reset_func";
   PyObject *pysession, *pydata, *pydepsgraph;
-
-  if (!PyArg_ParseTuple(args, "OOO", &pysession, &pydata, &pydepsgraph))
-    return NULL;
+  int stageId = 0;
+  if (!PyArg_ParseTuple(args, "OOOi", &pysession, &pydata, &pydepsgraph, &stageId)) {
+    Py_RETURN_NONE;
+  }
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
 
@@ -117,13 +114,13 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph depsgraph(depsgraphptr);
 
-  ///* Allow Blender to execute other Python scripts. */
-  //python_thread_state_save(&session->python_thread_state);
+  pxr::TfToken plugin = pxr::TfToken("HdStormRendererPlugin");
+  if (!session->imagingGLEngine->SetRendererPlugin(plugin)) {
+    Py_RETURN_NONE;
+  }
 
-  //session->render(b_depsgraph);
-
-  //python_thread_state_restore(&session->python_thread_state);
-
+  session->stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+  session->imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
   Py_RETURN_NONE;
 }
 
@@ -134,15 +131,19 @@ static PyObject *render_frame_finish_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
 {
+  DLOG(INFO) << "view_update_func";
   Py_RETURN_NONE;
 }
 
 static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 {
+  DLOG(INFO) << "view_draw_func";
+
   PyObject *pysession, *pydepsgraph, *pycontext, *pyspaceData, *pyregionData;
 
-  if (!PyArg_ParseTuple(args, "OOOOO", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "OOOOO", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData)) {
+    Py_RETURN_NONE;
+  }
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
 
@@ -181,6 +182,14 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   session->imagingGLEngine->Render(session->stage->GetPseudoRoot(), session->render_params);
 
   b_engine.unbind_display_space_shader();
+
+  
+  ///* Allow Blender to execute other Python scripts. */
+  //python_thread_state_save(&session->python_thread_state);
+
+  //session->render(b_depsgraph);
+
+  //python_thread_state_restore(&session->python_thread_state);
 
   Py_RETURN_NONE;
 }

@@ -18,11 +18,11 @@ extern std::unique_ptr<pxr::UsdStageCache> stageCache;
 
 class BlenderSession {
 public:
-  BlenderSession(BL::RenderEngine &b_engine, BL::BlendData &b_data);
+  BlenderSession(BL::RenderEngine &b_engine);
   ~BlenderSession();
 
   BL::RenderEngine b_engine;
-  BL::BlendData b_data;
+  //BL::BlendData b_data;
 
   std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
   pxr::UsdImagingGLRenderParams render_params;

@@ -116,7 +116,8 @@ add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 
 blender_add_lib(extern_hdusd "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
-#message(FATAL_ERROR "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}, CYCLES_INSTALL_PATH=${HDUSD_INSTALL_PATH}")
+add_dependencies(extern_hdusd bf_rna)
+
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${HDUSD_INSTALL_PATH})
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_UTILS_FILES}" ${HDUSD_INSTALL_PATH}/utils)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_PROPERTIES_FILES}" ${HDUSD_INSTALL_PATH}/properties)

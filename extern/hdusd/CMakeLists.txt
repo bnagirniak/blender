@@ -100,11 +100,13 @@ set(ADDON_UI_FILES
   addon/ui/material.py
   addon/ui/light.py
   addon/ui/panels.py
+  addon/ui/usd_nodes.py
 )
 
 set(ADDON_UTILS_FILES
   addon/utils/__init__.py
   addon/utils/stages.py
+  addon/utils/logging.py
 )
 
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")

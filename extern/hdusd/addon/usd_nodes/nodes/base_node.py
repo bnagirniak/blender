@@ -53,7 +53,8 @@ class USDNode(bpy.types.Node):
         stages.set(self, stage)
 
     def draw_buttons(self, context, layout):
-        layout.label(text=f"Stage: {self.stage}")
+        # layout.label(text=f"Stage: {self.stage}")
+        pass
 
     # COMPUTE FUNCTION
     def c_compute(self, *args):

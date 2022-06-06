@@ -3,6 +3,8 @@
 
 #include "renderDataDelegate.h"
 
+namespace hdusd {
+
 HdRenderDataDelegate::HdRenderDataDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
     : HdSceneDelegate(parentIndex, delegateID)
 {}
@@ -61,3 +63,5 @@ TfTokenVector HdRenderDataDelegate::GetTaskRenderTags(SdfPath const& taskId)
     }
     return TfTokenVector();
 }
+
+} // namespace hdusd

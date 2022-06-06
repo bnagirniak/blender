@@ -4,6 +4,8 @@
 #include "camera.h"
 #include "utils.h"
 
+namespace hdusd {
+
 CameraData::CameraData() {
 }
 
@@ -115,3 +117,5 @@ pxr::GfCamera CameraData::export_gf(vector<float> tile)
   
   return gf_camera;
 }
+
+} //namespace hdusd

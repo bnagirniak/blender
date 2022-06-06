@@ -3,6 +3,8 @@
 
 #include "utils.h"
 
+namespace hdusd {
+
 string hdusd::get_random_string(const int len)
 {
   static const char alphanum[] =
@@ -205,3 +207,5 @@ BL::Array<float, 16> hdusd::matrix::convert_vector_to_array_4x4(vector<vector<fl
   }
   return arr;
 }
+
+} // namespace hdusd

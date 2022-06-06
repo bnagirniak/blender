@@ -8,6 +8,8 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
+namespace hdusd {
+
 class ViewSettings {
   public:
     ViewSettings(BL::Context b_context);
@@ -25,3 +27,5 @@ class ViewSettings {
     int screen_height;
     vector<vector<int>> border;
 };
+
+} // namespace hdusd

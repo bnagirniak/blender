@@ -14,12 +14,13 @@ def key(bl_obj):
 
 
 def get(bl_obj):
-    return _stages.get(key(bl_obj), 0)
+    return _stages.get(key(bl_obj), None)
 
 
 def set(bl_obj, stage):
     free(bl_obj)
-    _stages[key(bl_obj)] = stage
+    if stage:
+        _stages[key(bl_obj)] = stage
 
 
 def free(bl_obj):

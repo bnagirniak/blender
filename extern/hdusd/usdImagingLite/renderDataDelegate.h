@@ -11,6 +11,8 @@
 
 using namespace pxr;
 
+namespace hdusd {
+
 TF_DEFINE_PRIVATE_TOKENS(_tokens,
     (renderBufferDescriptor)
     (renderTags));
@@ -50,3 +52,5 @@ private:
     typedef TfHashMap<SdfPath, ValueCache, SdfPath::Hash> ValueCacheMap;
     ValueCacheMap _valueCacheMap;
 };
+
+} // namespace hdusd

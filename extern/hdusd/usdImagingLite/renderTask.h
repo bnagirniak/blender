@@ -9,6 +9,8 @@
 
 using namespace pxr;
 
+namespace hdusd {
+
 class HdRenderTask : public HdTask
 {
 public:
@@ -60,3 +62,5 @@ struct HdRenderTaskParams
 std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv);
 bool operator==(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
 bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
+
+} // namespace hdusd

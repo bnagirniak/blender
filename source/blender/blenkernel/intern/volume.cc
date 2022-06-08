@@ -1576,6 +1576,68 @@ float BKE_volume_simplify_factor(const Depsgraph *depsgraph)
 
 #ifdef WITH_OPENVDB
 
+void BKE_volume_grid_dimension(const VolumeGrid *grid, int dim[3])
+{
+  openvdb::Coord voxelDim = grid->grid()->evalActiveVoxelDim();
+  dim[0] = voxelDim.x();
+  dim[1] = voxelDim.y();
+  dim[2] = voxelDim.z();
+}
+
+int BKE_volume_grid_voxels_count(const VolumeGrid *grid)
+{
+  VolumeGridType type = BKE_volume_grid_type(grid);
+  if (type != VOLUME_GRID_FLOAT && type != VOLUME_GRID_VECTOR_FLOAT) {
+    return 0;
+  }
+  return grid->grid()->activeVoxelCount();
+}
+
+template<typename GridType>
+void volume_grid_indices(const VolumeGrid *grid, int *indices)
+{
+  GridType::Ptr g = openvdb::gridPtrCast<GridType>(grid->grid());
+  int i = 0;
+  for (GridType::ValueOnIter iter = g->beginValueOn(); iter; ++iter) {
+    openvdb::Coord coord = iter.getCoord();
+    indices[i++] = coord.x();
+    indices[i++] = coord.y();
+    indices[i++] = coord.z();
+  }
+}
+
+void BKE_volume_grid_indices(const VolumeGrid *grid, int *indices)
+{
+  VolumeGridType type = BKE_volume_grid_type(grid);
+  if (type == VOLUME_GRID_FLOAT) {
+    volume_grid_indices<openvdb::FloatGrid>(grid, indices);
+  }
+  else if (type == VOLUME_GRID_VECTOR_FLOAT) {
+    volume_grid_indices<openvdb::Vec3fGrid>(grid, indices);
+  }
+}
+
+void BKE_volume_grid_voxels(const VolumeGrid *grid, float *voxels)
+{
+  VolumeGridType type = BKE_volume_grid_type(grid);
+  int i = 0;
+  if (type == VOLUME_GRID_FLOAT) {
+    openvdb::FloatGrid::Ptr g = openvdb::gridPtrCast<openvdb::FloatGrid>(grid->grid());
+    for (openvdb::FloatGrid::ValueOnIter iter = g->beginValueOn(); iter; ++iter) {
+      voxels[i++] = iter.getValue();
+    }
+  }
+  else if (type == VOLUME_GRID_VECTOR_FLOAT) {
+    openvdb::Vec3fGrid::Ptr g = openvdb::gridPtrCast<openvdb::Vec3fGrid>(grid->grid());
+    for (openvdb::Vec3fGrid::ValueOnIter iter = g->beginValueOn(); iter; ++iter) {
+      openvdb::Vec3f v = iter.getValue();
+      voxels[i++] = v.x();
+      voxels[i++] = v.y();
+      voxels[i++] = v.z();
+    }
+  }
+}
+
 bool BKE_volume_grid_bounds(openvdb::GridBase::ConstPtr grid, float3 &r_min, float3 &r_max)
 {
   /* TODO: we can get this from grid metadata in some cases? */

@@ -125,6 +125,38 @@ static bool rna_VolumeGrid_is_loaded_get(PointerRNA *ptr)
   return BKE_volume_grid_is_loaded(grid);
 }
 
+static void rna_VolumeGrid_dimension_get(PointerRNA *ptr, int *value)
+{
+  VolumeGrid *grid = ptr->data;
+  BKE_volume_grid_dimension(grid, (int(*)[3])value);
+}
+
+static int rna_VolumeGrid_indices_get_length(PointerRNA *ptr, int length[RNA_MAX_ARRAY_DIMENSION])
+{
+  VolumeGrid *grid = ptr->data;
+  length[0] = BKE_volume_grid_voxels_count(grid) * 3;
+  return length[0];
+}
+
+static void rna_VolumeGrid_indices_get(PointerRNA *ptr, int *value)
+{
+  VolumeGrid *grid = ptr->data;
+  BKE_volume_grid_indices(grid, value);
+}
+
+static int rna_VolumeGrid_voxels_get_length(PointerRNA *ptr, int length[RNA_MAX_ARRAY_DIMENSION])
+{
+  VolumeGrid *grid = ptr->data;
+  length[0] = BKE_volume_grid_voxels_count(grid) * BKE_volume_grid_channels(grid);
+  return length[0];
+}
+
+static void rna_VolumeGrid_voxels_get(PointerRNA *ptr, float *value)
+{
+  VolumeGrid *grid = ptr->data;
+  BKE_volume_grid_voxels(grid, value);
+}
+
 static bool rna_VolumeGrid_load(ID *id, VolumeGrid *grid)
 {
   return BKE_volume_grid_load((Volume *)id, grid);
@@ -281,6 +313,28 @@ static void rna_def_volume_grid(BlenderRNA *brna)
   RNA_def_property_clear_flag(prop, PROP_EDITABLE);
   RNA_def_property_boolean_funcs(prop, "rna_VolumeGrid_is_loaded_get", NULL);
   RNA_def_property_ui_text(prop, "Is Loaded", "Grid tree is loaded in memory");
+
+  prop = RNA_def_property(srna, "dimension", PROP_INT, PROP_XYZ);
+  RNA_def_property_clear_flag(prop, PROP_EDITABLE);
+  RNA_def_property_array(prop, 3);
+  RNA_def_property_int_funcs(prop, "rna_VolumeGrid_dimension_get", NULL, NULL);
+  RNA_def_property_ui_text(prop, "Grid dimension", "Dimension of grid");
+
+  prop = RNA_def_property(srna, "indices", PROP_INT, PROP_NONE);
+  RNA_def_property_clear_flag(prop, PROP_EDITABLE);
+  RNA_def_property_flag(prop, PROP_DYNAMIC);
+  RNA_def_property_multi_array(prop, 1, NULL);
+  RNA_def_property_ui_text(prop, "Voxels indices", "Grid voxels indices");
+  RNA_def_property_dynamic_array_funcs(prop, "rna_VolumeGrid_indices_get_length");
+  RNA_def_property_int_funcs(prop, "rna_VolumeGrid_indices_get", NULL, NULL);
+
+  prop = RNA_def_property(srna, "voxels", PROP_FLOAT, PROP_NONE);
+  RNA_def_property_clear_flag(prop, PROP_EDITABLE);
+  RNA_def_property_flag(prop, PROP_DYNAMIC);
+  RNA_def_property_multi_array(prop, 1, NULL);
+  RNA_def_property_ui_text(prop, "Active voxels", "Grid active voxels");
+  RNA_def_property_dynamic_array_funcs(prop, "rna_VolumeGrid_voxels_get_length");
+  RNA_def_property_float_funcs(prop, "rna_VolumeGrid_voxels_get", NULL, NULL);
 
   /* API */
   FunctionRNA *func;

@@ -115,6 +115,11 @@ int BKE_volume_grid_channels(const struct VolumeGrid *grid);
  */
 void BKE_volume_grid_transform_matrix(const struct VolumeGrid *grid, float mat[4][4]);
 
+void BKE_volume_grid_dimension(const struct VolumeGrid *grid, int dim[3]);
+int BKE_volume_grid_voxels_count(const struct VolumeGrid *grid);
+void BKE_volume_grid_indices(const VolumeGrid *grid, int *indices);
+void BKE_volume_grid_voxels(const VolumeGrid *grid, float *voxels);
+
 /* Volume Editing
  *
  * These are intended for modifiers to use on evaluated data-blocks.

@@ -1596,13 +1596,14 @@ int BKE_volume_grid_voxels_count(const VolumeGrid *grid)
 template<typename GridType>
 void volume_grid_indices(const VolumeGrid *grid, int *indices)
 {
-  GridType::Ptr g = openvdb::gridPtrCast<GridType>(grid->grid());
+  GridType::Ptr vdbGrid = openvdb::gridPtrCast<GridType>(grid->grid());
+  const openvdb::Coord &lowerBound = vdbGrid->evalActiveVoxelBoundingBox().min();
   int i = 0;
-  for (GridType::ValueOnIter iter = g->beginValueOn(); iter; ++iter) {
+  for (GridType::ValueOnIter iter = vdbGrid->beginValueOn(); iter; ++iter) {
     openvdb::Coord coord = iter.getCoord();
-    indices[i++] = coord.x();
-    indices[i++] = coord.y();
-    indices[i++] = coord.z();
+    indices[i++] = coord.x() - lowerBound.x();
+    indices[i++] = coord.y() - lowerBound.y();
+    indices[i++] = coord.z() - lowerBound.z();
   }
 }
 
@@ -1622,18 +1623,20 @@ void BKE_volume_grid_voxels(const VolumeGrid *grid, float *voxels)
   VolumeGridType type = BKE_volume_grid_type(grid);
   int i = 0;
   if (type == VOLUME_GRID_FLOAT) {
-    openvdb::FloatGrid::Ptr g = openvdb::gridPtrCast<openvdb::FloatGrid>(grid->grid());
-    for (openvdb::FloatGrid::ValueOnIter iter = g->beginValueOn(); iter; ++iter) {
-      voxels[i++] = iter.getValue();
+    openvdb::FloatGrid::Ptr vdbGrid = openvdb::gridPtrCast<openvdb::FloatGrid>(grid->grid());
+    float background = vdbGrid->background();
+    for (openvdb::FloatGrid::ValueOnIter iter = vdbGrid->beginValueOn(); iter; ++iter) {
+      voxels[i++] = iter.getValue() + background;
     }
   }
   else if (type == VOLUME_GRID_VECTOR_FLOAT) {
-    openvdb::Vec3fGrid::Ptr g = openvdb::gridPtrCast<openvdb::Vec3fGrid>(grid->grid());
-    for (openvdb::Vec3fGrid::ValueOnIter iter = g->beginValueOn(); iter; ++iter) {
+    openvdb::Vec3fGrid::Ptr vdbGrid = openvdb::gridPtrCast<openvdb::Vec3fGrid>(grid->grid());
+    openvdb::Vec3f background = vdbGrid->background();
+    for (openvdb::Vec3fGrid::ValueOnIter iter = vdbGrid->beginValueOn(); iter; ++iter) {
       openvdb::Vec3f v = iter.getValue();
-      voxels[i++] = v.x();
-      voxels[i++] = v.y();
-      voxels[i++] = v.z();
+      voxels[i++] = v.x() + background.x();
+      voxels[i++] = v.y() + background.y();
+      voxels[i++] = v.z() + background.z();
     }
   }
 }

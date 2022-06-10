@@ -39,6 +39,7 @@ from . import (
     material,
     world,
     object,
+    usd_nodes,
 )
 
 
@@ -93,6 +94,11 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
     object.HDUSD_OBJECT_PT_usd_settings,
     object.HDUSD_OP_usd_object_show_hide,
+
+    usd_nodes.HDUSD_OP_usd_tree_node_print_stage,
+    usd_nodes.HDUSD_OP_usd_tree_node_print_root_layer,
+    usd_nodes.HDUSD_NODE_PT_usd_nodetree_tools,
+    usd_nodes.HDUSD_NODE_PT_usd_nodetree_dev,
 ])
 
 

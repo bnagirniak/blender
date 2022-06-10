@@ -10,6 +10,7 @@ add_definitions(-DPXR_STATIC)
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 
 set(INC
+  ../gflags/src
   # ../../intern
   # ../../glew-mx
   ../../intern/guardedalloc
@@ -26,6 +27,8 @@ set(INC_SYS
   ${USD_INCLUDE_DIRS}
   ${BOOST_INCLUDE_DIR}
   ${TBB_INCLUDE_DIR}
+  ${GLOG_INCLUDE_DIRS}
+  ${GFLAGS_INCLUDE_DIRS}
 )
 
 set(SRC
@@ -37,6 +40,20 @@ set(SRC
   hdusd_python_api.h
   session.h
   utils.h
+
+  camera.h
+  camera.cpp
+
+  view_settings.h
+  view_settings.cpp
+
+  usdImagingLite/engine.cpp
+  usdImagingLite/engine.h
+  usdImagingLite/renderDataDelegate.cpp
+  usdImagingLite/renderDataDelegate.h
+  usdImagingLite/renderTask.cpp
+  usdImagingLite/renderTask.h
+  usdImagingLite/renderParams.h
 )
 
 set(LIB
@@ -44,13 +61,6 @@ set(LIB
   ${PYTHON_LIBRARIES}
   ${BOOST_LIBRARIES}
 )
-
-#if(WITH_CYCLES_LOGGING)
-  list(APPEND LIB
-    ${GLOG_LIBRARIES}
-    ${GFLAGS_LIBRARIES}
-  )
-#endif()
 
 set(ADDON_FILES
   addon/__init__.py
@@ -90,18 +100,26 @@ set(ADDON_UI_FILES
   addon/ui/material.py
   addon/ui/light.py
   addon/ui/panels.py
+  addon/ui/usd_nodes.py
 )
 
 set(ADDON_UTILS_FILES
   addon/utils/__init__.py
   addon/utils/stages.py
+  addon/utils/logging.py
 )
 
 set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
 
+add_definitions(${GFLAGS_DEFINES})
+add_definitions(${GLOG_DEFINES})
+add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
+
+
 blender_add_lib(extern_hdusd "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
-#message(FATAL_ERROR "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}, CYCLES_INSTALL_PATH=${HDUSD_INSTALL_PATH}")
+add_dependencies(extern_hdusd bf_rna)
+
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${HDUSD_INSTALL_PATH})
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_UTILS_FILES}" ${HDUSD_INSTALL_PATH}/utils)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_PROPERTIES_FILES}" ${HDUSD_INSTALL_PATH}/properties)

@@ -21,6 +21,7 @@
 
 #include "hdusd_python_api.h"
 #include "session.h"
+#include "utils.h"
 #include "view_settings.h"
 
 namespace hdusd {
@@ -239,6 +240,14 @@ static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_TRUE;
 }
 
+static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
+{
+  DLOG(INFO) << "get_temp_dir_func";
+  filesystem::path path = hdusd::get_temp_dir();
+  std::string str{path.u8string()};
+  return PyUnicode_FromString(str.c_str());
+}
+
 static PyObject *test_func(PyObject * /*self*/, PyObject *args)
 {
   char *path;
@@ -273,6 +282,7 @@ static PyMethodDef methods[] = {
 
   {"stage_export_to_str", stage_export_to_str_func, METH_VARARGS, ""},
   {"stage_free", stage_free_func, METH_VARARGS, ""},
+  {"get_temp_dir", get_temp_dir_func, METH_VARARGS, ""},
 
   {"test", test_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},

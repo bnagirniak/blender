@@ -24,7 +24,6 @@ from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 #from ..mx_nodes.nodes.base_node import is_mx_node_valid
 #from ..utils import pass_node_reroute, title_str, BLENDER_VERSION
 #from ..utils import mx as mx_utils
-#from .. import config
 
 #from ..utils import logging
 #log = logging.Log(tag='ui.mx_nodes')
@@ -714,8 +713,7 @@ class HDUSD_MATERIAL_PT_dev(HdUSD_ChildPanel):
 
     @classmethod
     def poll(cls, context):
-        return
-        #return config.show_dev_settings
+        return context.preferences.addons['hdusd'].preferences.dev_tools
 
     def draw(self, context):
         layout = self.layout

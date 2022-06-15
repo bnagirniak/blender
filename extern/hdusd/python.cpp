@@ -244,8 +244,7 @@ static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
 {
   DLOG(INFO) << "get_temp_dir_func";
   filesystem::path path = hdusd::get_temp_dir();
-  std::string str{path.u8string()};
-  return PyUnicode_FromString(str.c_str());
+  return PyUnicode_FromString(path.u8string().c_str());
 }
 
 static PyObject *test_func(PyObject * /*self*/, PyObject *args)

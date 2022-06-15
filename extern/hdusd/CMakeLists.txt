@@ -89,6 +89,7 @@ set(ADDON_PROPERTIES_FILES
   addon/properties/material.py
   addon/properties/object.py
   addon/properties/usd_list.py
+  addon/properties/preferences.py
 )
 
 set(ADDON_UI_FILES

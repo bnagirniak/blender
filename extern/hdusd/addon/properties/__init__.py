@@ -23,6 +23,7 @@ class HdUSDProperties(bpy.types.PropertyGroup):
 
 
 from . import (
+    preferences,
     scene,
     object,
     usd_list,
@@ -30,6 +31,8 @@ from . import (
     hdrpr_render,
 )
 register, unregister = bpy.utils.register_classes_factory((
+    preferences.HDUSD_ADDON_PT_preferences,
+
     hdrpr_render.QualitySettings,
     hdrpr_render.InteractiveQualitySettings,
     hdrpr_render.ContourSettings,

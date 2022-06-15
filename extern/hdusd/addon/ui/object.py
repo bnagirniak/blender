@@ -80,7 +80,8 @@ class HDUSD_OBJECT_PT_usd_settings(HdUSD_Panel):
         #                   icon='HIDE_OFF' if visible else 'HIDE_ON',
         #                   emboss=True, depress=False)
         #
-        # if not context.preferences.addons['hdusd'].preferences.usd_mesh_assign_material_enabled:
+        # from ..properties.preferences import get_addon_pref
+        # if not get_addon_pref().usd_mesh_assign_material_enabled:
         #     return
         #
         # if prim.GetTypeName() in 'Mesh':

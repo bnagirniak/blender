@@ -713,7 +713,8 @@ class HDUSD_MATERIAL_PT_dev(HdUSD_ChildPanel):
 
     @classmethod
     def poll(cls, context):
-        return context.preferences.addons['hdusd'].preferences.dev_tools
+        from ..properties.preferences import get_addon_pref
+        return get_addon_pref().dev_tools
 
     def draw(self, context):
         layout = self.layout

@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-
 #include <Python.h>
 #include <iostream>
 #include <cstdio>
@@ -23,13 +21,16 @@
 #include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdSkel/root.h>
 
-#include "glog/logging.h"
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
-#include "hdusd_python_api.h"
+#include "usd_node.h"
+#include "usd.h"
 #include "session.h"
 #include "utils.h"
+
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
 
 using namespace pxr;
 
@@ -243,22 +244,11 @@ static struct PyModuleDef module = {
   NULL,
 };
 
-static struct PyModuleDef usdNodeTypeModule = {
-  PyModuleDef_HEAD_INIT,
-  "usdNodeType",
-  "This module defines USD node types.",
-  -1,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-};
+PyObject *usd_node_addPythonSubmodule(PyObject *mod)
+{
+  PyObject *submodule = PyModule_Create(&module);
+  PyModule_AddObject(mod, "usd_node", submodule);
+  return submodule;
+}
 
 }   // namespace hdusd
-
-PyObject *HdUSD_usd_node_initPython(void)
-{
-  PyObject *mod = PyModule_Create(&hdusd::module);
-  return mod;
-}

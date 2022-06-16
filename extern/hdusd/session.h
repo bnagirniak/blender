@@ -14,8 +14,6 @@
 
 namespace hdusd {
 
-extern std::unique_ptr<pxr::UsdStageCache> stageCache;
-
 class BlenderSession {
 public:
   BlenderSession(BL::RenderEngine &b_engine);

@@ -5,8 +5,6 @@
 
 namespace hdusd {
 
-std::unique_ptr<pxr::UsdStageCache> stageCache;
-
 BlenderSession::BlenderSession(BL::RenderEngine &b_engine)
     : b_engine(b_engine)
 {

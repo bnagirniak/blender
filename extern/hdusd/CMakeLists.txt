@@ -33,14 +33,20 @@ set(INC_SYS
 )
 
 set(SRC
+  hdusd_python_api.h
   python.cpp
+
+  session.h
   session.cpp
+
+  usd_node.h
   usd_node.cpp
+
+  utils.h
   utils.cpp
 
-  hdusd_python_api.h
-  session.h
-  utils.h
+  usd.h
+  usd.cpp
 
   camera.h
   camera.cpp

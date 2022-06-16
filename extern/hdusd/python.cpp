@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#define GLOG_NO_ABBREVIATED_SEVERITIES
 
 #include <iostream>
 
@@ -19,12 +18,16 @@
 #include <pxr/base/gf/camera.h>
 #include <pxr/base/plug/registry.h>
 
-#include "glog/logging.h"
 #include "usd_common.h"
 
+#include "usd.h"
+#include "usd_node.h"
 #include "hdusd_python_api.h"
 #include "session.h"
 #include "view_settings.h"
+
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
 
 namespace hdusd {
 
@@ -275,51 +278,6 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static PyObject *stage_export_to_str_func(PyObject * /*self*/, PyObject *args)
-{
-  long stageId;
-  int flatten;
-
-  if (!PyArg_ParseTuple(args, "lp", &stageId, &flatten)) {
-    Py_RETURN_NONE;
-  }
-
-  pxr::UsdStageRefPtr stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
-
-  if (!stage) {
-    Py_RETURN_NONE;
-  }
-
-  std::string str;
-  if (flatten) {
-    stage->ExportToString(&str);
-  }
-  else {
-    stage->GetRootLayer()->ExportToString(&str);
-  }
-  return PyUnicode_FromString(str.c_str());
-}
-
-static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
-{
-  long stageId;
-
-  if (!PyArg_ParseTuple(args, "l", &stageId)) {
-    Py_RETURN_FALSE;
-  }
-
-  pxr::UsdStageRefPtr stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
-
-  if (!stage) {
-    Py_RETURN_FALSE;
-  }
-
-  stageCache->Erase(stage);
-  DLOG(INFO) << "stage_free "<< stageId;
-
-  Py_RETURN_TRUE;
-}
-
 static PyObject *test_func(PyObject * /*self*/, PyObject *args)
 {
   char *path;
@@ -352,9 +310,6 @@ static PyMethodDef methods[] = {
   {"view_update", view_update_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},
 
-  {"stage_export_to_str", stage_export_to_str_func, METH_VARARGS, ""},
-  {"stage_free", stage_free_func, METH_VARARGS, ""},
-
   {"test", test_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
@@ -376,9 +331,8 @@ static struct PyModuleDef module = {
 PyObject *HdUSD_initPython(void)
 {
   PyObject *mod = PyModule_Create(&hdusd::module);
-  PyObject *submodule = HdUSD_usd_node_initPython();
-
-  PyModule_AddObject(mod, "usd_node", submodule);
+  hdusd::usd_addPythonSubmodule(mod);
+  hdusd::usd_node_addPythonSubmodule(mod);
 
   return mod;
 }

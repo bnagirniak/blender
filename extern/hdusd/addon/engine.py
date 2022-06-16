@@ -26,7 +26,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
     bl_use_preview = True
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
-    bl_use_gpu_context = False
+    bl_use_gpu_context = True
 
     session = None
 
@@ -41,15 +41,33 @@ class HdUSDEngine(bpy.types.RenderEngine):
 
     # final render
     def update(self, data, depsgraph):
+        usd_nodetree = node_tree.get_usd_nodetree()
+        if not usd_nodetree:
+            return
+
+        output_node = usd_nodetree.output_node
+        if not output_node:
+            return
+
+        stage = stages.get(output_node)
+        if not stage:
+            return
+
         if not self.session:
             self.session = _hdusd.create(self.as_pointer())
 
-        _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer())
+        _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer(), stage)
 
     def render(self, depsgraph):
+        if not self.session:
+            return
+
         _hdusd.render(self.session, depsgraph.as_pointer())
 
     def render_frame_finish(self):
+        if not self.session:
+            return
+
         _hdusd.render_frame_finish(self.session)
 
     # viewport render

@@ -59,9 +59,15 @@ class HdUSDEngine(bpy.types.RenderEngine):
         _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer(), stage)
 
     def render(self, depsgraph):
+        if not self.session:
+            return
+
         _hdusd.render(self.session, depsgraph.as_pointer())
 
     def render_frame_finish(self):
+        if not self.session:
+            return
+
         _hdusd.render_frame_finish(self.session)
 
     # viewport render

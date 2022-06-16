@@ -12,7 +12,7 @@ add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 set(INC
   ../gflags/src
   # ../../intern
-  # ../../glew-mx
+  ../../intern/glew-mx
   ../../intern/guardedalloc
   # ../../mikktspace
   ../../source/blender/makesdna
@@ -29,6 +29,7 @@ set(INC_SYS
   ${TBB_INCLUDE_DIR}
   ${GLOG_INCLUDE_DIRS}
   ${GFLAGS_INCLUDE_DIRS}
+  ${GLEW_INCLUDE_PATH}
 )
 
 set(SRC

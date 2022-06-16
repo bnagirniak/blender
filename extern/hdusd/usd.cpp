@@ -59,8 +59,8 @@ static PyMethodDef methods[] = {
 
 static struct PyModuleDef module = {
   PyModuleDef_HEAD_INIT,
-  "usd_node",
-  "This module provides access to USD nodes evaluation functions.",
+  "usd",
+  "This module provides access to USD related functions.",
   -1,
   methods,
   NULL,

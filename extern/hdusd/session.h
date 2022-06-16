@@ -3,10 +3,9 @@
 
 #pragma once
 
-#include <memory>
+#include <Python.h>
 
 #include <pxr/usd/usd/stage.h>
-#include <pxr/usd/usd/stageCache.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 
 #include "MEM_guardedalloc.h"
@@ -26,5 +25,7 @@ public:
   pxr::UsdImagingGLRenderParams render_params;
   pxr::UsdStageRefPtr stage;
 };
+
+PyObject *session_addPythonSubmodule(PyObject *mod);
 
 }   // namespace hdusd

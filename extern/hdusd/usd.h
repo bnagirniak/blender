@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <Python.h>
 
 #include <pxr/pxr.h>

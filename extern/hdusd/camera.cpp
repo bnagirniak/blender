@@ -1,19 +1,14 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include "BLI_math_matrix.h"
+
 #include "camera.h"
 #include "utils.h"
 
 namespace hdusd {
 
-CameraData::CameraData() {
-}
-
-CameraData::~CameraData()
-{
-}
-
-CameraData CameraData::init_from_camera(BL::Camera b_camera, BL::Array<float,16> b_transform, float ratio, vector<vector<int>> border)
+CameraData CameraData::init_from_camera(BL::Camera b_camera, BL::Array<float,16> b_transform, float ratio, float border[2][2])
 {
   // TODO: add code
   return CameraData();
@@ -25,32 +20,39 @@ CameraData CameraData::init_from_context(BL::Context b_context)
   // context.space_data or context.region_data
   float VIEWPORT_SENSOR_SIZE = 72.0;
 
+  BL::SpaceView3D space_data = (BL::SpaceView3D)b_context.space_data();
+
   CameraData data;
   float ratio = (float)b_context.region().width() / (float)b_context.region().height();
   if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_PERSP) {
     data = CameraData();
     data.mode = BL::Camera::type_PERSP;
-    data.clip_range = {((BL::SpaceView3D)b_context.space_data()).clip_start(), ((BL::SpaceView3D)b_context.space_data()).clip_end()};
-    data.lens_shift = {0.0, 0.0};
-    data.focal_length = ((BL::SpaceView3D)b_context.space_data()).lens();
+    data.clip_range[0] = space_data.clip_start();
+    data.clip_range[1] = space_data.clip_end();
+    data.lens_shift[0] = 0.0;
+    data.lens_shift[1] = 0.0;
+    data.focal_length = space_data.lens();
 
     if (ratio > 1.0) {
-      data.sensor_size = {VIEWPORT_SENSOR_SIZE, VIEWPORT_SENSOR_SIZE / ratio};
+      data.sensor_size[0] = VIEWPORT_SENSOR_SIZE;
+      data.sensor_size[1] = VIEWPORT_SENSOR_SIZE / ratio;
     }
     else {
-      data.sensor_size = {VIEWPORT_SENSOR_SIZE * ratio, VIEWPORT_SENSOR_SIZE};
+      data.sensor_size[0] = VIEWPORT_SENSOR_SIZE * ratio;
+      data.sensor_size[1] = VIEWPORT_SENSOR_SIZE;
     }
-    vector<vector<float>> vect = hdusd::matrix::convert_array_4x4_to_vector(b_context.region_data().view_matrix());
-    data.transform = hdusd::matrix::convert_vector_to_array_4x4(hdusd::matrix::get_inverse(vect));
+
+    invert_m4_m4(data.transform, (float(*)[4])b_context.region_data().view_matrix().data);
   }
   else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_ORTHO) {
     // TODO: add code
     data = CameraData();
   }
   else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
-    BL::Object camera_obj = ((BL::SpaceView3D)b_context.space_data()).camera();
+    BL::Object camera_obj = space_data.camera();
 
-    data = CameraData::init_from_camera((BL::Camera)camera_obj.data(), b_context.region_data().view_matrix(), ratio);
+    float border[2][2] = {{0, 0}, {1, 1}};
+    data = CameraData::init_from_camera((BL::Camera)camera_obj.data(), b_context.region_data().view_matrix(), ratio, border);
 
     // This formula was taken from previous plugin with corresponded comment
     // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
@@ -59,23 +61,25 @@ CameraData CameraData::init_from_context(BL::Context b_context)
 
     // Updating lens_shift due to viewport zoom and view_camera_offset
     // view_camera_offset should be multiplied by 2
-    data.lens_shift = {(data.lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
-                        (data.lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom};
+    data.lens_shift[0] = (data.lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom;
+    data.lens_shift[1] = (data.lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom;
 
     if (data.mode == BL::Camera::type_ORTHO) {
-      data.ortho_size = {data.ortho_size[0] * zoom, data.ortho_size[1] * zoom};
+      data.ortho_size[0] *= zoom;
+      data.ortho_size[1] *= zoom;
     }
     else {
-      data.sensor_size = {data.sensor_size[0] * zoom, data.sensor_size[1] * zoom};
+      data.sensor_size[0] *= zoom;
+      data.sensor_size[1] *= zoom;
     }
   }
 
   return data;
 }
 
-pxr::GfCamera CameraData::export_gf(vector<float> tile)
+pxr::GfCamera CameraData::export_gf(float tile[4])
 {
-  vector<float> tile_pos = {tile[0], tile[1]}, tile_size = {tile[2], tile[3]};
+  float tile_pos[2] = {tile[0], tile[1]}, tile_size[2] = {tile[2], tile[3]};
 
   pxr::GfCamera gf_camera = pxr::GfCamera();
 
@@ -103,17 +107,14 @@ pxr::GfCamera CameraData::export_gf(vector<float> tile)
     // TODO: store panoramic camera settings
   }
 
-  double double_array[(sizeof(this->transform.data) / sizeof(this->transform.data[0]))];
+  double transform_d[4][4];
 
-  for (int i = 0 ; i < (sizeof(this->transform.data) / sizeof(this->transform.data[0])); i++) {
-    double_array[i] = (double)this->transform.data[i];
+  for (int i = 0 ; i < 4; i++)
+  for (int j = 0 ; j < 4; j++){
+    transform_d[i][j] = (double)transform[i][j];
   }
 
-  gf_camera.SetTransform(pxr::GfMatrix4d(double_array[0], double_array[1], double_array[2], double_array[3],
-                                         double_array[4], double_array[5], double_array[6], double_array[7],
-                                         double_array[8], double_array[9], double_array[10], double_array[11],
-                                         double_array[12], double_array[13], double_array[14], double_array[15])
-                        );
+  gf_camera.SetTransform(pxr::GfMatrix4d(transform_d));
   
   return gf_camera;
 }

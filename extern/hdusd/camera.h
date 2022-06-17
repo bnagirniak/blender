@@ -12,26 +12,20 @@ using namespace std;
 
 namespace hdusd {
 
-class CameraData {
-  public:
-    CameraData();
+struct CameraData {
+  static CameraData init_from_camera(BL::Camera b_camera, BL::Array<float, 16> b_transform, float ratio, float border[2][2]);
+  static CameraData init_from_context(BL::Context b_context);
 
-    ~CameraData();
+  pxr::GfCamera export_gf(float tile[4]);
 
-    static CameraData init_from_camera(BL::Camera b_camera, BL::Array<float, 16> b_transform, float ratio,
-                          vector<vector<int>> border = {{0, 0}, {1, 1}});
-    static CameraData init_from_context(BL::Context b_context);
-
-    pxr::GfCamera export_gf(vector<float> tile);
-
-    BL::Camera::type_enum mode;
-    vector<float> clip_range;
-    float focal_length = 0.0;
-    vector<float> sensor_size;
-    BL::Array<float, 16> transform = {};
-    vector<float> lens_shift;
-    vector<float> ortho_size;
-    tuple<float, float, int> dof_size;
+  BL::Camera::type_enum mode;
+  float clip_range[2];
+  float focal_length = 0.0;
+  float sensor_size[2];
+  float transform[4][4];
+  float lens_shift[2];
+  float ortho_size[2];
+  tuple<float, float, int> dof_size;
 };
 
 } // namespace hdusd

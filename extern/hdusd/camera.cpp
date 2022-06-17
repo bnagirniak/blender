@@ -8,7 +8,7 @@
 
 namespace hdusd {
 
-CameraData CameraData::init_from_camera(BL::Camera b_camera, BL::Array<float,16> b_transform, float ratio, float border[2][2])
+CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][4], float ratio, float border[2][2])
 {
   // TODO: add code
   return CameraData();
@@ -52,7 +52,7 @@ CameraData CameraData::init_from_context(BL::Context b_context)
     BL::Object camera_obj = space_data.camera();
 
     float border[2][2] = {{0, 0}, {1, 1}};
-    data = CameraData::init_from_camera((BL::Camera)camera_obj.data(), b_context.region_data().view_matrix(), ratio, border);
+    data = CameraData::init_from_camera((BL::Camera)camera_obj.data(), (float(*)[4])b_context.region_data().view_matrix().data, ratio, border);
 
     // This formula was taken from previous plugin with corresponded comment
     // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)

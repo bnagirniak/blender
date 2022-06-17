@@ -13,7 +13,7 @@ using namespace std;
 namespace hdusd {
 
 struct CameraData {
-  static CameraData init_from_camera(BL::Camera b_camera, BL::Array<float, 16> b_transform, float ratio, float border[2][2]);
+  static CameraData init_from_camera(BL::Camera b_camera, float transform[4][4], float ratio, float border[2][2]);
   static CameraData init_from_context(BL::Context b_context);
 
   pxr::GfCamera export_gf(float tile[4]);

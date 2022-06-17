@@ -11,6 +11,7 @@
 #include "stage.h"
 #include "usd_node.h"
 #include "session.h"
+#include "utils.h"
 
 
 namespace hdusd {
@@ -61,6 +62,7 @@ PyObject *HdUSD_initPython(void)
   hdusd::addPythonSubmodule_stage(mod);
   hdusd::addPythonSubmodule_usd_node(mod);
   hdusd::addPythonSubmodule_session(mod);
+  hdusd::addPythonSubmodule_utils(mod);
 
   return mod;
 }

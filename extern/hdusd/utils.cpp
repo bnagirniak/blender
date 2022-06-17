@@ -68,4 +68,35 @@ string get_temp_file(string suffix, string name, bool is_rand)
   return get_temp_pid_dir().u8string() + "/" + name;
 }
 
+static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
+{
+  filesystem::path path = hdusd::get_temp_dir();
+  return PyUnicode_FromString(path.u8string().c_str());
+}
+
+
+static PyMethodDef methods[] = {
+  {"get_temp_dir", get_temp_dir_func, METH_VARARGS, ""},
+  {NULL, NULL, 0, NULL},
+};
+
+static struct PyModuleDef module = {
+  PyModuleDef_HEAD_INIT,
+  "utils",
+  "This module provides access to utils functions.",
+  -1,
+  methods,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+PyObject *addPythonSubmodule_utils(PyObject *mod)
+{
+  PyObject *submodule = PyModule_Create(&module);
+  PyModule_AddObject(mod, "utils", submodule);
+  return submodule;
+}
+
 } // namespace hdusd

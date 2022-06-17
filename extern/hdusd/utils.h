@@ -30,6 +30,5 @@ vector<vector<float>> get_inverse(const vector<vector<float>> input_vector);
 vector<vector<float>> convert_array_4x4_to_vector(BL::Array<float, 16> input_array);
 BL::Array<float, 16> convert_vector_to_array_4x4(vector<vector<float>> input_vector);
 
-}
-
+} // namespace matrix
 } // namespace hdusd

@@ -12,12 +12,11 @@
 #include <pxr/usdImaging/usdImagingGL/renderParams.h>
 #include <pxr/usdImaging/usdAppUtils/camera.h>
 
+#include "glog/logging.h"
+
 #include "session.h"
 #include "stage.h"
 #include "view_settings.h"
-
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-#include "glog/logging.h"
 
 namespace hdusd {
 
@@ -181,7 +180,7 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "free_func";
+  LOG(INFO) << "free_func";
   PyObject *pysession;
   if (!PyArg_ParseTuple(args, "O", &pysession)) {
     Py_RETURN_NONE;
@@ -193,7 +192,7 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "reset_func";
+  LOG(INFO) << "reset_func";
   PyObject *pysession, *pydata, *pydepsgraph;
   int stageId = 0;
   if (!PyArg_ParseTuple(args, "OOOi", &pysession, &pydata, &pydepsgraph, &stageId)) {
@@ -218,7 +217,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "render_func";
+  LOG(INFO) << "render_func";
   PyObject *pysession, *pydepsgraph;
 
   if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
@@ -242,13 +241,13 @@ static PyObject *render_frame_finish_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "view_update_func";
+  LOG(INFO) << "view_update_func";
   Py_RETURN_NONE;
 }
 
 static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "view_draw_func";
+  LOG(INFO) << "view_draw_func";
 
   PyObject *pysession, *pydepsgraph, *pycontext, *pyspaceData, *pyregionData;
 

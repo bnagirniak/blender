@@ -28,7 +28,7 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
             log.info(f"No USD stage for node {node.name}")
             return {'CANCELLED'}
 
-        usd_str = _hdusd.stage_export_to_str(stage, True)
+        usd_str = _hdusd.stage.export_to_str(stage, True)
         print(usd_str)
 
         return {'FINISHED'}
@@ -52,7 +52,7 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
             log.info(f"No USD stage for node {node.name}")
             return {'CANCELLED'}
 
-        usd_str = _hdusd.stage_export_to_str(stage, False)
+        usd_str = _hdusd.stage.export_to_str(stage, False)
         print(usd_str)
 
         return {'FINISHED'}

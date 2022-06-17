@@ -6,19 +6,18 @@
 #include <Python.h>
 
 #include "usd_common.h"
+#include "glog/logging.h"
 
 #include "stage.h"
 #include "usd_node.h"
 #include "session.h"
 
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-#include "glog/logging.h"
 
 namespace hdusd {
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "init_func";
+  LOG(INFO) << "init_func";
   blender::io::usd::ensure_usd_plugin_path_registered();
   stage_init();
 
@@ -27,7 +26,7 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
 {
-  DLOG(INFO) << "exit_func";
+  LOG(INFO) << "exit_func";
   stageCache = nullptr;
   Py_RETURN_NONE;
 }

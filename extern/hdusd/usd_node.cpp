@@ -24,13 +24,12 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
+#include "glog/logging.h"
+
 #include "usd_node.h"
 #include "stage.h"
 #include "session.h"
 #include "utils.h"
-
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-#include "glog/logging.h"
 
 using namespace pxr;
 
@@ -99,7 +98,7 @@ static UsdStageRefPtr compute_UsdFileNode(PyObject *nodeArgs)
 
 static UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
 {
-  DLOG(INFO) << "compute_MergeNode";
+  LOG(INFO) << "compute_MergeNode";
   UsdStageRefPtr stage = UsdStage::CreateNew(hdusd::get_temp_file(".usda", "usdnode", true));
   stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
   stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
@@ -121,7 +120,7 @@ static UsdStageRefPtr compute_MergeNode(PyObject *nodeArgs)
 
 static UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
 {
-  DLOG(INFO) << "compute_FilterNode";
+  LOG(INFO) << "compute_FilterNode";
   char *filterPath;
   long inputStageId;
   PyArg_ParseTuple(nodeArgs, "ls", &inputStageId, &filterPath);
@@ -133,7 +132,7 @@ static UsdStageRefPtr compute_FilterNode(PyObject *nodeArgs)
 
 static UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
 {
-  DLOG(INFO) << "compute_RootNode";
+  LOG(INFO) << "compute_RootNode";
   char *name, *type;
   long inputStageId;
   PyArg_ParseTuple(nodeArgs, "lss", &inputStageId, &name, &type);
@@ -173,25 +172,25 @@ static UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
 
 static UsdStageRefPtr compute_InstancingNode(PyObject *nodeArgs)
 {
-  DLOG(INFO) << "compute_InstancingNode";
+  LOG(INFO) << "compute_InstancingNode";
   return NULL;
 }
 
 static UsdStageRefPtr compute_TransformNode(PyObject *nodeArgs)
 {
-  DLOG(INFO) << "compute_TransformNode";
+  LOG(INFO) << "compute_TransformNode";
   //std::string name = pxr::TfMakeValidIdentifier(node->name);
 
   //std::string path = hdusd_utils::get_temp_dir().u8string();
   std::string path = hdusd::get_temp_file(".usda");
-  DLOG(INFO) << path;
+  LOG(INFO) << path;
   //pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateNew();
   return NULL;
 }
 
 static UsdStageRefPtr compute_TransformByEmptyNode(PyObject *nodeArgs)
 {
-  DLOG(INFO) << "compute_TransformByEmptyNode";
+  LOG(INFO) << "compute_TransformByEmptyNode";
   return NULL;
 }
 

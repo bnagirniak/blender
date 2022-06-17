@@ -119,6 +119,7 @@ set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
 
 add_definitions(${GFLAGS_DEFINES})
 add_definitions(${GLOG_DEFINES})
+add_definitions(-DGLOG_NO_ABBREVIATED_SEVERITIES)
 add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 
 

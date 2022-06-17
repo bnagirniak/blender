@@ -7,6 +7,6 @@
 
 namespace hdusd {
 
-PyObject *usd_node_addPythonSubmodule(PyObject *mod);
+PyObject *addPythonSubmodule_usd_node(PyObject *mod);
 
 } // namespace hdusd

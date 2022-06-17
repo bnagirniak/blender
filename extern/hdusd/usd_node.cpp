@@ -25,7 +25,7 @@
 #include "RNA_blender_cpp.h"
 
 #include "usd_node.h"
-#include "usd.h"
+#include "stage.h"
 #include "session.h"
 #include "utils.h"
 
@@ -244,7 +244,7 @@ static struct PyModuleDef module = {
   NULL,
 };
 
-PyObject *usd_node_addPythonSubmodule(PyObject *mod)
+PyObject *addPythonSubmodule_usd_node(PyObject *mod)
 {
   PyObject *submodule = PyModule_Create(&module);
   PyModule_AddObject(mod, "usd_node", submodule);

@@ -14,7 +14,8 @@
 namespace hdusd {
 
 extern std::unique_ptr<pxr::UsdStageCache> stageCache;
+void stage_init();
 
-PyObject *usd_addPythonSubmodule(PyObject *mod);
+PyObject *addPythonSubmodule_stage(PyObject *mod);
 
 } // namespace hdusd

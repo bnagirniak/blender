@@ -33,7 +33,6 @@ set(INC_SYS
 )
 
 set(SRC
-  hdusd_python_api.h
   python.cpp
 
   session.h
@@ -45,8 +44,8 @@ set(SRC
   utils.h
   utils.cpp
 
-  usd.h
-  usd.cpp
+  stage.h
+  stage.cpp
 
   camera.h
   camera.cpp

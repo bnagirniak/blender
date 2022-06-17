@@ -18,6 +18,11 @@ public:
   BlenderSession(BL::RenderEngine &b_engine);
   ~BlenderSession();
 
+  void reset(int stageId);
+  void render(BL::Depsgraph &b_depsgraph);
+  void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+
+public:
   BL::RenderEngine b_engine;
   //BL::BlendData b_data;
 
@@ -26,6 +31,6 @@ public:
   pxr::UsdStageRefPtr stage;
 };
 
-PyObject *session_addPythonSubmodule(PyObject *mod);
+PyObject *addPythonSubmodule_session(PyObject *mod);
 
 }   // namespace hdusd

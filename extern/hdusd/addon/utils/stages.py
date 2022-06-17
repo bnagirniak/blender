@@ -29,11 +29,11 @@ def free(bl_obj):
 
     stage = _stages.pop(key(bl_obj))
     if stage not in _stages.values():
-        _hdusd.stage_free(stage)
+        _hdusd.stage.free(stage)
 
 
 def free_all():
     for stage in _stages.values():
-        _hdusd.stage_free(stage)
+        _hdusd.stage.free(stage)
 
     _stages.clear()

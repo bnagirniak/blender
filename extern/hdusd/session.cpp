@@ -13,7 +13,7 @@
 #include <pxr/usdImaging/usdAppUtils/camera.h>
 
 #include "session.h"
-#include "usd.h"
+#include "stage.h"
 #include "view_settings.h"
 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -30,87 +30,25 @@ BlenderSession::~BlenderSession()
 {
 }
 
-static PyObject *create_func(PyObject * /*self*/, PyObject *args)
+void BlenderSession::reset(int stageId)
 {
-  DLOG(INFO) << "create_func";
-  PyObject *pyengine;
-  if (!PyArg_ParseTuple(args, "O", &pyengine)) {
-    Py_RETURN_NONE;
-  }
-
-  PointerRNA engineptr;
-  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(pyengine), &engineptr);
-  BL::RenderEngine engine(engineptr);
-
-  /* create session */
-  BlenderSession *session = new BlenderSession(engine);
-
-  return PyLong_FromVoidPtr(session);
+  stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
 }
 
-static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
+void BlenderSession::render(BL::Depsgraph &b_depsgraph)
 {
-  DLOG(INFO) << "reset_func";
-  PyObject *pysession, *pydata, *pydepsgraph;
-  int stageId = 0;
-  if (!PyArg_ParseTuple(args, "OOOi", &pysession, &pydata, &pydepsgraph, &stageId)) {
-    Py_RETURN_NONE;
-  }
-
-  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-
-  PointerRNA dataptr;
-  RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
-  BL::BlendData data(dataptr);
-
-  PointerRNA depsgraphptr;
-  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  BL::Depsgraph depsgraph(depsgraphptr);
-
-  session->stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
-
-  Py_RETURN_NONE;
-}
-
-static PyObject *free_func(PyObject * /*self*/, PyObject *args)
-{
-  DLOG(INFO) << "free_func";
-  PyObject *pysession;
-  if (!PyArg_ParseTuple(args, "O", &pysession)) {
-    Py_RETURN_NONE;
-  }
-
-  delete (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  Py_RETURN_NONE;
-}
-
-static PyObject *render_func(PyObject * /*self*/, PyObject *args)
-{
-  DLOG(INFO) << "render_func";
-  PyObject *pysession, *pydepsgraph;
-
-  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
-    Py_RETURN_NONE;
-  }
-
-  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-
-  if (!session->imagingGLEngine) {
-    session->imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+  if (!imagingGLEngine) {
+    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
   }
 
   pxr::TfToken plugin = pxr::TfToken("HdStormRendererPlugin");
 
-  if (!session->imagingGLEngine->SetRendererPlugin(plugin)) {
-    Py_RETURN_NONE;
+  if (!imagingGLEngine->SetRendererPlugin(plugin)) {
+    return;
   }
 
-  PointerRNA depsgraphptr;
-  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  BL::Depsgraph depsgraph(depsgraphptr);
-
-  BL::Scene b_scene = depsgraph.scene_eval();
-  BL::ViewLayer b_view_layer = depsgraph.view_layer();
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
   string b_render_layer_name = b_view_layer.name();
   vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
 
@@ -134,22 +72,22 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   draw_target_ptr->Bind();
   draw_target_ptr->AddAttachment("color", GL_RGBA, GL_FLOAT, GL_RGBA);
 
-  pxr::UsdGeomCamera usd_camera = pxr::UsdAppUtilsGetCameraAtPath(session->stage, pxr::SdfPath(pxr::TfMakeValidIdentifier(b_scene.camera().data().name())));
+  pxr::UsdGeomCamera usd_camera = pxr::UsdAppUtilsGetCameraAtPath(stage, pxr::SdfPath(pxr::TfMakeValidIdentifier(b_scene.camera().data().name())));
   pxr::UsdTimeCode usd_timecode = pxr::UsdTimeCode(b_scene.frame_current());
   pxr::GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
 
-  session->imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
                                            gf_camera.GetFrustum().ComputeProjectionMatrix());
 
-  session->imagingGLEngine->SetRenderViewport(pxr::GfVec4d(0, 0, width, height));
-  session->imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
+  imagingGLEngine->SetRenderViewport(pxr::GfVec4d(0, 0, width, height));
+  imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
 
-  session->render_params.frame = usd_timecode;
-  session->render_params.clearColor = pxr::GfVec4f(1.0, 1.0, 1.0, 0.0);
+  render_params.frame = usd_timecode;
+  render_params.clearColor = pxr::GfVec4f(1.0, 1.0, 1.0, 0.0);
 
-  session->imagingGLEngine->Render(session->stage->GetPseudoRoot(), session->render_params);
+  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
-  BL::RenderResult b_result = session->b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
+  BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
   BL::CollectionRef b_render_passes = b_result.layers[0].passes;
 
   int channels = 4;
@@ -182,7 +120,117 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
     b_pass.rect(images.data());
   }
 
-  session->b_engine.end_result(b_result, false, false, false);
+  b_engine.end_result(b_result, false, false, false);
+}
+
+void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
+{
+  if (!imagingGLEngine) {
+    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+  }
+
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  
+  ViewSettings view_settings(b_context);
+
+  if (view_settings.get_width() * view_settings.get_height() == 0) {
+    return;
+  };
+
+  pxr::GfCamera gf_camera = view_settings.export_camera();
+
+  vector<pxr::GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
+
+  for (int i = 0; i < clip_planes.size(); i++) {
+    render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
+  }
+
+  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+                                           gf_camera.GetFrustum().ComputeProjectionMatrix());
+  imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
+                                                  (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
+
+  b_engine.bind_display_space_shader(b_scene);
+  
+  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
+
+  b_engine.unbind_display_space_shader();
+}
+
+/* ------------------------------------------------------------------------- */
+/* Python API for BlenderSession
+ */
+
+static PyObject *create_func(PyObject * /*self*/, PyObject *args)
+{
+  DLOG(INFO) << "create_func";
+  PyObject *pyengine;
+  if (!PyArg_ParseTuple(args, "O", &pyengine)) {
+    Py_RETURN_NONE;
+  }
+
+  PointerRNA engineptr;
+  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(pyengine), &engineptr);
+  BL::RenderEngine engine(engineptr);
+
+  /* create session */
+  BlenderSession *session = new BlenderSession(engine);
+
+  return PyLong_FromVoidPtr(session);
+}
+
+static PyObject *free_func(PyObject * /*self*/, PyObject *args)
+{
+  DLOG(INFO) << "free_func";
+  PyObject *pysession;
+  if (!PyArg_ParseTuple(args, "O", &pysession)) {
+    Py_RETURN_NONE;
+  }
+
+  delete (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  Py_RETURN_NONE;
+}
+
+static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
+{
+  DLOG(INFO) << "reset_func";
+  PyObject *pysession, *pydata, *pydepsgraph;
+  int stageId = 0;
+  if (!PyArg_ParseTuple(args, "OOOi", &pysession, &pydata, &pydepsgraph, &stageId)) {
+    Py_RETURN_NONE;
+  }
+
+  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+
+  //PointerRNA dataptr;
+  //RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
+  //BL::BlendData data(dataptr);
+
+  //PointerRNA depsgraphptr;
+  //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  //BL::Depsgraph depsgraph(depsgraphptr);
+
+  session->reset(stageId);
+
+  Py_RETURN_NONE;
+}
+
+
+static PyObject *render_func(PyObject * /*self*/, PyObject *args)
+{
+  DLOG(INFO) << "render_func";
+  PyObject *pysession, *pydepsgraph;
+
+  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
+    Py_RETURN_NONE;
+  }
+
+  PointerRNA depsgraphptr;
+  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  BL::Depsgraph depsgraph(depsgraphptr);
+
+  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  session->render(depsgraph);
 
   Py_RETURN_NONE;
 }
@@ -208,48 +256,17 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
     Py_RETURN_NONE;
   }
 
-  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-
-  if (!session->imagingGLEngine) {
-    session->imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
-  }
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  BL::Depsgraph depsgraph(depsgraphptr);
+  BL::Depsgraph b_depsgraph(depsgraphptr);
 
   PointerRNA contextptr;
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pycontext), &contextptr);
   BL::Context b_context(contextptr);
 
-  BL::Scene b_scene = depsgraph.scene_eval();
-  BL::RenderEngine b_engine = session->b_engine;
-  
-  ViewSettings *view_settings = new ViewSettings(b_context);
-
-  if (view_settings->get_width() * view_settings->get_height() == 0) {
-    Py_RETURN_NONE;
-  };
-
-  pxr::GfCamera gf_camera = view_settings->export_camera();
-
-  vector<pxr::GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
-
-  for (int i = 0; i < clip_planes.size(); i++) {
-    session->render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
-  }
-
-  session->imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                           gf_camera.GetFrustum().ComputeProjectionMatrix());
-  session->imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings->border[0][0], (double)view_settings->border[0][1],
-                                                  (double)view_settings->border[1][0], (double)view_settings->border[1][1]));
-
-  b_engine.bind_display_space_shader(b_scene);
-  
-  session->imagingGLEngine->Render(session->stage->GetPseudoRoot(), session->render_params);
-
-  b_engine.unbind_display_space_shader();
-
+  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  session->view_draw(b_depsgraph, b_context);
   
   ///* Allow Blender to execute other Python scripts. */
   //python_thread_state_save(&session->python_thread_state);
@@ -284,7 +301,7 @@ static struct PyModuleDef module = {
   NULL,
 };
 
-PyObject *session_addPythonSubmodule(PyObject *mod)
+PyObject *addPythonSubmodule_session(PyObject *mod)
 {
   PyObject *submodule = PyModule_Create(&module);
   PyModule_AddObject(mod, "session", submodule);

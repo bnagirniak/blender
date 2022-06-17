@@ -1,13 +1,18 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include "usd.h"
+#include "stage.h"
 
 namespace hdusd {
 
 std::unique_ptr<pxr::UsdStageCache> stageCache;
 
-static PyObject *stage_export_to_str_func(PyObject * /*self*/, PyObject *args)
+void stage_init()
+{
+  stageCache = std::make_unique<pxr::UsdStageCache>();
+}
+
+static PyObject *export_to_str_func(PyObject * /*self*/, PyObject *args)
 {
   long stageId;
   int flatten;
@@ -32,7 +37,7 @@ static PyObject *stage_export_to_str_func(PyObject * /*self*/, PyObject *args)
   return PyUnicode_FromString(str.c_str());
 }
 
-static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
+static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 {
   long stageId;
 
@@ -52,15 +57,15 @@ static PyObject *stage_free_func(PyObject * /*self*/, PyObject *args)
 }
 
 static PyMethodDef methods[] = {
-  {"stage_export_to_str", stage_export_to_str_func, METH_VARARGS, ""},
-  {"stage_free", stage_free_func, METH_VARARGS, ""},
+  {"export_to_str", export_to_str_func, METH_VARARGS, ""},
+  {"free", free_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 
 static struct PyModuleDef module = {
   PyModuleDef_HEAD_INIT,
-  "usd",
-  "This module provides access to USD related functions.",
+  "stage",
+  "This module provides access to USD Stage related functions.",
   -1,
   methods,
   NULL,
@@ -69,10 +74,10 @@ static struct PyModuleDef module = {
   NULL,
 };
 
-PyObject *usd_addPythonSubmodule(PyObject *mod)
+PyObject *addPythonSubmodule_stage(PyObject *mod)
 {
   PyObject *submodule = PyModule_Create(&module);
-  PyModule_AddObject(mod, "usd", submodule);
+  PyModule_AddObject(mod, "stage", submodule);
   return submodule;
 }
 

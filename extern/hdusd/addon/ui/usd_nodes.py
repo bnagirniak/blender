@@ -81,9 +81,10 @@ class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
     bl_region_type = "UI"
     bl_category = "Tool"
 
-    # @classmethod
-    # def poll(cls, context):
-    #     return config.show_dev_settings
+    @classmethod
+    def poll(cls, context):
+        from ..properties.preferences import get_addon_pref
+        return get_addon_pref().dev_tools
 
     def draw(self, context):
         layout = self.layout

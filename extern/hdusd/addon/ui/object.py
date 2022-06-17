@@ -18,7 +18,6 @@ import bpy
 
 from . import HdUSD_Panel
 from ..properties.object import GEOM_TYPES
-#from .. import config
 
 
 class HDUSD_OP_usd_object_show_hide(bpy.types.Operator):
@@ -81,7 +80,8 @@ class HDUSD_OBJECT_PT_usd_settings(HdUSD_Panel):
         #                   icon='HIDE_OFF' if visible else 'HIDE_ON',
         #                   emboss=True, depress=False)
         #
-        # if not config.usd_mesh_assign_material_enabled:
+        # from ..properties.preferences import get_addon_pref
+        # if not get_addon_pref().usd_mesh_assign_material_enabled:
         #     return
         #
         # if prim.GetTypeName() in 'Mesh':

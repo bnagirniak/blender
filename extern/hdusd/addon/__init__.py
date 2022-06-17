@@ -11,9 +11,11 @@ bl_info = {
     "blender": (3, 1, 0),
     "location": "Info header > Render engine menu",
     "description": "USD Hydra renderer integration",
-    "warning": "",
-    "doc_url": "",
     "tracker_url": "",
+    "doc_url": "",
+    "community": "",
+    "downloads": "",
+    "main_web": "",
     "support": 'TESTING',
     "category": "Render"
 }
@@ -21,23 +23,26 @@ bl_info = {
 # Support 'reload' case.
 if "bpy" in locals():
     import importlib
-    if "engine" in locals():
-        importlib.reload(engine)
-    if "ui" in locals():
-        importlib.reload(ui)
-    # if "operators" in locals():
-    #     importlib.reload(operators)
-    if "properties" in locals():
-        importlib.reload(properties)
+    importlib.reload(properties)
+    importlib.reload(engine)
+    importlib.reload(ui)
+    # importlib.reload(operators)
 
+else:
+    from . import (
+        properties,
+        engine,
+        usd_nodes,
+        ui,
+        handlers,
+    )
 
-from . import (
-    engine,
-    usd_nodes,
-    properties,
-    ui,
-    handlers,
-)
+import atexit
+import bpy
+from bpy.utils import register_class, unregister_class
+from .utils import logging
+
+log = logging.Log('init')
 
 
 def exit():
@@ -45,20 +50,13 @@ def exit():
 
 
 def register():
-    import atexit
-    from bpy.utils import register_class
-    # from . import ui
-    # from . import operators
-    # from . import properties
-    # from . import presets
-
     # Make sure we only registered the callback once.
     atexit.unregister(exit)
     atexit.register(exit)
 
-    engine.init()
-
     properties.register()
+
+    engine.init()
     ui.register()
     # operators.register()
     # presets.register()
@@ -69,14 +67,6 @@ def register():
 
 
 def unregister():
-    from bpy.utils import unregister_class
-    # from . import ui
-    # from . import operators
-    # from . import properties
-    # from . import presets
-
-    # bpy.app.handlers.version_update.remove(version_update.do_versions)
-
     ui.unregister()
     # operators.unregister()
     properties.unregister()

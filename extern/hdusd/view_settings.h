@@ -25,7 +25,7 @@ class ViewSettings {
 
     int screen_width;
     int screen_height;
-    vector<vector<int>> border;
+    int border[2][2];
 };
 
 } // namespace hdusd

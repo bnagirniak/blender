@@ -37,7 +37,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
         if not self.session:
             return
 
-        _hdusd.free(self.session)
+        session_free(self.session)
 
     # final render
     def update(self, data, depsgraph):
@@ -54,21 +54,18 @@ class HdUSDEngine(bpy.types.RenderEngine):
             return
 
         if not self.session:
-            self.session = _hdusd.create(self.as_pointer())
+            self.session = session_create(self)
 
-        _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer(), stage)
+        session_reset(self.session, data, depsgraph, stage)
 
     def render(self, depsgraph):
         if not self.session:
             return
 
-        _hdusd.render(self.session, depsgraph.as_pointer())
+        session_render(self.session, depsgraph)
 
     def render_frame_finish(self):
-        if not self.session:
-            return
-
-        _hdusd.render_frame_finish(self.session)
+        pass
 
     # viewport render
     def view_update(self, context, depsgraph):
@@ -86,17 +83,33 @@ class HdUSDEngine(bpy.types.RenderEngine):
             return
 
         if not self.session:
-            self.session = _hdusd.create(self.as_pointer())
+            self.session = session_create(self)
 
-        _hdusd.reset(self.session, data.as_pointer(), depsgraph.as_pointer(), stage)
+        session_reset(self.session, data, depsgraph, stage)
 
     def view_draw(self, context, depsgraph):
         if not self.session:
             return
 
-        depsgraph_ptr = depsgraph.as_pointer()
-        space_data_ptr = context.space_data.as_pointer()
-        region_data_ptr = context.region_data.as_pointer()
-        context_ptr = context.as_pointer()
+        session_view_draw(self.session, depsgraph, context, context.space_data, context.region_data)
 
-        _hdusd.view_draw(self.session, depsgraph_ptr, context_ptr, space_data_ptr, region_data_ptr)
+
+def session_create(engine: HdUSDEngine):
+    return _hdusd.session.create(engine.as_pointer())
+
+
+def session_free(session):
+    _hdusd.session.free(session)
+
+
+def session_reset(session, data, depsgraph, stage):
+    _hdusd.session.reset(session, data.as_pointer(), depsgraph.as_pointer(), stage)
+
+
+def session_render(session, depsgraph):
+    _hdusd.session.render(session, depsgraph.as_pointer())
+
+
+def session_view_draw(session, depsgraph, context, space_data, region_data):
+    _hdusd.session.view_draw(session, depsgraph.as_pointer(), context.as_pointer(),
+                             space_data.as_pointer(), region_data.as_pointer())

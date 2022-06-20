@@ -252,7 +252,7 @@ static PyObject *CCL_initPython(void)
 #endif
 
 #ifdef WITH_HDUSD
-/* defined in manta module */
+/* defined in hdusd module */
 extern PyObject *HdUSD_initPython(void);
 #endif
 

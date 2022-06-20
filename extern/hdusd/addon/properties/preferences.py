@@ -1,17 +1,8 @@
-#**********************************************************************
-# Copyright 2020 Advanced Micro Devices, Inc
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#********************************************************************
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2011-2022 Blender Foundation
+
+# <pep8 compliant>
+
 import bpy
 import tempfile
 import _hdusd
@@ -33,7 +24,7 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
             return
 
         tempfile.tempdir = Path(self.tmp_dir)
-        bpy.context.preferences.addons['hdusd'].preferences['tmp_dir'] = str(_hdusd.get_temp_dir())
+        bpy.context.preferences.addons['hdusd'].preferences['tmp_dir'] = str(_hdusd.utils.get_temp_dir())
         log.info(f"Current temp directory is changed to {bpy.context.preferences.addons['hdusd'].preferences.tmp_dir}")
 
     def update_log_level(self, context):
@@ -45,7 +36,7 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
         description="Set temp directory",
         maxlen=1024,
         subtype='DIR_PATH',
-        default=str(_hdusd.get_temp_dir()),
+        default=str(_hdusd.utils.get_temp_dir()),
         update=update_temp_dir,
     )
     dev_tools: BoolProperty(

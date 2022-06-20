@@ -34,13 +34,18 @@ set(INC_SYS
 
 set(SRC
   python.cpp
+
+  session.h
   session.cpp
+
+  usd_node.h
   usd_node.cpp
+
+  utils.h
   utils.cpp
 
-  hdusd_python_api.h
-  session.h
-  utils.h
+  stage.h
+  stage.cpp
 
   camera.h
   camera.cpp
@@ -115,6 +120,7 @@ set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
 
 add_definitions(${GFLAGS_DEFINES})
 add_definitions(${GLOG_DEFINES})
+add_definitions(-DGLOG_NO_ABBREVIATED_SEVERITIES)
 add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 
 

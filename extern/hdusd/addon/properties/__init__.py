@@ -26,8 +26,9 @@ from . import (
     preferences,
     scene,
     object,
-    usd_list,
+    usd_stage,
     material,
+    window_manager,
     hdrpr_render,
 )
 register, unregister = bpy.utils.register_classes_factory((
@@ -39,10 +40,6 @@ register, unregister = bpy.utils.register_classes_factory((
     hdrpr_render.DenoiseSettings,
     hdrpr_render.RenderSettings,
 
-    usd_list.PrimPropertyItem,
-    usd_list.UsdListItem,
-    usd_list.UsdList,
-
     scene.FinalRenderSettings,
     scene.ViewportRenderSettings,
     scene.SceneProperties,
@@ -50,4 +47,9 @@ register, unregister = bpy.utils.register_classes_factory((
     object.ObjectProperties,
 
     material.MaterialProperties,
+
+    usd_stage.UsdStagePrim,
+    usd_stage.UsdStage,
+
+    window_manager.WindowManagerProperties,
 ))

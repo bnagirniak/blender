@@ -5,9 +5,37 @@
 
 import _hdusd
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
+from ..usd_nodes.nodes.base_node import USDNode
+from ..properties.usd_stage import get_stage_properties
 
 from ..utils.logging import Log
 log = Log('ui.usd_nodes')
+
+
+class HDUSD_NODE_PT_usd_stage(HdUSD_Panel):
+    bl_label = "USD Node Prims"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "Item"
+
+    @classmethod
+    def poll(cls, context):
+        node = context.active_node
+        return node and isinstance(node, USDNode)
+
+    def draw(self, context):
+        layout = self.layout
+        usd_node = context.active_node
+        stage_prop = usd_node.stage_prop
+
+        layout.label(text=f"stage: {stage_prop.stage}")
+
+        layout.template_list(
+            "HDUSD_UL_usd_stage", "",
+            stage_prop, "prims",
+            stage_prop, "prim_index",
+            sort_lock=True
+        )
 
 
 class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):

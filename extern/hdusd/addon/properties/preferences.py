@@ -56,6 +56,7 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
         update=update_log_level,
 
     )
+
     def draw(self, context):
         layout = self.layout
         col = layout.column()

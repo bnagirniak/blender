@@ -1,7 +1,11 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <pxr/usd/usd/prim.h>
+
 #include "stage.h"
+
+using namespace pxr;
 
 namespace hdusd {
 
@@ -21,7 +25,7 @@ static PyObject *export_to_str_func(PyObject * /*self*/, PyObject *args)
     Py_RETURN_NONE;
   }
 
-  pxr::UsdStageRefPtr stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+  UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
 
   if (!stage) {
     Py_RETURN_NONE;
@@ -45,7 +49,7 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
     Py_RETURN_FALSE;
   }
 
-  pxr::UsdStageRefPtr stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+  UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
 
   if (!stage) {
     Py_RETURN_FALSE;
@@ -56,9 +60,34 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_TRUE;
 }
 
+static PyObject *prim_get_children_func(PyObject * /*self*/, PyObject *args)
+{
+  long stageId;
+  char *path;
+  if (!PyArg_ParseTuple(args, "ls", &stageId, &path)) {
+    Py_RETURN_NONE;
+  }
+
+  UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+  UsdPrim prim = stage->GetPrimAtPath(SdfPath(path));
+
+  std::vector<std::string> childNames;
+  for (UsdPrim child : prim.GetAllChildren()) {
+    childNames.push_back(child.GetPath().GetAsString());
+  }
+
+  PyObject *ret = PyTuple_New(childNames.size());
+  for (int i = 0; i < childNames.size(); ++i) {
+    PyTuple_SetItem(ret, i, PyUnicode_FromString(childNames[i].c_str()));
+  }
+
+  return ret;
+}
+
 static PyMethodDef methods[] = {
   {"export_to_str", export_to_str_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
+  {"prim_get_children", prim_get_children_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

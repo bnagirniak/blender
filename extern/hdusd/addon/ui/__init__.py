@@ -103,7 +103,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     usd_nodes.HDUSD_NODE_PT_usd_nodetree_dev,
 
     usd_stage.HDUSD_OP_usd_stage_prim_expand,
-    usd_stage.HDUSD_OP_usd_stage_prim_show_hide,
+    # usd_stage.HDUSD_OP_usd_stage_prim_show_hide,
     usd_stage.HDUSD_UL_usd_stage,
 ])
 

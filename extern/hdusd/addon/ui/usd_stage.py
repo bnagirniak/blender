@@ -57,41 +57,41 @@ class HDUSD_OP_usd_stage_prim_expand(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class HDUSD_OP_usd_stage_prim_show_hide(bpy.types.Operator):
-    """Show/Hide USD item"""
-    bl_idname = "hdusd.usd_stage_prim_show_hide"
-    bl_label = "Show/Hide"
-
-    index: bpy.props.IntProperty(default=-1)
-
-    def execute(self, context):
-        if self.index == -1:
-            return {'CANCELLED'}
-
-        node = context.active_node
-        usd_list = node.hdusd.usd_list
-        items = usd_list.items
-        item = items[self.index]
-
-        prim = usd_list.get_prim(item)
-        im = UsdGeom.Imageable(prim)
-        if im.ComputeVisibility() == 'invisible':
-            im.MakeVisible()
-        else:
-            im.MakeInvisible()
-
-        return {'FINISHED'}
+# class HDUSD_OP_usd_stage_prim_show_hide(bpy.types.Operator):
+#     """Show/Hide USD item"""
+#     bl_idname = "hdusd.usd_stage_prim_show_hide"
+#     bl_label = "Show/Hide"
+#
+#     index: bpy.props.IntProperty(default=-1)
+#
+#     def execute(self, context):
+#         if self.index == -1:
+#             return {'CANCELLED'}
+#
+#         node = context.active_node
+#         usd_list = node.hdusd.usd_list
+#         items = usd_list.items
+#         item = items[self.index]
+#
+#         prim = usd_list.get_prim(item)
+#         im = UsdGeom.Imageable(prim)
+#         if im.ComputeVisibility() == 'invisible':
+#             im.MakeVisible()
+#         else:
+#             im.MakeInvisible()
+#
+#         return {'FINISHED'}
 
 
 class HDUSD_UL_usd_stage(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def draw_item(self, context, layout, stage_prop, prim_prop, icon, active_data, active_propname, index):
         if self.layout_type not in {'DEFAULT', 'COMPACT'}:
             return
 
-        for i in range(item.indent):
+        for i in range(prim_prop.indent):
             layout.split(factor=0.1)
 
-        items = data.items
+        prims = stage_prop.prims
         prim = data.get_prim(item)
         if not prim:
             return
@@ -102,12 +102,12 @@ class HDUSD_UL_usd_stage(bpy.types.UIList):
         if not prim.GetChildren():
             icon = 'DOT'
             col.enabled = False
-        elif len(items) > index + 1 and items[index + 1].indent > item.indent:
+        elif len(prims) > index + 1 and prims[index + 1].indent > prim_prop.indent:
             icon = 'TRIA_DOWN'
         else:
             icon = 'TRIA_RIGHT'
 
-        expand_op = col.operator(HDUSD_OP_usd_list_item_expand.bl_idname, text="", icon=icon,
+        expand_op = col.operator(HDUSD_OP_usd_stage_prim_expand.bl_idname, text="", icon=icon,
                                  emboss=False, depress=False)
         expand_op.index = index
 
@@ -120,14 +120,14 @@ class HDUSD_UL_usd_stage(bpy.types.UIList):
         col.label(text=prim.GetTypeName())
         col.enabled = visible
 
-        col = layout.column()
-        col.alignment = 'RIGHT'
-        if prim.GetTypeName() == 'Xform':
-            icon = 'HIDE_OFF' if visible else 'HIDE_ON'
-        else:
-            col.enabled = False
-            icon = 'NONE'
-
-        visible_op = col.operator(HDUSD_OP_usd_list_item_show_hide.bl_idname, text="", icon=icon,
-                                  emboss=False, depress=False)
-        visible_op.index = index
+        # col = layout.column()
+        # col.alignment = 'RIGHT'
+        # if prim.GetTypeName() == 'Xform':
+        #     icon = 'HIDE_OFF' if visible else 'HIDE_ON'
+        # else:
+        #     col.enabled = False
+        #     icon = 'NONE'
+        #
+        # visible_op = col.operator(HDUSD_OP_usd_stage_prim_show_hide.bl_idname, text="", icon=icon,
+        #                           emboss=False, depress=False)
+        # visible_op.index = index

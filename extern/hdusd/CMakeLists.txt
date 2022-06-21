@@ -12,7 +12,7 @@ add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 set(INC
   ../gflags/src
   # ../../intern
-  # ../../glew-mx
+  ../../intern/glew-mx
   ../../intern/guardedalloc
   # ../../mikktspace
   ../../source/blender/makesdna
@@ -29,17 +29,23 @@ set(INC_SYS
   ${TBB_INCLUDE_DIR}
   ${GLOG_INCLUDE_DIRS}
   ${GFLAGS_INCLUDE_DIRS}
+  ${GLEW_INCLUDE_PATH}
 )
 
 set(SRC
   python.cpp
+
+  session.h
   session.cpp
+
+  usd_node.h
   usd_node.cpp
+
+  utils.h
   utils.cpp
 
-  hdusd_python_api.h
-  session.h
-  utils.h
+  stage.h
+  stage.cpp
 
   camera.h
   camera.cpp
@@ -89,6 +95,7 @@ set(ADDON_PROPERTIES_FILES
   addon/properties/material.py
   addon/properties/object.py
   addon/properties/usd_list.py
+  addon/properties/preferences.py
 )
 
 set(ADDON_UI_FILES
@@ -113,6 +120,7 @@ set(HDUSD_INSTALL_PATH "scripts/addons/hdusd")
 
 add_definitions(${GFLAGS_DEFINES})
 add_definitions(${GLOG_DEFINES})
+add_definitions(-DGLOG_NO_ABBREVIATED_SEVERITIES)
 add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 
 

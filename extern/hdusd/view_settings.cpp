@@ -9,16 +9,16 @@ namespace hdusd {
 
 ViewSettings::ViewSettings(BL::Context b_context)
 {
-  this->camera_data = CameraData::init_from_context(b_context);
+  camera_data = CameraData::init_from_context(b_context);
 
-  this->screen_width = b_context.region().width();
-  this->screen_height = b_context.region().height();
+  screen_width = b_context.region().width();
+  screen_height = b_context.region().height();
 
   BL::Scene b_scene = b_context.scene();
 
   //getting render border
   int x1 = 0, y1 = 0;
-  int x2 = this->screen_width, y2 = this->screen_height;
+  int x2 = screen_width, y2 = screen_height;
 
   if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
     if (b_scene.render().use_border()) {
@@ -37,7 +37,10 @@ ViewSettings::ViewSettings(BL::Context b_context)
     }
   }
 
-  this->border = {{x1, y1}, {x2 - x1, y2 - y1}};
+  border[0][0] = x1;
+  border[0][1] = y1;
+  border[1][0] = x2 - x1;
+  border[1][1] = y2 - y1;
 }
 
 ViewSettings::~ViewSettings()
@@ -56,10 +59,9 @@ int ViewSettings::get_height()
 
 pxr::GfCamera ViewSettings::export_camera()
 {
-  return camera_data.export_gf({
-            (float)border[0][0] / screen_width, (float)border[0][1] / screen_height,
-            (float)border[1][0] / screen_width, (float)border[1][1] / screen_height}
-         );
+  float tile[4] = {(float)border[0][0] / screen_width, (float)border[0][1] / screen_height,
+                   (float)border[1][0] / screen_width, (float)border[1][1] / screen_height};
+  return camera_data.export_gf(tile);
 }
 
 } // namespace hdusd

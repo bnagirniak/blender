@@ -28,7 +28,7 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
             log.info(f"No USD stage for node {node.name}")
             return {'CANCELLED'}
 
-        usd_str = _hdusd.stage_export_to_str(stage, True)
+        usd_str = _hdusd.stage.export_to_str(stage, True)
         print(usd_str)
 
         return {'FINISHED'}
@@ -52,7 +52,7 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
             log.info(f"No USD stage for node {node.name}")
             return {'CANCELLED'}
 
-        usd_str = _hdusd.stage_export_to_str(stage, False)
+        usd_str = _hdusd.stage.export_to_str(stage, False)
         print(usd_str)
 
         return {'FINISHED'}
@@ -81,9 +81,10 @@ class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
     bl_region_type = "UI"
     bl_category = "Tool"
 
-    # @classmethod
-    # def poll(cls, context):
-    #     return config.show_dev_settings
+    @classmethod
+    def poll(cls, context):
+        from ..properties.preferences import get_addon_pref
+        return get_addon_pref().dev_tools
 
     def draw(self, context):
         layout = self.layout

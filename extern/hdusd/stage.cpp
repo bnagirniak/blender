@@ -2,6 +2,7 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usdGeom/imageable.h>
 
 #include "stage.h"
 
@@ -60,7 +61,7 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_TRUE;
 }
 
-static PyObject *prim_get_children_func(PyObject * /*self*/, PyObject *args)
+static PyObject *prim_get_info_func(PyObject * /*self*/, PyObject *args)
 {
   long stageId;
   char *path;
@@ -71,15 +72,24 @@ static PyObject *prim_get_children_func(PyObject * /*self*/, PyObject *args)
   UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
   UsdPrim prim = stage->GetPrimAtPath(SdfPath(path));
 
-  std::vector<std::string> childNames;
-  for (UsdPrim child : prim.GetAllChildren()) {
-    childNames.push_back(child.GetPath().GetAsString());
+  if (!prim) {
+    Py_RETURN_NONE;
   }
 
-  PyObject *ret = PyTuple_New(childNames.size());
-  for (int i = 0; i < childNames.size(); ++i) {
-    PyTuple_SetItem(ret, i, PyUnicode_FromString(childNames[i].c_str()));
+  PyObject *ret = PyDict_New();
+  PyDict_SetItemString(ret, "name", PyUnicode_FromString(prim.GetName().GetText()));
+  PyDict_SetItemString(ret, "path", PyUnicode_FromString(prim.GetPath().GetText()));
+  PyDict_SetItemString(ret, "type", PyUnicode_FromString(prim.GetTypeName().GetText()));
+
+  bool visible = UsdGeomImageable(prim).ComputeVisibility().GetString() != "invisible";
+  PyDict_SetItemString(ret, "visible", visible? Py_True: Py_False);
+
+  auto childrenNames = prim.GetAllChildrenNames();
+  PyObject *children = PyTuple_New(childrenNames.size());
+  for (int i = 0; i < childrenNames.size(); ++i) {
+    PyTuple_SetItem(children, i, PyUnicode_FromString(childrenNames[i].GetText()));
   }
+  PyDict_SetItemString(ret, "children", children);
 
   return ret;
 }
@@ -87,7 +97,7 @@ static PyObject *prim_get_children_func(PyObject * /*self*/, PyObject *args)
 static PyMethodDef methods[] = {
   {"export_to_str", export_to_str_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
-  {"prim_get_children", prim_get_children_func, METH_VARARGS, ""},
+  {"prim_get_info", prim_get_info_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

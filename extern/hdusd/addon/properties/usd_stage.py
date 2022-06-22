@@ -5,11 +5,13 @@
 
 import bpy
 
+import _hdusd
+
 from ..utils import stages
 
 
 class UsdStagePrim(bpy.types.PropertyGroup):
-    path: bpy.props.StringProperty(name='USD Path', default="")
+    path: bpy.props.StringProperty(name='Prim Path', default="")
 
     @property
     def indent(self):
@@ -18,21 +20,28 @@ class UsdStagePrim(bpy.types.PropertyGroup):
 
 class UsdStage(bpy.types.PropertyGroup):
     prims: bpy.props.CollectionProperty(type=UsdStagePrim)
-    prim_index: bpy.props.IntProperty(name="USD Item", default=-1)
+    prim_index: bpy.props.IntProperty(default=-1)
 
     @property
     def stage(self):
         return stages.get_by_key(self.name)
 
+    def get_prim_info(self, prim_prop):
+        return _hdusd.stage.prim_get_info(self.stage, prim_prop.path)
+
     def update_prims(self):
         self.prims.clear()
-        self.prims_index = -1
+        self.prim_index = -1
 
-    #     stage = self.cached_stage()
-    #     if stage:
-    #         for prim in stage.GetPseudoRoot().GetChildren():
-    #             item = self.items.add()
-    #             item.sdf_path = str(prim.GetPath())
+        stage = self.stage
+        if not stage:
+            return
+
+        prim_info = _hdusd.stage.prim_get_info(stage, "/")
+        for child_name in prim_info['children']:
+            prim_prop = self.prims.add()
+            prim_prop.path = f"/{child_name}"
+            prim_prop.name = child_name
 
     # def get_prim(self, item):
     #     stage = self.cached_stage()
@@ -52,6 +61,7 @@ def get_stage_properties(bl_obj, do_create=True):
     if not stage_prop and do_create:
         stage_prop = stage_prop_list.add()
         stage_prop.name = key
+        stage_prop.update_prims()
 
     return stage_prop
 

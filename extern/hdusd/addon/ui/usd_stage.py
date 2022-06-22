@@ -5,54 +5,49 @@
 
 import bpy
 
-from . import HdUSD_Panel, HdUSD_Operator
-from ..usd_nodes.nodes.base_node import USDNode
-from ..properties.usd_stage import get_stage_properties
-
 
 class HDUSD_OP_usd_stage_prim_expand(bpy.types.Operator):
     """Expand USD item"""
     bl_idname = "hdusd.usd_stage_prim_expand"
     bl_label = "Expand"
 
-    index: bpy.props.IntProperty(default=-1)
+    index: bpy.props.IntProperty()
 
     def execute(self, context):
-        if self.index == -1:
-            return {'CANCELLED'}
-
         node = context.active_node
-        usd_list = node.hdusd.usd_list
-        items = usd_list.items
-        item = items[self.index]
+        stage_prop = node.stage_prop
+        prims = stage_prop.prims
+        prim_prop = prims[self.index]
 
-        if len(items) > self.index + 1 and items[self.index + 1].indent > item.indent:
+        if len(prims) > self.index + 1 and prims[self.index + 1].indent > prim_prop.indent:
             next_index = self.index + 1
-            item_indent = item.indent
+            item_indent = prim_prop.indent
             removed_items = 0
             while True:
-                if next_index >= len(items):
+                if next_index >= len(prims):
                     break
-                if items[next_index].indent <= item_indent:
+                if prims[next_index].indent <= item_indent:
                     break
-                items.remove(next_index)
+                prims.remove(next_index)
                 removed_items += 1
 
-            if usd_list.item_index > self.index:
-                usd_list.item_index = max(self.index, usd_list.item_index - removed_items)
+            if stage_prop.prim_index > self.index:
+                stage_prop.prim_index = max(self.index, stage_prop.prim_index - removed_items)
 
         else:
-            prim = usd_list.get_prim(item)
+            prim_info = stage_prop.get_prim_info(prim_prop)
 
             added_items = 0
-            for child_index, child_prim in enumerate(prim.GetChildren(), self.index + 1):
-                child_item = items.add()
-                child_item.sdf_path = str(child_prim.GetPath())
-                items.move(len(items) - 1, child_index)
+            for child_index, child_name in enumerate(prim_info['children'], self.index + 1):
+                child_prim_prop = prims.add()
+                child_prim_prop.path = f"{prim_info['path']}/{child_name}"
+                child_prim_prop.name = child_name
+
+                prims.move(len(prims) - 1, child_index)
                 added_items += 1
 
-            if usd_list.item_index > self.index:
-                usd_list.item_index += added_items
+            if stage_prop.prim_index > self.index:
+                stage_prop.prim_index += added_items
 
         return {'FINISHED'}
 
@@ -92,14 +87,10 @@ class HDUSD_UL_usd_stage(bpy.types.UIList):
             layout.split(factor=0.1)
 
         prims = stage_prop.prims
-        prim = data.get_prim(item)
-        if not prim:
-            return
-
-        visible = UsdGeom.Imageable(prim).ComputeVisibility() != 'invisible'
+        prim_info = stage_prop.get_prim_info(prim_prop)
 
         col = layout.column()
-        if not prim.GetChildren():
+        if not prim_info['children']:
             icon = 'DOT'
             col.enabled = False
         elif len(prims) > index + 1 and prims[index + 1].indent > prim_prop.indent:
@@ -112,13 +103,13 @@ class HDUSD_UL_usd_stage(bpy.types.UIList):
         expand_op.index = index
 
         col = layout.column()
-        col.label(text=prim.GetName())
-        col.enabled = visible
+        col.label(text=prim_info['name'])
+        col.enabled = prim_info['visible']
 
         col = layout.column()
         col.alignment = 'RIGHT'
-        col.label(text=prim.GetTypeName())
-        col.enabled = visible
+        col.label(text=prim_info['type'])
+        col.enabled = prim_info['visible']
 
         # col = layout.column()
         # col.alignment = 'RIGHT'

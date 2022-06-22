@@ -41,22 +41,26 @@ class HdUSDEngine(bpy.types.RenderEngine):
 
     # final render
     def update(self, data, depsgraph):
-        usd_nodetree = node_tree.get_usd_nodetree()
-        if not usd_nodetree:
-            return
+        is_blender_scene = not bool(depsgraph.scene.hdusd.final.data_source)
+        stage = 0
 
-        output_node = usd_nodetree.output_node
-        if not output_node:
-            return
+        if not is_blender_scene:
+            usd_nodetree = node_tree.get_usd_nodetree()
+            if not usd_nodetree:
+                return
 
-        stage = stages.get(output_node)
-        if not stage:
-            return
+            output_node = usd_nodetree.output_node
+            if not output_node:
+                return
+
+            stage = stages.get(output_node)
+            if not stage:
+                return
 
         if not self.session:
             self.session = session_create(self)
 
-        session_reset(self.session, data, depsgraph, stage)
+        session_reset(self.session, data, bpy.context, depsgraph, is_blender_scene, stage)
 
     def render(self, depsgraph):
         if not self.session:
@@ -70,22 +74,26 @@ class HdUSDEngine(bpy.types.RenderEngine):
     # viewport render
     def view_update(self, context, depsgraph):
         data = context.blend_data
-        usd_nodetree = node_tree.get_usd_nodetree()
-        if not usd_nodetree:
-            return
+        is_blender_scene = not bool(context.scene.hdusd.viewport.data_source)
+        stage = 0
 
-        output_node = usd_nodetree.output_node
-        if not output_node:
-            return
+        if not is_blender_scene:
+            usd_nodetree = node_tree.get_usd_nodetree()
+            if not usd_nodetree:
+                return
 
-        stage = stages.get(output_node)
-        if not stage:
-            return
+            output_node = usd_nodetree.output_node
+            if not output_node:
+                return
+
+            stage = stages.get(output_node)
+            if not stage:
+                return
 
         if not self.session:
             self.session = session_create(self)
 
-        session_reset(self.session, data, depsgraph, stage)
+        session_reset(self.session, data, context, depsgraph, is_blender_scene, stage)
 
     def view_draw(self, context, depsgraph):
         if not self.session:
@@ -102,8 +110,8 @@ def session_free(session):
     _hdusd.session.free(session)
 
 
-def session_reset(session, data, depsgraph, stage):
-    _hdusd.session.reset(session, data.as_pointer(), depsgraph.as_pointer(), stage)
+def session_reset(session, data, context, depsgraph, is_blender_scene, stage):
+    _hdusd.session.reset(session, data.as_pointer(), context.as_pointer(), depsgraph.as_pointer(), is_blender_scene, stage)
 
 
 def session_render(session, depsgraph):

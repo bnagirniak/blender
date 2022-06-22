@@ -67,7 +67,7 @@ class DataSourceMenu(bpy.types.Menu):
                 continue
 
             row = layout.row()
-            row.enabled = bool(ng.get_output_node())
+            row.enabled = bool(ng.output_node)
             op = row.operator(op_idname, text=ng.name, icon='NODETREE')
             op.data_source = ng.name
             op.engine_type = self.engine_type
@@ -84,7 +84,7 @@ class NodetreeCameraMenu(bpy.types.Menu):
             context.scene.hdusd.viewport
         ng = bpy.data.node_groups[settings.data_source]
 
-        output_node = ng.get_output_node()
+        output_node = ng.output_node
         if output_node is None:
             return
 

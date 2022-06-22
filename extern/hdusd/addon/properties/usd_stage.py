@@ -43,15 +43,6 @@ class UsdStage(bpy.types.PropertyGroup):
             prim_prop.path = f"/{child_name}"
             prim_prop.name = child_name
 
-    # def get_prim(self, item):
-    #     stage = self.cached_stage()
-    #     return stage.GetPrimAtPath(item.sdf_path) if stage else None
-    #
-    # @property
-    # def selected_prim(self):
-    #     item = self.items[self.item_index]
-    #     return self.get_prim(item)
-
 
 def get_stage_properties(bl_obj, do_create=True):
     key = str(bl_obj.as_pointer())

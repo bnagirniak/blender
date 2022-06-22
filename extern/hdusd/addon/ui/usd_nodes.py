@@ -6,7 +6,6 @@
 import _hdusd
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
-from ..properties.usd_stage import get_stage_properties
 
 from ..utils.logging import Log
 log = Log('ui.usd_nodes')
@@ -28,7 +27,7 @@ class HDUSD_NODE_PT_usd_stage(HdUSD_Panel):
         usd_node = context.active_node
         stage_prop = usd_node.stage_prop
 
-        layout.label(text=f"stage: {stage_prop.stage}")
+        # layout.label(text=f"stage: {stage_prop.stage}")
 
         layout.template_list(
             "HDUSD_UL_usd_stage", "",

@@ -139,10 +139,7 @@ static UsdStageRefPtr compute_RootNode(PyObject *nodeArgs)
 
   UsdStageRefPtr inputStage = stageCache->Find(UsdStageCache::Id::FromLongInt(inputStageId));
 
-  char filename[1024];
-  std::tmpnam(filename);
-
-  UsdStageRefPtr stage = UsdStage::CreateNew(filename);
+  UsdStageRefPtr stage = UsdStage::CreateNew(hdusd::get_temp_file(".usda", "usdnode", true));
   stage->SetMetadata(UsdGeomTokens->metersPerUnit, 1.0);
   stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
 

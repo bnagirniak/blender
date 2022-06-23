@@ -6,15 +6,21 @@
 import _hdusd
 
 
+
+
 _stages = {}
 
 
 def key(bl_obj):
-    return bl_obj.as_pointer()
+    return str(bl_obj.as_pointer())
 
 
 def get(bl_obj):
     return _stages.get(key(bl_obj), None)
+
+
+def get_by_key(key_):
+    return _stages.get(key_, None)
 
 
 def set(bl_obj, stage):

@@ -8,6 +8,7 @@ import _hdusd
 
 from ...properties import HdUSDProperties
 from ...utils import stages
+from ...properties.usd_stage import get_stage_properties, remove_stage_properties
 #
 # from . import log
 
@@ -51,6 +52,10 @@ class USDNode(bpy.types.Node):
     @stage.setter
     def stage(self, stage):
         stages.set(self, stage)
+
+    @property
+    def stage_prop(self):
+        return get_stage_properties(self)
 
     def draw_buttons(self, context, layout):
         # layout.label(text=f"Stage: {self.stage}")
@@ -132,6 +137,7 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, **kwargs)
 
     def free(self):
+        remove_stage_properties(self)
         stages.free(self)
 
     def reset(self, is_hard=False):

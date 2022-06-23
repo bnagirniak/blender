@@ -15,8 +15,6 @@
 #include "glog/logging.h"
 
 #include "session.h"
-#include "stage.h"
-#include "view_settings.h"
 
 namespace hdusd {
 
@@ -29,9 +27,14 @@ BlenderSession::~BlenderSession()
 {
 }
 
-void BlenderSession::reset(int stageId)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId)
 {
-  stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+  if (is_blender_scene) {
+    stage = export_scene_to_usd(b_context, depsgraph);
+  }
+  else {
+    stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+  }
 }
 
 void BlenderSession::render(BL::Depsgraph &b_depsgraph)
@@ -156,6 +159,78 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   b_engine.unbind_display_space_shader();
 }
 
+pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph)
+{
+  LOG(INFO) << "export_scene_to_usd";
+
+  Scene *scene = DEG_get_input_scene(depsgraph);
+
+  DEG_graph_build_for_all_objects(depsgraph);
+
+  /* For restoring the current frame after exporting animation is done. */
+  const int orig_frame = CFRA;
+
+  string filepath = hdusd::get_temp_file(".usda");
+  pxr::UsdStageRefPtr usd_stage = pxr::UsdStage::CreateNew(filepath);
+
+  usd_stage->SetMetadata(pxr::UsdGeomTokens->upAxis, pxr::VtValue(pxr::UsdGeomTokens->z));
+  usd_stage->SetMetadata(pxr::UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
+  usd_stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
+
+  /* Set up the stage for animated data. */
+  /*if (data->params.export_animation) {
+    usd_stage->SetTimeCodesPerSecond(FPS);
+    usd_stage->SetStartTimeCode(scene->r.sfra);
+    usd_stage->SetEndTimeCode(scene->r.efra);
+  }*/
+
+  bContext *C = (bContext *)b_context.ptr.data;
+  Main *bmain = CTX_data_main(C);
+  USDExportParams usd_export_params;
+
+  usd_export_params.selected_objects_only = false;
+  usd_export_params.visible_objects_only = false;
+
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
+
+  //if (data->params.export_animation) {
+  //  /* Writing the animated frames is not 100% of the work, but it's our best guess. */
+  //  float progress_per_frame = 1.0f / std::max(1, (scene->r.efra - scene->r.sfra + 1));
+
+  //  for (float frame = scene->r.sfra; frame <= scene->r.efra; frame++) {
+  //    if (G.is_break || (stop != nullptr && *stop)) {
+  //      break;
+  //    }
+
+  //    /* Update the scene for the next frame to render. */
+  //    scene->r.cfra = static_cast<int>(frame);
+  //    scene->r.subframe = frame - scene->r.cfra;
+  //    BKE_scene_graph_update_for_newframe(data->depsgraph);
+
+  //    iter.set_export_frame(frame);
+  //    iter.iterate_and_write();
+
+  //    *progress += progress_per_frame;
+  //    *do_update = true;
+  //  }
+  //}
+  //else {
+  //  /* If we're not animating, a single iteration over all objects is enough. */
+  //  iter.iterate_and_write();
+  //}
+
+  iter.iterate_and_write();
+  iter.release_writers();
+
+  /* Finish up by going back to the keyframe that was current before we started. */
+  if (CFRA != orig_frame) {
+    CFRA = orig_frame;
+    BKE_scene_graph_update_for_newframe(depsgraph);
+  }
+
+  return usd_stage;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Python API for BlenderSession
  */
@@ -193,11 +268,22 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "reset_func";
-  PyObject *pysession, *pydata, *pydepsgraph;
+  PyObject *pysession, *pydata, *pycontext, *pydepsgraph;
+
   int stageId = 0;
-  if (!PyArg_ParseTuple(args, "OOOi", &pysession, &pydata, &pydepsgraph, &stageId)) {
+  int is_blender_scene = 1;
+
+  if (!PyArg_ParseTuple(args, "OOOOii", &pysession, &pydata, &pycontext, &pydepsgraph, &is_blender_scene, &stageId)) {
     Py_RETURN_NONE;
   }
+
+  PointerRNA depsgraphptr;
+  RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  Depsgraph *depsgraph = (::Depsgraph *)depsgraphptr.data;
+
+  PointerRNA contextptr;
+  RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pycontext), &contextptr);
+  BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
 
@@ -209,7 +295,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(stageId);
+  session->reset(b_context, depsgraph, is_blender_scene, stageId);
 
   Py_RETURN_NONE;
 }

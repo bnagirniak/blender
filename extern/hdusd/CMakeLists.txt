@@ -18,6 +18,10 @@ set(INC
   ../../source/blender/makesdna
   ../../source/blender/makesrna
   ../../source/blender/blenlib
+  ../../source/blender/depsgraph
+  ../../source/blender/blenkernel
+  ../../source/blender/io/usd
+  ../../source/blender/io/common
   ../../source/blender/io/usd/intern
   ${CMAKE_BINARY_DIR}/source/blender/makesrna/intern
 )

@@ -98,8 +98,9 @@ set(ADDON_PROPERTIES_FILES
   addon/properties/hdrpr_render.py
   addon/properties/material.py
   addon/properties/object.py
-  addon/properties/usd_list.py
+  addon/properties/usd_stage.py
   addon/properties/preferences.py
+  addon/properties/window_manager.py
 )
 
 set(ADDON_UI_FILES
@@ -112,6 +113,7 @@ set(ADDON_UI_FILES
   addon/ui/light.py
   addon/ui/panels.py
   addon/ui/usd_nodes.py
+  addon/ui/usd_stage.py
 )
 
 set(ADDON_UTILS_FILES

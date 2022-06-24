@@ -314,10 +314,6 @@ void WM_paint_cursor_tag_redraw(struct wmWindow *win, struct ARegion *region);
  * This function requires access to the GHOST_SystemHandle (g_system).
  */
 void WM_cursor_warp(struct wmWindow *win, int x, int y);
-/**
- * Set x, y to values we can actually position the cursor to.
- */
-void WM_cursor_compatible_xy(wmWindow *win, int *x, int *y);
 
 /* Handlers. */
 
@@ -388,6 +384,12 @@ struct wmEventHandler_UI *WM_event_add_ui_handler(const struct bContext *C,
                                                   wmUIHandlerRemoveFunc remove_fn,
                                                   void *user_data,
                                                   char flag);
+
+/**
+ * Return the first modal operator of type \a ot or NULL.
+ */
+wmOperator *WM_operator_find_modal_by_type(wmWindow *win, const wmOperatorType *ot);
+
 /**
  * \param postpone: Enable for `win->modalhandlers`,
  * this is in a running for () loop in wm_handlers_do().
@@ -732,6 +734,7 @@ void WM_operator_last_properties_ensure(struct wmOperatorType *ot, struct Pointe
 wmOperator *WM_operator_last_redo(const struct bContext *C);
 /**
  * Use for drag & drop a path or name with operators invoke() function.
+ * Returns null if no operator property is set to identify the file or ID to use.
  */
 ID *WM_operator_drop_load_path(struct bContext *C, struct wmOperator *op, short idcode);
 

@@ -35,7 +35,7 @@ if(WIN32 AND WITH_USD)
     )
   else()
     ExternalProject_Add_Step(external_python_site_packages after_install
-      COMMAND ${PYTHON_BINARY} -m pip install --no-cache-dir ${LIBDIR}/MaterialX/python/MaterialX-1.38.0.tar.gz
+      COMMAND ${PYTHON_BINARY} -m pip install --no-cache-dir ${LIBDIR}/MaterialX/python/MaterialX-1.38.0_r.tar.gz
       DEPENDEES install
     )
   endif()

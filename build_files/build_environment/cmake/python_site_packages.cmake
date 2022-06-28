@@ -27,20 +27,6 @@ if(USE_PIP_NUMPY)
   )
 endif()
 
-if(WITH_USD)
-  if (BUILD_MODE STREQUAL Debug)
-    ExternalProject_Add_Step(external_python_site_packages after_install
-      COMMAND ${PYTHON_BINARY} -m pip install --no-cache-dir ${LIBDIR}/MaterialX/python/MaterialX-1.38.0_d.tar.gz
-      DEPENDEES install
-    )
-  else()
-    ExternalProject_Add_Step(external_python_site_packages after_install
-      COMMAND ${PYTHON_BINARY} -m pip install --no-cache-dir ${LIBDIR}/MaterialX/python/MaterialX-1.38.0_r.tar.gz
-      DEPENDEES install
-    )
-  endif()
-endif()
-
 add_dependencies(
   external_python_site_packages
   external_python

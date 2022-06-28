@@ -865,6 +865,27 @@ elseif(WIN32)
         CONFIGURATIONS Debug
       )
 
+      if(WITH_USD)
+        install(
+          DIRECTORY ${LIBDIR}/MaterialX/python/debug/site-packages
+          DESTINATION ${TARGETDIR_VER}/python/lib
+          CONFIGURATIONS Debug
+          PATTERN ".svn" EXCLUDE
+          PATTERN "__pycache__" EXCLUDE           # * any cache *
+          PATTERN "*.pyc" EXCLUDE                 # * any cache *
+          PATTERN "*.pyo" EXCLUDE                 # * any cache *
+        )
+        install(
+          DIRECTORY ${LIBDIR}/MaterialX/python/release/site-packages
+          DESTINATION ${TARGETDIR_VER}/python/lib
+          CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
+          PATTERN ".svn" EXCLUDE
+          PATTERN "__pycache__" EXCLUDE           # * any cache *
+          PATTERN "*.pyc" EXCLUDE                 # * any cache *
+          PATTERN "*.pyo" EXCLUDE                 # * any cache *
+        )
+      endif()
+
       if(WINDOWS_PYTHON_DEBUG)
         install(
           FILES ${LIBDIR}/python/${_PYTHON_VERSION_NO_DOTS}/libs/python${_PYTHON_VERSION_NO_DOTS}.pdb

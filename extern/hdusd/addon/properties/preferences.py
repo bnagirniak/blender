@@ -3,16 +3,42 @@
 
 # <pep8 compliant>
 
-import bpy
 import tempfile
-import _hdusd
 from logging import getLevelName
 from pathlib import Path
-from bpy.types import AddonPreferences
+
+import bpy
+from bpy.types import AddonPreferences, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy_extras.io_utils import ImportHelper
+
+import _hdusd
 from ..utils import logging
+from ..utils.delegate import get_delegates, manager
+
 
 log = logging.Log('preferences')
+
+
+class HDUSD_MX_OP_install_delegate(Operator, ImportHelper):
+    bl_idname = "hdusd.install_render_delegate"
+    bl_label = "Add Render Delegate"
+
+    filename_ext = ".zip"
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        maxlen=1024, subtype="FILE_PATH"
+    )
+    filter_glob: bpy.props.StringProperty(default="*.zip")
+
+    @classmethod
+    def poll(cls, context):
+        return manager.is_available
+
+    def execute(self, context):
+        manager.filepath = self.filepath
+        manager.install_delegate()
+        return {'FINISHED'}
 
 
 class HDUSD_ADDON_PT_preferences(AddonPreferences):
@@ -54,17 +80,59 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
                ('CRITICAL', "Critical", "Log level CRITICAL")),
         default=getLevelName(logging.logger.level),
         update=update_log_level,
-
+    )
+    show_settings: BoolProperty(
+        name="Developer Settings",
+        default=False,
+    )
+    show_delegate: BoolProperty(
+        name="Render Delegate",
+        default=False,
     )
 
     def draw(self, context):
+        def _draw_settings(layout):
+            layout.separator()
+            layout.prop(self, "tmp_dir", icon='NONE' if Path(self.tmp_dir).exists() else 'ERROR')
+            layout.prop(self, "dev_tools")
+            layout.prop(self, "log_level")
+            layout.separator()
+
+        def _draw_delegates(layout):
+            layout.separator()
+            layout.operator(HDUSD_MX_OP_install_delegate.bl_idname, icon='IMPORT',
+                            text="Install Delegate..."
+                            if manager.is_available
+                            else f"Install Delegate...{manager.progress}%")
+
+            _draw_delegate_item(layout)
+            layout.separator()
+
+        def _draw_delegate_item(layout):
+            for key, value in get_delegates().items():
+                row = layout.row(align=True)
+                row.alignment = 'LEFT'
+                split_name = row.split()
+                split_name.label(text=key)
+                row.label(text=value)
+
+        icon_close = "DISCLOSURE_TRI_RIGHT"
+        icon_open = "DISCLOSURE_TRI_DOWN"
+
         layout = self.layout
         col = layout.column()
-        col.prop(self, "tmp_dir", icon='NONE' if Path(self.tmp_dir).exists() else 'ERROR')
-        col.prop(self, "dev_tools")
-        col.prop(self, "log_level")
-        col.separator()
-        #row = col.row()
+
+        col.prop(self, "show_settings", icon=icon_open if self.show_settings else icon_close)
+        layout = col.column()
+        if self.show_settings:
+            _draw_settings(layout)
+
+        col.prop(self, "show_delegate", icon=icon_open if self.show_delegate else icon_close)
+        layout = col.column()
+        if self.show_delegate:
+            _draw_delegates(layout)
+
+        row = col.row()
         #row.operator("wm.url_open", text="Main Site", icon='URL').url = bl_info["main_web"]
         #row.operator("wm.url_open", text="Community", icon='COMMUNITY').url = bl_info["community"]
 

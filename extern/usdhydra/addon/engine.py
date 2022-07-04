@@ -20,7 +20,7 @@ def exit():
 
 class USDHydraEngine(bpy.types.RenderEngine):
     bl_idname = 'USDHydra'
-    bl_label = "USD Hydra"
+    bl_label = "USD Hydra Internal"
     bl_info = "USD Hydra rendering plugin"
 
     bl_use_preview = True

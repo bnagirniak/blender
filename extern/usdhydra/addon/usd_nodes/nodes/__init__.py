@@ -21,24 +21,24 @@ class USDNodeCategory(NodeCategory):
 
 
 node_categories = [
-    USDNodeCategory('USDHydra_USD_INPUT', "Input", items=[
+    USDNodeCategory('USDHYDRA_USD_INPUT', "Input", items=[
         # NodeItem('usdhydra.BlenderDataNode'),
         NodeItem('usdhydra.UsdFileNode'),
     ]),
-    USDNodeCategory('USDHydra_USD_OUTPUT', 'Output', items=[
+    USDNodeCategory('USDHYDRA_USD_OUTPUT', 'Output', items=[
         NodeItem('usdhydra.OutputNode'),
     ]),
-    USDNodeCategory('USDHydra_USD_CONVERTER', 'Converter', items=[
+    USDNodeCategory('USDHYDRA_USD_CONVERTER', 'Converter', items=[
         NodeItem('usdhydra.MergeNode'),
         NodeItem('usdhydra.FilterNode'),
         NodeItem('usdhydra.RootNode'),
         # NodeItem('usdhydra.InstancingNode'),
     ]),
-    USDNodeCategory('USDHydra_USD_TRANSFORMATIONS', 'Transformations', items=[
+    USDNodeCategory('USDHYDRA_USD_TRANSFORMATIONS', 'Transformations', items=[
         NodeItem('usdhydra.TransformNode'),
         NodeItem('usdhydra.TransformByEmptyNode'),
     ]),
-    USDNodeCategory('USDHydra_USD_LAYOUT', 'Layout', items=[
+    USDNodeCategory('USDHYDRA_USD_LAYOUT', 'Layout', items=[
         NodeItem('NodeFrame'),
         NodeItem('NodeReroute'),
     ]),
@@ -62,9 +62,9 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
 def register():
     register_classes()
-    nodeitems_utils.register_node_categories("USD_NODES", node_categories)
+    nodeitems_utils.register_node_categories("USDHYDRA_USD_NODES", node_categories)
 
 
 def unregister():
-    nodeitems_utils.unregister_node_categories("USD_NODES")
+    nodeitems_utils.unregister_node_categories("USDHYDRA_USD_NODES")
     unregister_classes()

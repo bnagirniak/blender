@@ -10,7 +10,7 @@ import os
 #from ..viewport import usd_collection
 #from ..export.camera import CameraData
 #from ..viewport.usd_collection import USD_CAMERA
-from . import USDHydraProperties, hdrpr_render#, log
+from . import USDHydraProperties, hdrpr_render
 from ..utils.delegate import get_delegates
 
 

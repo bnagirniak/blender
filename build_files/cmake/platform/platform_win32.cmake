@@ -856,6 +856,9 @@ if(WITH_USD)
       optimized ${USD_RELEASE_LIB}
     )
   endif()
+
+  set(BOOST_LIBRARIES ${BOOST_LIBRARIES}
+    optimized ${BOOST_LIBPATH}/boost_python310-${BOOST_POSTFIX})
 endif()
 
 if(WINDOWS_PYTHON_DEBUG)

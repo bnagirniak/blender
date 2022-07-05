@@ -2,8 +2,18 @@
 # Copyright 2011-2022 Blender Foundation
 
 # <pep8 compliant>
+import platform
+from pathlib import Path
 
 import bpy
+
+
+OS = platform.system()
+IS_WIN = OS == 'Windows'
+IS_MAC = OS == 'Darwin'
+IS_LINUX = OS == 'Linux'
+
+LIBS_DIR = Path(r"D:\amd-gpuopen\BlenderUSDHydraAddon\libs-3.10")
 
 
 def update_ui(area_type='PROPERTIES', region_type='WINDOW'):

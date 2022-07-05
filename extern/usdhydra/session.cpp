@@ -133,7 +133,8 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
   }
 
-  imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
+  bool b = imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
+  printf("%d\n", b);
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
   

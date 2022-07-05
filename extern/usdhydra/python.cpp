@@ -6,6 +6,8 @@
 
 #include <Python.h>
 
+#include <pxr/base/plug/registry.h>
+
 #include "usd_common.h"
 #include "glog/logging.h"
 
@@ -22,6 +24,8 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
   LOG(INFO) << "init_func";
   //putenv("PXR_PLUGINPATH_NAME=D:\\amd\\blender-git\\usd\\plugin");
   blender::io::usd::ensure_usd_plugin_path_registered();
+  pxr::PlugRegistry::GetInstance().RegisterPlugins("D:/amd-gpuopen/BlenderUSDHydraAddon/libs-3.10/plugin/");
+
   stage_init();
 
   Py_RETURN_NONE;

@@ -32,7 +32,9 @@ from . import (
     hdrpr_render,
 )
 register, unregister = bpy.utils.register_classes_factory((
+    preferences.USDHYDRA_ADDON_OP_install_delegate,
     preferences.USDHYDRA_ADDON_PT_preferences,
+
 
     hdrpr_render.QualitySettings,
     hdrpr_render.InteractiveQualitySettings,

@@ -10,23 +10,25 @@ import os
 #from ..viewport import usd_collection
 #from ..export.camera import CameraData
 #from ..viewport.usd_collection import USD_CAMERA
-from . import USDHydraProperties, hdrpr_render#, log
+from . import USDHydraProperties, hdrpr_render
+from ..utils.delegate import get_delegates
 
-
-# _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
-#                      for name in UsdImagingGL.Engine.GetRendererPlugins()}
-
-# if not os.path.isdir(os.environ.get('RMANTREE', "")):
-#     _render_delegates.pop('HdPrmanLoaderRendererPlugin', None)
-
-_render_delegates = {'HdStormRendererPlugin': 'GL', 'HdRprPlugin': 'RPR'}
 
 #log("Render Delegates", _render_delegates)
 
 
 class RenderSettings(bpy.types.PropertyGroup):
-    delegate_items = tuple((name, display_name, f"Hydra render delegate: {display_name}")
-                           for name, display_name in _render_delegates.items())
+    def delegate_items(self, context):
+        _render_delegates = get_delegates()
+        delegate_items = [(name, display_name, f"Hydra render delegate: {display_name}")
+                               for name, display_name in _render_delegates.items()]
+
+        # make Rpr to the beginning to make it default delegate
+        index = next((index for index, (name, *_) in enumerate(delegate_items) if name == 'HdRprPlugin'), 0)
+        if index != 0:
+            delegate_items.insert(0, delegate_items.pop(index))
+
+        return tuple(delegate_items)
 
     @property
     def is_gl_delegate(self):
@@ -34,7 +36,7 @@ class RenderSettings(bpy.types.PropertyGroup):
 
     @property
     def delegate_name(self):
-        return _render_delegates[self.delegate]
+        return get_delegates()[self.delegate]
 
     hdrpr: bpy.props.PointerProperty(type=hdrpr_render.RenderSettings)
 
@@ -70,7 +72,6 @@ class FinalRenderSettings(RenderSettings):
         name="Renderer",
         items=RenderSettings.delegate_items,
         description="Render delegate for final render",
-        default='HdRprPlugin',
     )
     data_source: bpy.props.StringProperty(
         name="Data Source",
@@ -88,7 +89,6 @@ class ViewportRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=RenderSettings.delegate_items,
-        default='HdRprPlugin',
     )
 
     # def data_source_update(self, context):

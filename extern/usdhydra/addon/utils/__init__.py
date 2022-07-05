@@ -13,7 +13,7 @@ IS_WIN = OS == 'Windows'
 IS_MAC = OS == 'Darwin'
 IS_LINUX = OS == 'Linux'
 
-LIBS_DIR = Path(r"D:\amd-gpuopen\BlenderUSDHydraAddon\libs-3.10")
+LIBS_DIR = Path(r"D:\amd\blender-git\usd\bin\1\USD\install")
 
 
 def update_ui(area_type='PROPERTIES', region_type='WINDOW'):

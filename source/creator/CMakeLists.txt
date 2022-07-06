@@ -1254,6 +1254,11 @@ if(WITH_USD)
     ${USD_PLUGIN_DIR}
     DESTINATION "${TARGETDIR_VER}/datafiles"
   )
+
+  install(DIRECTORY
+    ${MATERIALX_DIR}/libraries
+    DESTINATION "${TARGETDIR_VER}/datafiles/MaterialX"
+  )
 endif()
 
 

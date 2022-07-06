@@ -68,6 +68,17 @@ string get_temp_file(string suffix, string name, bool is_rand)
   return get_temp_pid_dir().u8string() + "/" + name;
 }
 
+static PyObject *get_temp_file_func(PyObject * /*self*/, PyObject *args)
+{
+  const char *suffix = "", *name = "";
+  bool is_rand = false;
+
+  PyArg_ParseTuple(args, "ssp", &suffix, &name, &is_rand);
+
+  filesystem::path path = usdhydra::get_temp_file(suffix, name, is_rand);
+  return PyUnicode_FromString(path.u8string().c_str());
+}
+
 static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
 {
   filesystem::path path = usdhydra::get_temp_dir();
@@ -76,6 +87,7 @@ static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
 
 
 static PyMethodDef methods[] = {
+  {"get_temp_file", get_temp_file_func, METH_VARARGS, ""},
   {"get_temp_dir", get_temp_dir_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };

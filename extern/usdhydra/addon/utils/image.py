@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 from pathlib import Path
 
 import _usdhydra

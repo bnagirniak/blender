@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 import bpy
 from bpy.props import (
     EnumProperty,

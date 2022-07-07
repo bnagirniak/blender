@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 import os
 import MaterialX as mx
 import bpy

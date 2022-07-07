@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 from collections import defaultdict
 
 from nodeitems_utils import NodeCategory, NodeItem

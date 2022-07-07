@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 bl_info = {
     "name": "USD Hydra render engine",
     "author": "AMD",

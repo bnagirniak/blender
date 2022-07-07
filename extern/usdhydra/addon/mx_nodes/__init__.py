@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 import bpy
 
 from ..utils import logging

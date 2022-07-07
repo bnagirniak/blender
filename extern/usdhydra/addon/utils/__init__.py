@@ -2,6 +2,7 @@
 # Copyright 2011-2022 Blender Foundation
 
 # <pep8 compliant>
+
 from pathlib import Path
 
 import bpy

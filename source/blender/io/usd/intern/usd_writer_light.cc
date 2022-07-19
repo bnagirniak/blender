@@ -39,12 +39,8 @@ void USDLightWriter::do_write(HierarchyContext &context)
   pxr::UsdLuxLightAPI usd_light_api;
 #else
   pxr::UsdLuxLight usd_light_api;
-
 #endif
 
-   /* Scale factor to get to somewhat-similar illumination. Since the USDViewer had similar
-   * over-exposure as Blender Internal with the same values, this code applies the reverse of the
-   * versioning code in light_emission_unify(). */
   float usd_intensity = light->energy;
 
   switch (light->type) {

@@ -844,6 +844,7 @@ if(WITH_USD)
     set(USD_DEBUG_LIB ${LIBDIR}/usd/lib/usd_usd_m_d.lib)
     set(USD_LIBRARY_DIR ${LIBDIR}/usd/lib)
     set(USD_PLUGIN_DIR ${LIBDIR}/usd/plugin/usd)
+    set(MATERIALX_DIR ${LIBDIR}/MaterialX)
     # Older USD had different filenames, if the new ones are
     # not found see if the older ones exist, to ease the
     # transition period while landing libs.

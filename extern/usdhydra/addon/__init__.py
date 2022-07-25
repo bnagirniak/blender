@@ -3,7 +3,6 @@
 
 # <pep8 compliant>
 
-
 bl_info = {
     "name": "USD Hydra render engine",
     "author": "AMD",
@@ -30,6 +29,7 @@ if "bpy" in locals():
 
 else:
     from . import (
+        mx_nodes,
         properties,
         engine,
         usd_nodes,
@@ -54,6 +54,7 @@ def register():
     atexit.unregister(exit)
     atexit.register(exit)
 
+    mx_nodes.register()
     properties.register()
 
     engine.init()
@@ -69,6 +70,7 @@ def register():
 def unregister():
     ui.unregister()
     # operators.unregister()
+    mx_nodes.unregister()
     properties.unregister()
     # presets.unregister()
     usd_nodes.unregister()

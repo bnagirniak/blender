@@ -50,6 +50,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
           pxr::UsdLuxDiskLight disk_light = pxr::UsdLuxDiskLight::Define(stage, usd_path);
           disk_light.CreateRadiusAttr().Set(light->area_size / 2, timecode);
 
+          // Coefficient approximated to follow Cycles results
           usd_intensity *= 30.0f;
 
 #if PXR_VERSION >= 2111
@@ -63,6 +64,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
           pxr::UsdLuxDiskLight disk_light = pxr::UsdLuxDiskLight::Define(stage, usd_path);
           disk_light.CreateRadiusAttr().Set((light->area_size + light->area_sizey) / 4, timecode);
 
+          // Coefficient approximated to follow Cycles results
           usd_intensity *= 30.0f;
 
 #if PXR_VERSION >= 2111
@@ -77,6 +79,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
           rect_light.CreateWidthAttr().Set(light->area_size, timecode);
           rect_light.CreateHeightAttr().Set(light->area_sizey, timecode);
 
+          // Coefficient approximated to follow Cycles results
           usd_intensity *= 30.0f;
 
 #if PXR_VERSION >= 2111
@@ -91,6 +94,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
           rect_light.CreateWidthAttr().Set(light->area_size, timecode);
           rect_light.CreateHeightAttr().Set(light->area_size, timecode);
 
+          // Coefficient approximated to follow Cycles results
           usd_intensity *= 30.0f;
 
 #if PXR_VERSION >= 2111
@@ -106,6 +110,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
       pxr::UsdLuxSphereLight sphere_light = pxr::UsdLuxSphereLight::Define(stage, usd_path);
       sphere_light.CreateRadiusAttr().Set(light->area_size, timecode);
 
+      // Coefficient approximated to follow Cycles results
       usd_intensity *= 2.5f;
 
 #if PXR_VERSION >= 2111
@@ -119,6 +124,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
       pxr::UsdLuxDistantLight distant_light = pxr::UsdLuxDistantLight::Define(stage, usd_path);
       distant_light.CreateAngleAttr().Set((float)pxr::GfRadiansToDegrees(light->sun_angle), timecode);
 
+      // Coefficient approximated to follow Cycles results
       usd_intensity *= 35.0f;
 
 #if PXR_VERSION >= 2111
@@ -140,6 +146,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
       usd_shaping_api.CreateShapingConeAngleAttr(pxr::VtValue(spot_size / 2));
       usd_shaping_api.CreateShapingConeSoftnessAttr(pxr::VtValue(light->spotblend));
 
+      // Coefficient approximated to follow Cycles results
       usd_intensity /= 10.0f;
 
 #if PXR_VERSION >= 2111

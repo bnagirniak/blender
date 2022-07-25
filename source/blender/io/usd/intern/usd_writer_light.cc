@@ -48,7 +48,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
       switch (light->area_shape) {
         case LA_AREA_DISK: {
           pxr::UsdLuxDiskLight disk_light = pxr::UsdLuxDiskLight::Define(stage, usd_path);
-          // light.size is diameter
+          // light size is diameter
           disk_light.CreateRadiusAttr().Set(light->area_size / 2, timecode);
 
           // Coefficient approximated to follow Cycles results
@@ -63,7 +63,7 @@ void USDLightWriter::do_write(HierarchyContext &context)
         }
         case LA_AREA_ELLIPSE: { /* An ellipse light will deteriorate into a disk light. */
           pxr::UsdLuxDiskLight disk_light = pxr::UsdLuxDiskLight::Define(stage, usd_path);
-          // average of light.size is diameter
+          // average of light size is diameter
           disk_light.CreateRadiusAttr().Set((light->area_size + light->area_sizey) / 4, timecode);
 
           // Coefficient approximated to follow Cycles results

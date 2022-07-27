@@ -5,6 +5,8 @@
 import platform
 from pathlib import Path
 
+from pathlib import Path
+
 import bpy
 
 
@@ -12,8 +14,28 @@ OS = platform.system()
 IS_WIN = OS == 'Windows'
 IS_MAC = OS == 'Darwin'
 IS_LINUX = OS == 'Linux'
+BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
+LIBS_DIR = Path(f"{bpy.utils.resource_path('LOCAL')}/datafiles/MaterialX")
+# LIBS_DIR = Path(r"D:\amd\blender-git\usd\bin\1\USD\install")
 
-LIBS_DIR = Path(r"D:\amd\blender-git\usd\bin\1\USD\install")
+
+def title_str(str):
+    s = str.replace('_', ' ')
+    return s[:1].upper() + s[1:]
+
+
+def code_str(str):
+    return str.replace(' ', '_').replace('.', '_')
+
+
+def pass_node_reroute(link):
+    while isinstance(link.from_node, bpy.types.NodeReroute):
+        if not link.from_node.inputs[0].links:
+            return None
+
+        link = link.from_node.inputs[0].links[0]
+
+    return link if link.is_valid else None
 
 
 def update_ui(area_type='PROPERTIES', region_type='WINDOW'):

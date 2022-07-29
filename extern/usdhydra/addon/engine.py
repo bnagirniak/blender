@@ -19,7 +19,7 @@ def init():
         path_str = ""
         for loc_path in ('lib', 'bin', 'plugin/usd'):
             path = utils.LIBS_DIR / loc_path
-            os.add_dll_directory(str(path))
+            #os.add_dll_directory(str(path))
             path_str += f"{path};"
 
         os.environ['PATH'] = path_str + os.environ['PATH']
@@ -31,7 +31,7 @@ def init():
     # # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging
     # os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "0"
 
-    sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
+    # sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
     # sys.path.append(str(utils.LIBS_DIR / 'python'))
 
     _usdhydra.init()

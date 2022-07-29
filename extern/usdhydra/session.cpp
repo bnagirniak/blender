@@ -2,10 +2,13 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <GL/glew.h>
+#include <cstdlib>
 
+#include "pxr/pxr.h"
+#include "pxr/base/plug/plugin.h"
+#include "pxr/base/plug/registry.h"
 #include <pxr/usd/usd/stage.h>
 #include <pxr/base/gf/camera.h>
-#include <pxr/base/plug/registry.h>
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
@@ -128,9 +131,20 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
   }
-
-  pxr::PlugRegistry::GetInstance().RegisterPlugins("D:/amd/blender-git/usd/bin/1/USD/install/plugin/");
-
+  
+  std::vector<std::string> paths;
+  paths.push_back("D:/amd/blender-git/usd/bin/1/USD/install/lib/usd");
+  paths.push_back("D:/amd/blender-git/usd/bin/1/USD/install/plugin");
+  PlugRegistry &reg = PlugRegistry::GetInstance();
+  reg.RegisterPlugins(paths);
+  for (PlugPluginPtr p : reg.GetAllPlugins()) {
+    printf("%s %s\n", p->GetName().c_str(), p->GetPath().c_str());
+  }
+  std::string env("PATH=");
+  env += "D:/amd/blender-git/usd/bin/1/USD/install/lib;D:/amd/blender-git/usd/bin/1/USD/install/bin;";
+  env += getenv("PATH");
+  putenv(env.c_str());
+  printf("%s\n", getenv("PATH"));
   bool b = imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
 
   BL::Scene b_scene = b_depsgraph.scene_eval();

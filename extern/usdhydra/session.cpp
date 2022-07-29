@@ -129,6 +129,8 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
   }
 
+  pxr::PlugRegistry::GetInstance().RegisterPlugins("D:/amd/blender-git/usd/bin/1/USD/install/plugin/");
+
   bool b = imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
 
   BL::Scene b_scene = b_depsgraph.scene_eval();

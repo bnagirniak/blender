@@ -24,7 +24,7 @@ def init():
 
         os.environ['PATH'] = path_str + os.environ['PATH']
 
-    # os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
+    os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
     os.environ['RPR'] = str(utils.LIBS_DIR)
 
     # # internal scene index representation in hydra,

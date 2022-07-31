@@ -144,7 +144,9 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   env += "D:/amd/blender-git/usd/bin/1/USD/install/lib;D:/amd/blender-git/usd/bin/1/USD/install/bin;";
   env += getenv("PATH");
   putenv(env.c_str());
-  printf("%s\n", getenv("PATH"));
+  //printf("%s\n", getenv("PATH"));
+  putenv("TF_DEBUG=TF_*");
+  //putenv("RPR=D:/amd/blender-git/usd/bin/1/USD/install");
   bool b = imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
 
   BL::Scene b_scene = b_depsgraph.scene_eval();

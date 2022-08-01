@@ -22,7 +22,6 @@ void ensure_usd_plugin_path_registered()
   const std::string blender_usd_datafiles = BKE_appdir_folder_id(BLENDER_DATAFILES, "usd");
   /* The trailing slash indicates to the USD library that the path is a directory. */
   pxr::PlugRegistry::GetInstance().RegisterPlugins(blender_usd_datafiles + "/");
-  //pxr::PlugRegistry::GetInstance().RegisterPlugins("D:/amd/blender-git/usd/bin/1/USD/install/plugin/");
 }
 
 }  // namespace blender::io::usd

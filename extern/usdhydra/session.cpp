@@ -2,11 +2,8 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <GL/glew.h>
-#include <cstdlib>
 
-#include "pxr/pxr.h"
-#include "pxr/base/plug/plugin.h"
-#include "pxr/base/plug/registry.h"
+#include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/base/gf/camera.h>
 #include <pxr/imaging/glf/drawTarget.h>
@@ -128,27 +125,6 @@ void BlenderSession::render(BL::Depsgraph &b_depsgraph)
 
 void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
-  if (!imagingGLEngine) {
-    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
-  }
-  
-  std::vector<std::string> paths;
-  paths.push_back("D:/amd/blender-git/usd/bin/1/USD/install/lib/usd");
-  paths.push_back("D:/amd/blender-git/usd/bin/1/USD/install/plugin");
-  PlugRegistry &reg = PlugRegistry::GetInstance();
-  reg.RegisterPlugins(paths);
-  for (PlugPluginPtr p : reg.GetAllPlugins()) {
-    printf("%s %s\n", p->GetName().c_str(), p->GetPath().c_str());
-  }
-  std::string env("PATH=");
-  env += "D:/amd/blender-git/usd/bin/1/USD/install/lib;D:/amd/blender-git/usd/bin/1/USD/install/bin;";
-  env += getenv("PATH");
-  putenv(env.c_str());
-  //printf("%s\n", getenv("PATH"));
-  putenv("TF_DEBUG=TF_*");
-  //putenv("RPR=D:/amd/blender-git/usd/bin/1/USD/install");
-  bool b = imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
-
   BL::Scene b_scene = b_depsgraph.scene_eval();
   
   ViewSettings view_settings(b_context);
@@ -179,15 +155,13 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
 
 void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
-  if (imagingGLEngine && imagingGLEngine->IsPauseRendererSupported()) {
-    imagingGLEngine->PauseRenderer();
+  if (!imagingGLEngine) {
+    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+    imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
   }
 
-  imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
-
-
-  if (!imagingGLEngine->SetRendererPlugin(TfToken("HdStormRendererPlugin"))) {
-    return;
+  if (imagingGLEngine->IsPauseRendererSupported()) {
+    imagingGLEngine->PauseRenderer();
   }
 
   sync(b_depsgraph, b_context);

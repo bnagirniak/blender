@@ -882,18 +882,6 @@ elseif(WIN32)
           PATTERN "*.pyc" EXCLUDE
         )
 
-        # usd_usd_ms/_d.dll
-        install(
-          FILES ${USD_LIBRARY_DIR}/usd_usd_ms.dll
-          DESTINATION "."
-          CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
-        )
-        install(
-          FILES ${USD_LIBRARY_DIR}/usd_usd_ms_d.dll
-          DESTINATION "."
-          CONFIGURATIONS Debug
-        )
-
         # MaterialX python bindings
         install(
           DIRECTORY ${MATERIALX_DIR}/python/debug/site-packages
@@ -1278,6 +1266,20 @@ endif()
 # files are required at runtime.
 if(WITH_USD)
   add_definitions(-DWITH_USD)
+
+  install(
+    FILES ${USD_LIBRARY_DIR}/usd_usd_ms.dll
+          ${USD_LIBRARY_DIR}/boost_python310-vc142-mt-x64-1_78.dll
+    DESTINATION "."
+    CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
+  )
+  install(
+    FILES ${USD_LIBRARY_DIR}/usd_usd_ms_d.dll
+          ${USD_LIBRARY_DIR}/boost_python310-vc142-mt-x64-1_78.dll
+    DESTINATION "."
+    CONFIGURATIONS Debug
+  )
+
   install(DIRECTORY
     ${USD_LIBRARY_DIR}/usd
     ${USD_PLUGIN_DIR}

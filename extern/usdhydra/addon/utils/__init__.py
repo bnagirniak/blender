@@ -15,8 +15,7 @@ IS_WIN = OS == 'Windows'
 IS_MAC = OS == 'Darwin'
 IS_LINUX = OS == 'Linux'
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
-# LIBS_DIR = Path(f"{bpy.utils.resource_path('LOCAL')}/datafiles/MaterialX")
-LIBS_DIR = Path(r"D:\amd\blender-git\usd\bin\1\USD\install")
+DELEGATES_DIR = Path(r"d:\delegates")
 
 
 def title_str(str):

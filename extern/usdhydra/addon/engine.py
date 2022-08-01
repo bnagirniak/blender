@@ -15,26 +15,13 @@ from .utils import stages
 
 
 def init():
-    if utils.IS_WIN:
-        path_str = ""
-        for loc_path in ('lib', 'bin', 'plugin/usd'):
-            path = utils.LIBS_DIR / loc_path
-            #os.add_dll_directory(str(path))
-            path_str += f"{path};"
-
-        os.environ['PATH'] = path_str + os.environ['PATH']
-
-    os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
-    os.environ['RPR'] = str(utils.LIBS_DIR)
-
     # # internal scene index representation in hydra,
     # # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging
     # os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "0"
 
-    sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
-    # sys.path.append(str(utils.LIBS_DIR / 'python'))
+    sys.path.append(str(utils.DELEGATES_DIR / 'lib/python'))
 
-    _usdhydra.init()
+    _usdhydra.init(str(utils.DELEGATES_DIR))
 
 
 def exit():

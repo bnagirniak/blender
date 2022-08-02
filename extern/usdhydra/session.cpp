@@ -151,6 +151,12 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
   b_engine.unbind_display_space_shader();
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  if (!imagingGLEngine->IsConverged()) {
+    b_engine.tag_redraw();
+  }
 }
 
 void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context)

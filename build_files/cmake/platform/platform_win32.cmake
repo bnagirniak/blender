@@ -860,7 +860,8 @@ if(WITH_USD)
   endif()
 
   set(BOOST_LIBRARIES ${BOOST_LIBRARIES}
-    optimized ${BOOST_LIBPATH}/boost_python310-${BOOST_POSTFIX})
+    debug ${USD_LIBRARY_DIR}/boost_python310-${BOOST_DEBUG_POSTFIX}
+    optimized ${USD_LIBRARY_DIR}/boost_python310-${BOOST_POSTFIX})
 endif()
 
 if(WINDOWS_PYTHON_DEBUG)

@@ -68,6 +68,32 @@ string get_temp_file(string suffix, string name, bool is_rand)
   return get_temp_pid_dir().u8string() + "/" + name;
 }
 
+string format_milliseconds(chrono::milliseconds millisecs)
+{
+    bool neg = millisecs < 0ms;
+    if (neg)
+        millisecs = -millisecs;
+    auto m = chrono::duration_cast<chrono::minutes>(millisecs);
+    millisecs -= m;
+    auto s = chrono::duration_cast<chrono::seconds>(millisecs);
+    millisecs -= s;
+    std::string result;
+    if (neg)
+        result.push_back('-');
+    if (m < 10min)
+        result.push_back('0');
+    result += to_string(m/1min);
+    result += ':';
+    if (s < 10s)
+        result.push_back('0');
+    result += to_string(s/1s);
+    result += ':';
+    if (millisecs < 10ms)
+        result.push_back('0');
+    result += to_string(millisecs/1ms/10);
+    return result;
+}
+
 static PyObject *get_temp_file_func(PyObject * /*self*/, PyObject *args)
 {
   const char *suffix = "", *name = "";

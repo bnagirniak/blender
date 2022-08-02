@@ -148,14 +148,28 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
 
   b_engine.bind_display_space_shader(b_scene);
 
+  if (get_renderer_percent_done(&imagingGLEngine) == 0.0) {
+    time_begin = chrono::steady_clock::now();
+  }
+
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
   b_engine.unbind_display_space_shader();
 
   glClear(GL_DEPTH_BUFFER_BIT);
 
+  chrono::time_point<chrono::steady_clock> time_current = chrono::steady_clock::now();
+  chrono::milliseconds elapsed_time = chrono::duration_cast<chrono::milliseconds>(time_current - time_begin);
+
+  string formatted_time = format_milliseconds(elapsed_time);
+
   if (!imagingGLEngine->IsConverged()) {
-    b_engine.tag_redraw();
+    notify_status(("Time: " + formatted_time + " | Done: " +
+                   to_string(int(get_renderer_percent_done(&imagingGLEngine))) + '%').c_str(),
+                   "Render");
+  }
+  else {
+    notify_status(("Time: " + formatted_time).c_str(), "Rendering Done", false);
   }
 }
 
@@ -257,6 +271,28 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   return usd_stage;
 }
 
+float BlenderSession::get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer)
+{
+  float percent_done = 0.0;
+
+  VtDictionary render_stats = renderer->get()->GetRenderStats();
+
+  auto it = render_stats.find("percentDone");
+  if (it != render_stats.end()) {
+    percent_done = (float)it->second.UncheckedGet<double>();
+  }
+
+  return round(percent_done * 10.0f) / 10.0f;
+}
+
+void BlenderSession::notify_status(const char *info, const char *status, bool redraw)
+{
+  b_engine.update_stats(status, info);
+
+  if (redraw) {
+    b_engine.tag_redraw();
+  }
+};
 /* ------------------------------------------------------------------------- */
 /* Python API for BlenderSession
  */

@@ -15,7 +15,6 @@ IS_WIN = OS == 'Windows'
 IS_MAC = OS == 'Darwin'
 IS_LINUX = OS == 'Linux'
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
-DELEGATES_DIR = Path(r"d:\delegates")
 
 
 def title_str(str):

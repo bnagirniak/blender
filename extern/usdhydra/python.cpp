@@ -37,13 +37,9 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
   std::string delegates_dir_str(delegates_dir);
   std::vector<std::string> paths;
   paths.push_back(BKE_appdir_folder_id(BLENDER_DATAFILES, "usd"));
-  paths.push_back(delegates_dir_str + "/plugin");
+  paths.push_back(delegates_dir_str);
+
   registry.RegisterPlugins(paths);
-  
-  std::string env("PATH=");
-  env += delegates_dir_str + "/lib;";
-  env += getenv("PATH");
-  putenv(env.c_str());
   
   for (pxr::PlugPluginPtr p : registry.GetAllPlugins()) {
     printf("%s %s\n", p->GetName().c_str(), p->GetPath().c_str());

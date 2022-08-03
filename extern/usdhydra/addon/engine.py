@@ -5,6 +5,7 @@
 
 import sys
 import os
+from pathlib import Path
 
 import bpy
 import _usdhydra
@@ -18,10 +19,16 @@ def init():
     # # internal scene index representation in hydra,
     # # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging
     # os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "0"
+    from .properties.preferences import get_addon_pref
+    delegates_dir = Path(get_addon_pref().delegates_dir)
 
-    sys.path.append(str(utils.DELEGATES_DIR / 'lib/python'))
+    sys.path.append(str(delegates_dir / 'lib' / 'python'))
 
-    _usdhydra.init(str(utils.DELEGATES_DIR))
+    paths = os.environ['PATH'].split(os.pathsep)
+    paths.append(str(delegates_dir / 'lib'))
+    os.environ["PATH"] += os.pathsep.join + os.pathsep.join(set(paths))
+
+    _usdhydra.init(str(delegates_dir / 'plugin'))
 
 
 def exit():
@@ -137,3 +144,7 @@ def session_view_draw(session, depsgraph, context, space_data, region_data):
 def session_view_update(session, depsgraph, context, space_data, region_data):
     _usdhydra.session.view_update(session, depsgraph.as_pointer(), context.as_pointer(),
                              space_data.as_pointer(), region_data.as_pointer())
+
+
+def session_get_render_plugins():
+    return _usdhydra.session.get_render_plugins()

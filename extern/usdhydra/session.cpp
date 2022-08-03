@@ -11,6 +11,8 @@
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImagingGL/renderParams.h>
 #include <pxr/usdImaging/usdAppUtils/camera.h>
+#include <pxr/base/plug/plugin.h>
+#include <pxr/base/plug/registry.h>
 
 #include "glog/logging.h"
 
@@ -403,13 +405,24 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
 {
+  pxr::PlugRegistry &registry = pxr::PlugRegistry::GetInstance();
   TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
   PyObject *ret = PyTuple_New(pluginsIds.size());
   for (int i = 0; i < pluginsIds.size(); ++i) {
-    PyObject *descr = PyTuple_New(2);
+    PyObject *descr = PyTuple_New(3);
     PyTuple_SetItem(descr, 0, PyUnicode_FromString(pluginsIds[i].GetText()));
     PyTuple_SetItem(descr, 1, PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
 
+    std::string plugin_name = pluginsIds[i];
+    plugin_name = plugin_name.substr(0, plugin_name.size()-6);
+    plugin_name[0] = tolower(plugin_name[0]);
+    std::string path = "";
+    PlugPluginPtr plugin = registry.GetPluginWithName(plugin_name);
+    if (plugin) {
+        path = plugin->GetPath();
+    }
+       
+    PyTuple_SetItem(descr, 2, PyUnicode_FromString(path.c_str()));
     PyTuple_SetItem(ret, i, descr);
   }
   return ret;

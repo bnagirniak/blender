@@ -14,8 +14,8 @@ from bpy_extras.io_utils import ImportHelper
 
 import _usdhydra
 from ..utils import logging
-from ..utils.delegate import get_delegates, manager
-
+from ..utils.delegate import manager
+from pxr import Plug
 
 log = logging.Log('preferences')
 
@@ -65,6 +65,13 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
         default=str(_usdhydra.utils.get_temp_dir()),
         update=update_temp_dir,
     )
+    delegates_dir: StringProperty(
+        name="Delegate Directory",
+        description="Set delegate directory",
+        maxlen=1024,
+        subtype='DIR_PATH',
+        default=str(Path(bpy.utils.system_resource('SCRIPTS', path="addons/usdhydra/delegates"))),
+    )
     dev_tools: BoolProperty(
         name="Developer Tools",
         description="Enable developer tools",
@@ -89,6 +96,12 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
         name="Render Delegate",
         default=False,
     )
+    settings: EnumProperty(
+        name="",
+        items=(('SETTINGS', "Settings", "aaa"),
+               ('DELEGATE', "Delegates", "bbb")),
+        default='SETTINGS',
+    )
 
     def draw(self, context):
         def _draw_settings(layout):
@@ -99,40 +112,40 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
             layout.separator()
 
         def _draw_delegates(layout):
-            layout.separator()
-            layout.operator(USDHYDRA_ADDON_OP_install_delegate.bl_idname, icon='IMPORT',
-                            text="Install Delegate..."
-                            if manager.is_available
-                            else f"Install Delegate...{manager.progress}%")
+            row = layout.row()
+            split = row.split(factor=0.8)
+            split.prop(self, "delegates_dir")
+            split.operator(USDHYDRA_ADDON_OP_install_delegate.bl_idname, icon='IMPORT', text="Install")
 
-            _draw_delegate_item(layout)
-            layout.separator()
+            if manager.delegates is None:
+                manager.update_delegates()
 
-        def _draw_delegate_item(layout):
-            for key, value in get_delegates().items():
-                row = layout.row(align=True)
+            plugins = Plug.Registry().GetAllPlugins()
+            layout.separator()
+            for key, value, path, *_ in manager.delegates:
+                row = layout.box().row(align=True)
                 row.alignment = 'LEFT'
-                split_name = row.split()
-                split_name.label(text=key)
-                row.label(text=value)
+                split = row.split(factor=0.5)
+                split1 = split.split(factor=0.7)
+                split1.label(text=str(key))
+                split1.label(text=str(value))
+                split.label(text=str(path))
 
-        icon_close = "DISCLOSURE_TRI_RIGHT"
-        icon_open = "DISCLOSURE_TRI_DOWN"
+            layout.separator()
 
         layout = self.layout
         col = layout.column()
+        row = col.row(align=True)
+        row.prop(self, 'settings', expand=True, text=" ")
 
-        col.prop(self, "show_settings", icon=icon_open if self.show_settings else icon_close)
-        layout = col.column()
-        if self.show_settings:
+        layout = layout.column()
+        if self.settings == 'SETTINGS':
             _draw_settings(layout)
 
-        col.prop(self, "show_delegate", icon=icon_open if self.show_delegate else icon_close)
-        layout = col.column()
-        if self.show_delegate:
+        if self.settings == 'DELEGATE':
             _draw_delegates(layout)
 
-        row = col.row()
+        # row = col.row()
         #row.operator("wm.url_open", text="Main Site", icon='URL').url = bl_info["main_web"]
         #row.operator("wm.url_open", text="Community", icon='COMMUNITY').url = bl_info["community"]
 

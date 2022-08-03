@@ -40,7 +40,7 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
   paths.push_back(delegates_dir_str);
 
   registry.RegisterPlugins(paths);
-  
+
   for (pxr::PlugPluginPtr p : registry.GetAllPlugins()) {
     printf("%s %s\n", p->GetName().c_str(), p->GetPath().c_str());
   }

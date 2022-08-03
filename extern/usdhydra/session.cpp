@@ -14,6 +14,8 @@
 
 #include "glog/logging.h"
 
+#include "usdImagingLite/engine.h"
+#include "usdImagingLite/renderParams.h"
 #include "session.h"
 
 using namespace pxr;
@@ -41,9 +43,9 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
 
 void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_delegate)
 {
-  imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+  std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
 
-  if (!imagingGLEngine->SetRendererPlugin(TfToken(render_delegate))) {
+  if (!imagingLiteEngine->SetRendererPlugin(TfToken(render_delegate))) {
     return;
   }
 
@@ -76,16 +78,18 @@ void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_deleg
   pxr::UsdTimeCode usd_timecode = pxr::UsdTimeCode(b_scene.frame_current());
   pxr::GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
 
-  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+  imagingLiteEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
                                            gf_camera.GetFrustum().ComputeProjectionMatrix());
 
-  imagingGLEngine->SetRenderViewport(pxr::GfVec4d(0, 0, width, height));
-  imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
+  imagingLiteEngine->SetRenderViewport(pxr::GfVec4d(0, 0, width, height));
+  imagingLiteEngine->SetRendererAov(pxr::HdAovTokens->color);
+
+  UsdImagingLiteRenderParams render_params;
 
   render_params.frame = usd_timecode;
   render_params.clearColor = pxr::GfVec4f(1.0, 1.0, 1.0, 0.0);
 
-  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
+  imagingLiteEngine->Render(stage->GetPseudoRoot(), render_params);
 
   BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
   BL::CollectionRef b_render_passes = b_result.layers[0].passes;

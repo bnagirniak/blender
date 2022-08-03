@@ -33,7 +33,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
     bl_label = "USD Hydra Internal"
     bl_info = "USD Hydra rendering plugin"
 
-    bl_use_preview = True
+    bl_use_preview = False              # TODO: material and light previews are temporary disabled
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
     bl_use_gpu_context = True

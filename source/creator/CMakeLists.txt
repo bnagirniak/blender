@@ -868,14 +868,14 @@ elseif(WIN32)
       if(WITH_USD)
         # USD python bindings
         install(
-          DIRECTORY ${USD_PYTHON_DIR}/pxr
+          DIRECTORY ${USD_PYTHON_DIR}/debug/pxr
           DESTINATION ${TARGETDIR_VER}/python/lib/site-packages
           CONFIGURATIONS Debug
           PATTERN "__pycache__" EXCLUDE           # * any cache *
           PATTERN "*.pyc" EXCLUDE
         )
         install(
-          DIRECTORY ${USD_PYTHON_DIR}/pxr
+          DIRECTORY ${USD_PYTHON_DIR}/release/pxr
           DESTINATION ${TARGETDIR_VER}/python/lib/site-packages
           CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
           PATTERN "__pycache__" EXCLUDE           # * any cache *
@@ -1275,7 +1275,7 @@ if(WITH_USD)
   )
   install(
     FILES ${USD_LIBRARY_DIR}/usd_usd_ms_d.dll
-          ${USD_LIBRARY_DIR}/boost_python310-vc142-mt-x64-1_78.dll
+          ${USD_LIBRARY_DIR}/boost_python310-vc142-mt-gd-x64-1_78.dll
     DESTINATION "."
     CONFIGURATIONS Debug
   )

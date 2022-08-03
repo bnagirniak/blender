@@ -126,7 +126,7 @@ def session_reset(session, data, context, depsgraph, is_blender_scene, stage):
 
 
 def session_render(session, depsgraph):
-    _usdhydra.session.render(session, depsgraph.as_pointer())
+    _usdhydra.session.render(session, depsgraph.as_pointer(), depsgraph.scene.usdhydra.final.delegate)
 
 
 def session_view_draw(session, depsgraph, context, space_data, region_data):
@@ -136,4 +136,4 @@ def session_view_draw(session, depsgraph, context, space_data, region_data):
 
 def session_view_update(session, depsgraph, context, space_data, region_data):
     _usdhydra.session.view_update(session, depsgraph.as_pointer(), context.as_pointer(),
-                             space_data.as_pointer(), region_data.as_pointer())
+                             space_data.as_pointer(), region_data.as_pointer(), depsgraph.scene.usdhydra.viewport.delegate)

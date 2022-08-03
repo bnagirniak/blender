@@ -7,21 +7,9 @@ import zipfile
 from concurrent import futures
 from time import sleep
 
+from ..engine import session_get_render_plugins
 
-from . import update_ui, DELEGATES_DIR
-
-
-_render_delegates = {'HdStormRendererPlugin': 'GL', 'HdRprPlugin': 'RPR'}  # remove after implementation UsdImagingGL
-
-
-def get_delegates():
-    # _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
-    #                      for name in UsdImagingGL.Engine.GetRendererPlugins()}
-
-    # if not os.path.isdir(os.environ.get('RMANTREE', "")):
-    #     _render_delegates.pop('HdPrmanLoaderRendererPlugin', None)
-
-    return _render_delegates
+from . import update_ui
 
 
 class Manager:
@@ -29,6 +17,7 @@ class Manager:
         self.delegate_executor = None
         self.progress = None
         self.filepath = ""
+        self.delegates = None
 
     @property
     def is_available(self):
@@ -42,16 +31,26 @@ class Manager:
         self.progress = msg
         update_ui(area_type='PREFERENCES')
 
+    def update_delegates(self):
+        self.delegates = session_get_render_plugins()
+
+    def register_delegates(self):
+        from ..engine import init, exit
+        exit()
+        init()
+
     def build(self):
+        from ..properties.preferences import get_addon_pref
+        delegates_dir = get_addon_pref().delegates_dir
+
         with zipfile.ZipFile(self.filepath) as z:
-            z.extractall(path=DELEGATES_DIR)
+            self.set_progress(True)
+            z.extractall(path=delegates_dir)
 
-        # building process
-        for i in range(101):
-            sleep(0.05)
-            self.set_progress(i)
+        self.register_delegates()
+        self.update_delegates()
 
-        self.set_progress(None)
+        self.set_progress(False)
 
     def install_delegate(self):
         def delegate_build():

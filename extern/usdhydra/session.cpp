@@ -39,11 +39,11 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
   }
 }
 
-void BlenderSession::render(BL::Depsgraph &b_depsgraph)
+void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_delegate)
 {
   imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
 
-  if (!imagingGLEngine->SetRendererPlugin(TfToken("HdStormRendererPlugin"))) {
+  if (!imagingGLEngine->SetRendererPlugin(TfToken(render_delegate))) {
     return;
   }
 
@@ -173,11 +173,11 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   }
 }
 
-void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
+void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate)
 {
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
-    imagingGLEngine->SetRendererPlugin(TfToken("HdRprPlugin"));
+    imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
   }
 
   if (imagingGLEngine->IsPauseRendererSupported()) {
@@ -367,8 +367,9 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "render_func";
   PyObject *pysession, *pydepsgraph;
+  const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
+  if (!PyArg_ParseTuple(args, "OOs", &pysession, &pydepsgraph, &render_delegate)) {
     Py_RETURN_NONE;
   }
 
@@ -377,7 +378,7 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   BL::Depsgraph depsgraph(depsgraphptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  session->render(depsgraph);
+  session->render(depsgraph, render_delegate);
 
   Py_RETURN_NONE;
 }
@@ -391,8 +392,9 @@ static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "view_update_func";
   PyObject *pysession, *pydepsgraph, *pycontext, *pyspaceData, *pyregionData;
+  const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOOOO", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData)) {
+  if (!PyArg_ParseTuple(args, "OOOOOs", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData, &render_delegate)) {
     Py_RETURN_NONE;
   }
 
@@ -406,7 +408,7 @@ static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
 
-  session->view_update(b_depsgraph, b_context);
+  session->view_update(b_depsgraph, b_context, render_delegate);
 
   Py_RETURN_NONE;
 }

@@ -36,9 +36,9 @@ public:
   ~BlenderSession();
 
   void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId);
-  void render(BL::Depsgraph &b_depsgraph);
+  void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
-  void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+  void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   pxr::UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph);
   float get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer);

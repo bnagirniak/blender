@@ -232,20 +232,29 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
-  usd_export_params.export_materialx = true;
+
 
   if (!materialx_data.empty()) {
+    usd_export_params.export_materialx = true;
     blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
     iter.iterate_and_write();
     iter.release_writers();
   }
   else {
+    usd_export_params.export_materialx = false;
     blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
     iter.iterate_and_write();
     iter.release_writers();
   }
 
-
+  std::string s2;
+  std::string s3;
+  usd_stage->ExportToString(&s2);
+  usd_stage->Export("D:/usd.usda");
+  printf("%s", s2.c_str());
+  usd_stage->GetRootLayer()->ExportToString(&s3);
+  usd_stage->GetRootLayer()->Export("D:/usd_root.usda");
+  printf("%s", s3.c_str());
   //if (data->params.export_animation) {
   //  /* Writing the animated frames is not 100% of the work, but it's our best guess. */
   //  float progress_per_frame = 1.0f / std::max(1, (scene->r.efra - scene->r.sfra + 1));
@@ -358,33 +367,35 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-
-  PyObject *iter = PyObject_GetIter(materialx_data_);
-  //std::vector<std::vector<std::string>>  materialx_data;
   std::map<std::string, std::pair<std::string, std::string>> materialx_data;
 
-  if (!iter) {
-    Py_RETURN_NONE;
-  }
+  if (materialx_data_ != Py_None){
 
-  while (true) {
-      PyObject *next = PyIter_Next(iter);
+      PyObject *iter = PyObject_GetIter(materialx_data_);
 
-      if (!next) {
-          break;
+      if (!iter) {
+        Py_RETURN_NONE;
       }
 
-      char *i0 = nullptr;
-      char *i1 = nullptr;
-      char *i2 = nullptr;
+      while (true) {
+          PyObject *next = PyIter_Next(iter);
 
-      if (!PyArg_ParseTuple(next, "sss", &i0, &i1, &i2)) {
-          Py_RETURN_NONE;
+          if (!next) {
+              break;
+          }
+
+          char *i0 = nullptr;
+          char *i1 = nullptr;
+          char *i2 = nullptr;
+
+          if (!PyArg_ParseTuple(next, "sss", &i0, &i1, &i2)) {
+              Py_RETURN_NONE;
+          }
+          std::string material(i0);
+          materialx_data.insert(std::pair<std::string, std::pair<std::string, std::string>>(material, std::pair<std::string,std::string>(std::string(i1),std::string(i2))));
+
       }
-      std::string material(i0);
-      materialx_data.insert(std::pair<std::string, std::pair<std::string, std::string>>(material, std::pair<std::string,std::string>(std::string(i1),std::string(i2))));
-
-  }
+    }
 
 
   //PointerRNA dataptr;

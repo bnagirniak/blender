@@ -37,14 +37,31 @@ public:
 
   void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
+  void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   pxr::UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph);
-  float get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer);
+  //float get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer);
+
+  template <typename T>
+  float get_renderer_percent_done(T* renderer) {
+    float percent_done = 0.0;
+
+    VtDictionary render_stats = renderer->get()->GetRenderStats();
+
+    auto it = render_stats.find("percentDone");
+    if (it != render_stats.end()) {
+      percent_done = (float)it->second.UncheckedGet<double>();
+    }
+
+    return round(percent_done * 10.0f) / 10.0f;
+  }
 
 protected:
+  void update_render_result(map<string, vector<float>> render_images, string b_render_layer_name, int width, int height, int channels = 4);
   void notify_status(const char *info, const char *status, bool redraw = true);
+  void notify_final_render_status(float progress, const char *info);
 
 public:
   BL::RenderEngine b_engine;

@@ -17,7 +17,7 @@
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
-
+#include <iostream>
 using namespace pxr;
 
 namespace usdhydra {
@@ -37,15 +37,15 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
     stage = export_scene_to_usd(b_context, depsgraph);
   }
   else {
-    stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+    stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
   }
 }
 
-void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_delegate)
+void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate)
 {
-  std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
+  std::unique_ptr<UsdImagingGLEngine> imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
 
-  if (!imagingLiteEngine->SetRendererPlugin(TfToken(render_delegate))) {
+  if (!imagingGLEngine->SetRendererPlugin(TfToken(render_delegate))) {
     return;
   }
 
@@ -69,27 +69,25 @@ void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_deleg
   int width = int(screen_width * border[1][0]);
   int height = int(screen_height * border[1][1]);
 
-  pxr::GlfDrawTargetRefPtr draw_target_ptr = pxr::GlfDrawTarget::New(pxr::GfVec2i(width, height));
+  GlfDrawTargetRefPtr draw_target_ptr = GlfDrawTarget::New(GfVec2i(width, height));
 
   draw_target_ptr->Bind();
   draw_target_ptr->AddAttachment("color", GL_RGBA, GL_FLOAT, GL_RGBA);
 
-  pxr::UsdGeomCamera usd_camera = pxr::UsdAppUtilsGetCameraAtPath(stage, pxr::SdfPath(pxr::TfMakeValidIdentifier(b_scene.camera().data().name())));
-  pxr::UsdTimeCode usd_timecode = pxr::UsdTimeCode(b_scene.frame_current());
-  pxr::GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
 
-  imagingLiteEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
                                            gf_camera.GetFrustum().ComputeProjectionMatrix());
 
-  imagingLiteEngine->SetRenderViewport(pxr::GfVec4d(0, 0, width, height));
-  imagingLiteEngine->SetRendererAov(pxr::HdAovTokens->color);
-
-  UsdImagingLiteRenderParams render_params;
+  imagingGLEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
+  imagingGLEngine->SetRendererAov(HdAovTokens->color);
 
   render_params.frame = usd_timecode;
-  render_params.clearColor = pxr::GfVec4f(1.0, 1.0, 1.0, 0.0);
+  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
 
-  imagingLiteEngine->Render(stage->GetPseudoRoot(), render_params);
+  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
   BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
   BL::CollectionRef b_render_passes = b_result.layers[0].passes;
@@ -127,6 +125,98 @@ void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_deleg
   b_engine.end_result(b_result, false, false, false);
 }
 
+void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_delegate)
+{
+  std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
+
+  if (!imagingLiteEngine->SetRendererPlugin(TfToken(render_delegate))) {
+    return;
+  }
+
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
+  string b_render_layer_name = b_view_layer.name();
+  vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
+
+  if (b_scene.render().use_border()) {
+    border = {
+      {b_scene.render().border_min_x(),
+       b_scene.render().border_min_y()},
+      {b_scene.render().border_max_x() - b_scene.render().border_min_x(),
+       b_scene.render().border_max_y() - b_scene.render().border_min_y()}
+    };
+  }
+
+  int screen_width = int(b_scene.render().resolution_x() * b_scene.render().resolution_percentage() / 100);
+  int screen_height = int(b_scene.render().resolution_y() * b_scene.render().resolution_percentage() / 100);
+
+  int width = int(screen_width * border[1][0]);
+  int height = int(screen_height * border[1][1]);
+
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+
+  imagingLiteEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+                                    gf_camera.GetFrustum().ComputeProjectionMatrix());
+
+  imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
+  imagingLiteEngine->SetRendererAov(HdAovTokens->color);
+
+  UsdImagingLiteRenderParams render_params;
+
+  render_params.frame = usd_timecode;
+  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+  
+  time_begin = chrono::steady_clock::now();
+
+  chrono::time_point<chrono::steady_clock> time_current;
+  chrono::milliseconds elapsed_time;
+
+  string formatted_time;
+
+  float percent_done = 0.0;
+
+  int channels = 4;
+  vector<float> pixels(width * height * channels);
+
+  map<string, vector<float>> render_images{{"Combined", pixels}};
+
+  while (true) {
+    if (b_engine.test_break()) {
+      break;
+    }
+
+    imagingLiteEngine->Render(stage->GetPseudoRoot(), render_params);
+
+    percent_done = get_renderer_percent_done(&imagingLiteEngine);
+    time_current = chrono::steady_clock::now();
+    elapsed_time = chrono::duration_cast<chrono::milliseconds>(time_current - time_begin);
+    formatted_time = format_milliseconds(elapsed_time);
+
+    notify_final_render_status(percent_done / 100.0,
+      ("Render Time: " + formatted_time + " | Done: " + to_string(int(percent_done)) + '%').c_str());
+
+    if (imagingLiteEngine->IsConverged()) {
+      break;
+    }
+
+    imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
+    update_render_result(render_images, b_render_layer_name, width, height, channels);    
+  }
+
+  imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
+  update_render_result(render_images, b_render_layer_name, width, height, channels);
+
+  for (auto a : pixels) {
+    if (a != 0.0 && a != 1.0)
+    {
+      cout << a << endl;
+    }
+  }
+
+}
+
 void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
   BL::Scene b_scene = b_depsgraph.scene_eval();
@@ -137,17 +227,17 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     return;
   };
 
-  pxr::GfCamera gf_camera = view_settings.export_camera();
+  GfCamera gf_camera = view_settings.export_camera();
 
-  vector<pxr::GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
+  vector<GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
 
   for (int i = 0; i < clip_planes.size(); i++) {
-    render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
+    render_params.clipPlanes.push_back((GfVec4d)clip_planes[i]);
   }
 
   imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
                                            gf_camera.GetFrustum().ComputeProjectionMatrix());
-  imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
+  imagingGLEngine->SetRenderViewport(GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
                                                   (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
 
   b_engine.bind_display_space_shader(b_scene);
@@ -180,7 +270,7 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
 void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate)
 {
   if (!imagingGLEngine) {
-    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
     imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
   }
 
@@ -200,10 +290,10 @@ void BlenderSession::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
   BL::Scene b_scene = b_depsgraph.scene_eval();
   ViewSettings view_settings(b_context);
 
-  render_params.frame = pxr::UsdTimeCode(b_scene.frame_current());  
+  render_params.frame = UsdTimeCode(b_scene.frame_current());  
 }
 
-pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph)
+UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph)
 {
   LOG(INFO) << "export_scene_to_usd";
 
@@ -215,10 +305,10 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   const int orig_frame = CFRA;
 
   string filepath = usdhydra::get_temp_file(".usda");
-  pxr::UsdStageRefPtr usd_stage = pxr::UsdStage::CreateNew(filepath);
+  UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
 
-  usd_stage->SetMetadata(pxr::UsdGeomTokens->upAxis, pxr::VtValue(pxr::UsdGeomTokens->z));
-  usd_stage->SetMetadata(pxr::UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
+  usd_stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
+  usd_stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
   usd_stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
 
   /* Set up the stage for animated data. */
@@ -275,19 +365,37 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   return usd_stage;
 }
 
-float BlenderSession::get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer)
+void BlenderSession::update_render_result(map<string, vector<float>> render_images, string b_render_layer_name, int width, int height, int channels)
 {
-  float percent_done = 0.0;
+  BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
+  BL::CollectionRef b_render_passes = b_result.layers[0].passes;
 
-  VtDictionary render_stats = renderer->get()->GetRenderStats();
+  vector<float> images;
 
-  auto it = render_stats.find("percentDone");
-  if (it != render_stats.end()) {
-    percent_done = (float)it->second.UncheckedGet<double>();
+  for (BL::RenderPass b_pass : b_render_passes) {
+    map<string, vector<float>>::iterator it_image = render_images.find(b_pass.name());
+    vector<float> image = it_image->second;
+
+    if (it_image == render_images.end()) {
+      image = vector<float>(width * height * channels);
+    }
+
+    if (b_pass.channels() != channels) {
+      for (int i = image.size(); i >= b_pass.channels(); i -= b_pass.channels()) {
+        image.erase(image.end() - i);
+      }
+    }
+
+    images.insert(images.end(), image.begin(), image.end());
   }
 
-  return round(percent_done * 10.0f) / 10.0f;
+  for (BL::RenderPass b_pass : b_render_passes) {
+    b_pass.rect(images.data());
+  }
+
+  b_engine.end_result(b_result, false, false, false);
 }
+
 
 void BlenderSession::notify_status(const char *info, const char *status, bool redraw)
 {
@@ -297,6 +405,13 @@ void BlenderSession::notify_status(const char *info, const char *status, bool re
     b_engine.tag_redraw();
   }
 };
+
+void BlenderSession::notify_final_render_status(float progress, const char* info)
+{
+  b_engine.update_progress(progress);
+  b_engine.update_stats("test", info);
+}
+
 /* ------------------------------------------------------------------------- */
 /* Python API for BlenderSession
  */
@@ -382,7 +497,13 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   BL::Depsgraph depsgraph(depsgraphptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  session->render(depsgraph, render_delegate);
+
+  if (strcmp(render_delegate, "HdStormRendererPlugin") == 0) {
+    session->render_gl(depsgraph, render_delegate);
+  }
+  else {
+    session->render(depsgraph, render_delegate);
+  }
 
   Py_RETURN_NONE;
 }

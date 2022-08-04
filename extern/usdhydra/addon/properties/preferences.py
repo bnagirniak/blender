@@ -35,7 +35,7 @@ class USDHYDRA_ADDON_OP_install_delegate(Operator, ImportHelper):
 
     @classmethod
     def poll(cls, context):
-        return manager.in_progress
+        return not manager.in_progress
 
     def execute(self, context):
         manager.filepath = self.filepath

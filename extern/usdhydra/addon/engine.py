@@ -70,6 +70,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
         if not self.session:
             self.session = session_create(self)
 
+        self.bl_use_gpu_context = depsgraph.scene.usdhydra.final.is_gl_delegate
         session_reset(self.session, data, bpy.context, depsgraph, is_blender_scene, stage)
 
     def render(self, depsgraph):

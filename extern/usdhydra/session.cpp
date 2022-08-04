@@ -395,7 +395,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, depsgraph, is_blender_scene, stageId);
+  session->reset(b_context, depsgraph, is_blender_scene, stageId, materialx_data);
 
   Py_RETURN_NONE;
 }

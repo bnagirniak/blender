@@ -27,7 +27,7 @@ def init():
 
     paths = os.environ['PATH'].split(os.pathsep)
     paths.append(str(delegates_dir / 'lib'))
-    os.environ["PATH"] += os.pathsep.join + os.pathsep.join(set(paths))
+    os.environ["PATH"] += os.pathsep + os.pathsep.join(set(paths))
 
     _usdhydra.init(str(delegates_dir / 'plugin'))
 

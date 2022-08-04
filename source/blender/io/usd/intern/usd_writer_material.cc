@@ -136,7 +136,7 @@ void create_materialx(const USDExporterContext &usd_export_context,
   pxr::UsdPrim prim = usd_material.GetPrim();
   prim.GetReferences().AddReference(materialx_path, pxr::SdfPath("/MaterialX"));
   prim.GetPath()
-      .AppendChild(pxr::TfToken("/Materials"))
+      .AppendChild(pxr::TfToken("Materials"))
       .AppendChild(pxr::TfToken(surfacematerial));
 
   pxr::UsdPrim prim_mesh = usd_mesh.GetPrim();

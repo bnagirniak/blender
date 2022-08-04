@@ -2,17 +2,15 @@
 # Copyright 2011-2022 Blender Foundation
 
 # <pep8 compliant>
-import platform
-from pathlib import Path
 
 import bpy
 
+from .logging import Log
+log = Log("utils")
 
-OS = platform.system()
-IS_WIN = OS == 'Windows'
-IS_MAC = OS == 'Darwin'
-IS_LINUX = OS == 'Linux'
+
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
+LIBS_DIR = Path(f"{bpy.utils.resource_path('LOCAL')}/datafiles/MaterialX")
 
 
 def title_str(str):

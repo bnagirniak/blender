@@ -9,6 +9,7 @@
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
+#include <pxr/usdImaging/usdAppUtils/camera.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -41,11 +42,12 @@ public:
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+  void sync_final_render(BL::Depsgraph &b_depsgraph);
   pxr::UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph);
-  //float get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer);
 
   template <typename T>
-  float get_renderer_percent_done(T* renderer) {
+  float get_renderer_percent_done(T *renderer)
+  {
     float percent_done = 0.0;
 
     VtDictionary render_stats = renderer->get()->GetRenderStats();
@@ -63,6 +65,17 @@ protected:
   void notify_status(const char *info, const char *status, bool redraw = true);
   void notify_final_render_status(float progress, const char *info);
 
+  template <typename T>
+  void set_scene_camera(T* renderer, BL::Scene b_scene)
+  {
+    UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+    UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+    GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+
+    renderer->get()->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+                                    gf_camera.GetFrustum().ComputeProjectionMatrix());
+  }
+
 public:
   BL::RenderEngine b_engine;
   //BL::BlendData b_data;
@@ -73,6 +86,10 @@ public:
 
 protected:
   chrono::time_point<chrono::steady_clock> time_begin;
+
+  int width;
+  int height;
+  string b_render_layer_name;
 };
 
 PyObject *addPythonSubmodule_session(PyObject *mod);

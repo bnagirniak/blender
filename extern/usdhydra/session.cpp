@@ -10,14 +10,13 @@
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImagingGL/renderParams.h>
-#include <pxr/usdImaging/usdAppUtils/camera.h>
 
 #include "glog/logging.h"
 
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
-#include <iostream>
+
 using namespace pxr;
 
 namespace usdhydra {
@@ -50,41 +49,18 @@ void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_de
   }
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
-  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
-  string b_render_layer_name = b_view_layer.name();
-  vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
-
-  if (b_scene.render().use_border()) {
-    border = {
-      {b_scene.render().border_min_x(),
-       b_scene.render().border_min_y()},
-      {b_scene.render().border_max_x() - b_scene.render().border_min_x(),
-       b_scene.render().border_max_y() - b_scene.render().border_min_y()}
-    };
-  }
-
-  int screen_width = int(b_scene.render().resolution_x() * b_scene.render().resolution_percentage() / 100);
-  int screen_height = int(b_scene.render().resolution_y() * b_scene.render().resolution_percentage() / 100);
-
-  int width = int(screen_width * border[1][0]);
-  int height = int(screen_height * border[1][1]);
 
   GlfDrawTargetRefPtr draw_target_ptr = GlfDrawTarget::New(GfVec2i(width, height));
 
   draw_target_ptr->Bind();
   draw_target_ptr->AddAttachment("color", GL_RGBA, GL_FLOAT, GL_RGBA);
 
-  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
-  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
-  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
-
-  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                           gf_camera.GetFrustum().ComputeProjectionMatrix());
+  set_scene_camera(&imagingGLEngine, b_scene);
 
   imagingGLEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingGLEngine->SetRendererAov(HdAovTokens->color);
 
-  render_params.frame = usd_timecode;
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
   render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
 
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
@@ -134,38 +110,15 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   }
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
-  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
-  string b_render_layer_name = b_view_layer.name();
-  vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
-
-  if (b_scene.render().use_border()) {
-    border = {
-      {b_scene.render().border_min_x(),
-       b_scene.render().border_min_y()},
-      {b_scene.render().border_max_x() - b_scene.render().border_min_x(),
-       b_scene.render().border_max_y() - b_scene.render().border_min_y()}
-    };
-  }
-
-  int screen_width = int(b_scene.render().resolution_x() * b_scene.render().resolution_percentage() / 100);
-  int screen_height = int(b_scene.render().resolution_y() * b_scene.render().resolution_percentage() / 100);
-
-  int width = int(screen_width * border[1][0]);
-  int height = int(screen_height * border[1][1]);
-
-  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
-  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
-  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
-
-  imagingLiteEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                    gf_camera.GetFrustum().ComputeProjectionMatrix());
+  
+  set_scene_camera(&imagingLiteEngine, b_scene);
 
   imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingLiteEngine->SetRendererAov(HdAovTokens->color);
 
   UsdImagingLiteRenderParams render_params;
 
-  render_params.frame = usd_timecode;
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
   render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
   
   time_begin = chrono::steady_clock::now();
@@ -207,14 +160,6 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
 
   imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
   update_render_result(render_images, b_render_layer_name, width, height, channels);
-
-  for (auto a : pixels) {
-    if (a != 0.0 && a != 1.0)
-    {
-      cout << a << endl;
-    }
-  }
-
 }
 
 void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
@@ -291,6 +236,28 @@ void BlenderSession::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
   ViewSettings view_settings(b_context);
 
   render_params.frame = UsdTimeCode(b_scene.frame_current());  
+}
+
+void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  b_render_layer_name = b_depsgraph.view_layer().name();
+
+  vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
+
+  if (b_scene.render().use_border()) {
+    border = {
+      {b_scene.render().border_min_x(),
+       b_scene.render().border_min_y()},
+      {b_scene.render().border_max_x() - b_scene.render().border_min_x(),
+       b_scene.render().border_max_y() - b_scene.render().border_min_y()}
+    };
+  }
+
+  int screen_width = int(b_scene.render().resolution_x() * b_scene.render().resolution_percentage() / 100);
+  int screen_height = int(b_scene.render().resolution_y() * b_scene.render().resolution_percentage() / 100);
+
+  width = int(screen_width * border[1][0]);
+  height = int(screen_height * border[1][1]);
 }
 
 UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph)
@@ -482,6 +449,26 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 }
 
 
+static PyObject* final_update_func(PyObject* /*self*/, PyObject* args)
+{
+  LOG(INFO) << "final_update_func";
+  PyObject *pysession, *pydepsgraph;
+
+  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
+    Py_RETURN_NONE;
+  }
+
+  PointerRNA depsgraphptr;
+  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  BL::Depsgraph depsgraph(depsgraphptr);
+
+  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+
+  session->sync_final_render(depsgraph);
+
+  Py_RETURN_NONE;
+}
+
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "render_func";
@@ -590,6 +577,7 @@ static PyMethodDef methods[] = {
   {"free", free_func, METH_VARARGS, ""},
   {"render", render_func, METH_VARARGS, ""},
   {"reset", reset_func, METH_VARARGS, ""},
+  {"final_update", final_update_func, METH_VARARGS, ""},
   {"render_frame_finish", render_frame_finish_func, METH_VARARGS, ""},
   {"view_update", view_update_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},

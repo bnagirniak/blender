@@ -31,10 +31,10 @@ BlenderSession::~BlenderSession()
 {
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, std::map<std::string, std::pair<std::string, std::string>> materialx_data)
 {
   if (is_blender_scene) {
-    stage = export_scene_to_usd(b_context, depsgraph);
+    stage = export_scene_to_usd(b_context, depsgraph, materialx_data);
   }
   else {
     stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
@@ -201,7 +201,7 @@ void BlenderSession::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
   render_params.frame = pxr::UsdTimeCode(b_scene.frame_current());  
 }
 
-pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph)
+pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, std::map<std::string, std::pair<std::string, std::string>> materialx_data)
 {
   LOG(INFO) << "export_scene_to_usd";
 
@@ -232,8 +232,19 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
+  usd_export_params.export_materialx = true;
 
-  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
+  if (!materialx_data.empty()) {
+    blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
+    iter.iterate_and_write();
+    iter.release_writers();
+  }
+  else {
+    blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
+    iter.iterate_and_write();
+    iter.release_writers();
+  }
+
 
   //if (data->params.export_animation) {
   //  /* Writing the animated frames is not 100% of the work, but it's our best guess. */
@@ -260,9 +271,6 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   //  /* If we're not animating, a single iteration over all objects is enough. */
   //  iter.iterate_and_write();
   //}
-
-  iter.iterate_and_write();
-  iter.release_writers();
 
   /* Finish up by going back to the keyframe that was current before we started. */
   if (CFRA != orig_frame) {
@@ -332,12 +340,12 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "reset_func";
-  PyObject *pysession, *pydata, *pycontext, *pydepsgraph;
+  PyObject *pysession, *pydata, *pycontext, *pydepsgraph, *materialx_data_;
 
   int stageId = 0;
   int is_blender_scene = 1;
 
-  if (!PyArg_ParseTuple(args, "OOOOii", &pysession, &pydata, &pycontext, &pydepsgraph, &is_blender_scene, &stageId)) {
+  if (!PyArg_ParseTuple(args, "OOOOOii", &pysession, &pydata, &pycontext, &pydepsgraph, &materialx_data_, &is_blender_scene, &stageId)) {
     Py_RETURN_NONE;
   }
 
@@ -350,6 +358,34 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+
+  PyObject *iter = PyObject_GetIter(materialx_data_);
+  //std::vector<std::vector<std::string>>  materialx_data;
+  std::map<std::string, std::pair<std::string, std::string>> materialx_data;
+
+  if (!iter) {
+    Py_RETURN_NONE;
+  }
+
+  while (true) {
+      PyObject *next = PyIter_Next(iter);
+
+      if (!next) {
+          break;
+      }
+
+      char *i0 = nullptr;
+      char *i1 = nullptr;
+      char *i2 = nullptr;
+
+      if (!PyArg_ParseTuple(next, "sss", &i0, &i1, &i2)) {
+          Py_RETURN_NONE;
+      }
+      std::string material(i0);
+      materialx_data.insert(std::pair<std::string, std::pair<std::string, std::string>>(material, std::pair<std::string,std::string>(std::string(i1),std::string(i2))));
+
+  }
+
 
   //PointerRNA dataptr;
   //RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);

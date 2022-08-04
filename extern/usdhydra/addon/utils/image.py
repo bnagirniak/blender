@@ -8,7 +8,7 @@ from pathlib import Path
 import _usdhydra
 import bpy
 
-# from . import log
+from . import log
 
 
 SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
@@ -34,7 +34,7 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
         if image_suffix in READONLY_IMAGE_FORMATS:
             return image_path
 
-    temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.stem)
+    temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.stem, is_rand=False)
     if cache_check and image.source != 'GENERATED' and temp_path.is_file():
         return temp_path
 
@@ -64,7 +64,7 @@ def cache_image_file_path(image_path, cache_check=True):
         return image_path
 
     if cache_check:
-        temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.name)
+        temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.name, is_rand=False)
         if temp_path.is_file():
             return temp_path
 

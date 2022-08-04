@@ -41,10 +41,6 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 
   registry.RegisterPlugins(paths);
 
-  for (pxr::PlugPluginPtr p : registry.GetAllPlugins()) {
-    printf("%s %s\n", p->GetName().c_str(), p->GetPath().c_str());
-  }
-
   stage_init();
 
   Py_RETURN_NONE;

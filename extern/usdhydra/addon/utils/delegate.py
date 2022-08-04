@@ -5,52 +5,43 @@
 
 import zipfile
 from concurrent import futures
-from time import sleep
 
 from ..engine import session_get_render_plugins
-
-from . import update_ui
+from . import update_ui, logging
+log = logging.Log('utils.delegate')
 
 
 class Manager:
     def __init__(self):
         self.delegate_executor = None
-        self.progress = None
+        self.in_progress = False
         self.filepath = ""
         self.delegates = None
 
-    @property
-    def is_available(self):
-        if manager.progress is None:
-            return True
-
-        if manager.progress >= 0:
-            return False
-
     def set_progress(self, msg):
-        self.progress = msg
+        self.in_progress = msg
         update_ui(area_type='PREFERENCES')
 
     def update_delegates(self):
         self.delegates = session_get_render_plugins()
 
     def register_delegates(self):
-        from ..engine import init, exit
-        exit()
-        init()
+        from .. import engine
+        engine.exit()
+        engine.init()
 
     def build(self):
         from ..properties.preferences import get_addon_pref
         delegates_dir = get_addon_pref().delegates_dir
 
         with zipfile.ZipFile(self.filepath) as z:
-            self.set_progress(True)
+            self.in_progress = True
             z.extractall(path=delegates_dir)
 
         self.register_delegates()
         self.update_delegates()
 
-        self.set_progress(False)
+        self.in_progress = False
 
     def install_delegate(self):
         def delegate_build():
@@ -58,8 +49,10 @@ class Manager:
                 self.build()
 
             except Exception as err:
-                #log.error(err)
-                self.set_progress(None)
+                log.error(err)
+
+            finally:
+                self.in_progress = False
 
         if not self.delegate_executor:
             self.delegate_executor = futures.ThreadPoolExecutor()

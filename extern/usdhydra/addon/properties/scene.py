@@ -14,15 +14,12 @@ from . import USDHydraProperties, hdrpr_render
 from ..engine import session_get_render_plugins
 
 
-#log("Render Delegates", _render_delegates)
-
-
 class RenderSettings(bpy.types.PropertyGroup):
     def delegate_items(self, context):
         _render_delegates = [(name, display_name, f"Hydra render delegate: {display_name}")
                                for name, display_name, *_ in session_get_render_plugins()]
 
-        # make Rpr to the beginning to make it default delegate
+        # move Rpr to the beginning of the list to make it default delegate
         index = next((index for index, (name, *_) in enumerate(_render_delegates) if name == 'HdRprPlugin'), 0)
         if index != 0:
             _render_delegates.insert(0, _render_delegates.pop(index))

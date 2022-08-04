@@ -15,9 +15,11 @@ from bpy_extras.io_utils import ImportHelper
 import _usdhydra
 from ..utils import logging
 from ..utils.delegate import manager
-from pxr import Plug
 
 log = logging.Log('preferences')
+
+
+DELEGATES_DIR = str(bpy.utils.system_resource('SCRIPTS', path="addons") + "/usdhydra/delegates")
 
 
 class USDHYDRA_ADDON_OP_install_delegate(Operator, ImportHelper):
@@ -33,7 +35,7 @@ class USDHYDRA_ADDON_OP_install_delegate(Operator, ImportHelper):
 
     @classmethod
     def poll(cls, context):
-        return manager.is_available
+        return manager.in_progress
 
     def execute(self, context):
         manager.filepath = self.filepath
@@ -62,7 +64,7 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
         description="Set temp directory",
         maxlen=1024,
         subtype='DIR_PATH',
-        default=str(_usdhydra.utils.get_temp_dir()),
+        default=_usdhydra.utils.get_temp_dir(),
         update=update_temp_dir,
     )
     delegates_dir: StringProperty(
@@ -70,7 +72,7 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
         description="Set delegate directory",
         maxlen=1024,
         subtype='DIR_PATH',
-        default=str(Path(bpy.utils.system_resource('SCRIPTS', path="addons/usdhydra/delegates"))),
+        default=DELEGATES_DIR,
     )
     dev_tools: BoolProperty(
         name="Developer Tools",
@@ -98,8 +100,8 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
     )
     settings: EnumProperty(
         name="",
-        items=(('SETTINGS', "Settings", "aaa"),
-               ('DELEGATE', "Delegates", "bbb")),
+        items=(('SETTINGS', "Settings", "Developer settings"),
+               ('DELEGATE', "Delegates", "Render delegates settings")),
         default='SETTINGS',
     )
 
@@ -120,7 +122,6 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
             if manager.delegates is None:
                 manager.update_delegates()
 
-            plugins = Plug.Registry().GetAllPlugins()
             layout.separator()
             for key, value, path, *_ in manager.delegates:
                 row = layout.box().row(align=True)

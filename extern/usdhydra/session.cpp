@@ -131,9 +131,9 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   float percent_done = 0.0;
 
   int channels = 4;
-  vector<float> pixels(width * height * channels);
-
-  map<string, vector<float>> render_images{{"Combined", pixels}};
+  
+  map<string, vector<float>> render_images{{"Combined", vector<float>(width * height * channels)}};
+  vector<float> &pixels = render_images["Combined"];
 
   while (true) {
     if (b_engine.test_break()) {
@@ -332,7 +332,7 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   return usd_stage;
 }
 
-void BlenderSession::update_render_result(map<string, vector<float>> render_images, string b_render_layer_name, int width, int height, int channels)
+void BlenderSession::update_render_result(map<string, vector<float>> &render_images, string b_render_layer_name, int width, int height, int channels)
 {
   BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
   BL::CollectionRef b_render_passes = b_result.layers[0].passes;

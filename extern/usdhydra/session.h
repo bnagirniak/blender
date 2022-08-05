@@ -61,7 +61,7 @@ public:
   }
 
 protected:
-  void update_render_result(map<string, vector<float>> render_images, string b_render_layer_name, int width, int height, int channels = 4);
+  void update_render_result(map<string, vector<float>> &render_images, string b_render_layer_name, int width, int height, int channels = 4);
   void notify_status(const char *info, const char *status, bool redraw = true);
   void notify_final_render_status(float progress, const char *info);
 

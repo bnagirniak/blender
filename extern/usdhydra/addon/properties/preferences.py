@@ -20,7 +20,7 @@ log = logging.Log('preferences')
 
 class USDHYDRA_ADDON_OP_install_delegate(Operator, ImportHelper):
     bl_idname = "usdhydra.install_render_delegate"
-    bl_label = "Add Render Delegate"
+    bl_label = "Install Render Delegate"
 
     filename_ext = ".zip"
     filepath: bpy.props.StringProperty(
@@ -28,10 +28,6 @@ class USDHYDRA_ADDON_OP_install_delegate(Operator, ImportHelper):
         maxlen=1024, subtype="FILE_PATH"
     )
     filter_glob: bpy.props.StringProperty(default="*.zip")
-    #
-    # @classmethod
-    # def poll(cls, context):
-    #     return not manager.in_progress
 
     def execute(self, context):
         pref = get_addon_pref()
@@ -111,14 +107,6 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
                ('CRITICAL', "Critical", "Log level CRITICAL")),
         default='INFO',
         update=update_log_level,
-    )
-    show_settings: BoolProperty(
-        name="Developer Settings",
-        default=False,
-    )
-    show_delegate: BoolProperty(
-        name="Render Delegate",
-        default=False,
     )
     settings: EnumProperty(
         name="",

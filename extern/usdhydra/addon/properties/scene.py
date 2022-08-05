@@ -22,7 +22,7 @@ class RenderSettings(bpy.types.PropertyGroup):
         index = next((index for index, (name, *_) in enumerate(ret) if name == 'HdRprPlugin'), 0)
         if index != 0:
             ret.insert(0, ret.pop(index))
-            
+
         return ret
 
     @property

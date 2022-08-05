@@ -10,6 +10,9 @@
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImagingGL/renderParams.h>
+#include <pxr/usdImaging/usdAppUtils/camera.h>
+#include <pxr/base/plug/plugin.h>
+#include <pxr/base/plug/registry.h>
 
 #include "glog/logging.h"
 
@@ -110,7 +113,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   }
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
-  
+
   set_scene_camera(&imagingLiteEngine, b_scene);
 
   imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
@@ -120,7 +123,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
 
   render_params.frame = UsdTimeCode(b_scene.frame_current());
   render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
-  
+
   time_begin = chrono::steady_clock::now();
 
   chrono::time_point<chrono::steady_clock> time_current;
@@ -131,7 +134,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   float percent_done = 0.0;
 
   int channels = 4;
-  
+
   map<string, vector<float>> render_images{{"Combined", vector<float>(width * height * channels)}};
   vector<float> &pixels = render_images["Combined"];
 
@@ -148,6 +151,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
     formatted_time = format_milliseconds(elapsed_time);
 
     notify_final_render_status(percent_done / 100.0,
+      (b_scene.name() + ": " + b_render_layer_name).c_str(),
       ("Render Time: " + formatted_time + " | Done: " + to_string(int(percent_done)) + '%').c_str());
 
     if (imagingLiteEngine->IsConverged()) {
@@ -155,7 +159,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
     }
 
     imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
-    update_render_result(render_images, b_render_layer_name, width, height, channels);    
+    update_render_result(render_images, b_render_layer_name, width, height, channels);
   }
 
   imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
@@ -181,9 +185,9 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   }
 
   imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                           gf_camera.GetFrustum().ComputeProjectionMatrix());
+                                  gf_camera.GetFrustum().ComputeProjectionMatrix());
   imagingGLEngine->SetRenderViewport(GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
-                                                  (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
+                                             (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
 
   b_engine.bind_display_space_shader(b_scene);
 
@@ -235,7 +239,7 @@ void BlenderSession::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
   BL::Scene b_scene = b_depsgraph.scene_eval();
   ViewSettings view_settings(b_context);
 
-  render_params.frame = UsdTimeCode(b_scene.frame_current());  
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
 }
 
 void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
@@ -363,7 +367,6 @@ void BlenderSession::update_render_result(map<string, vector<float>> &render_ima
   b_engine.end_result(b_result, false, false, false);
 }
 
-
 void BlenderSession::notify_status(const char *info, const char *status, bool redraw)
 {
   b_engine.update_stats(status, info);
@@ -373,10 +376,10 @@ void BlenderSession::notify_status(const char *info, const char *status, bool re
   }
 };
 
-void BlenderSession::notify_final_render_status(float progress, const char* info)
+void BlenderSession::notify_final_render_status(float progress, const char *title, const char* info)
 {
   b_engine.update_progress(progress);
-  b_engine.update_stats("test", info);
+  b_engine.update_stats(title, info);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -447,7 +450,6 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 
   Py_RETURN_NONE;
 }
-
 
 static PyObject* final_update_func(PyObject* /*self*/, PyObject* args)
 {
@@ -559,18 +561,28 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
 {
+  PlugRegistry &registry = PlugRegistry::GetInstance();
   TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
   PyObject *ret = PyTuple_New(pluginsIds.size());
   for (int i = 0; i < pluginsIds.size(); ++i) {
-    PyObject *descr = PyTuple_New(2);
-    PyTuple_SetItem(descr, 0, PyUnicode_FromString(pluginsIds[i].GetText()));
-    PyTuple_SetItem(descr, 1, PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
+    PyObject *descr = PyDict_New();
+    PyDict_SetItemString(descr, "id", PyUnicode_FromString(pluginsIds[i].GetText()));
+    PyDict_SetItemString(descr, "name", PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
+
+    std::string plugin_name = pluginsIds[i];
+    plugin_name = plugin_name.substr(0, plugin_name.size()-6);
+    plugin_name[0] = tolower(plugin_name[0]);
+    std::string path = "";
+    PlugPluginPtr plugin = registry.GetPluginWithName(plugin_name);
+    if (plugin) {
+        path = plugin->GetPath();
+    }
+    PyDict_SetItemString(descr, "path", PyUnicode_FromString(path.c_str()));
 
     PyTuple_SetItem(ret, i, descr);
   }
   return ret;
 }
-
 
 static PyMethodDef methods[] = {
   {"create", create_func, METH_VARARGS, ""},

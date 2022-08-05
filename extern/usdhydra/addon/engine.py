@@ -5,23 +5,13 @@
 
 import sys
 import os
+from pathlib import Path
 
 import bpy
 import _usdhydra
 
 from .usd_nodes import node_tree
-from . import utils
 from .utils import stages
-
-
-def init():
-    # # internal scene index representation in hydra,
-    # # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging
-    # os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "0"
-
-    sys.path.append(str(utils.DELEGATES_DIR / 'lib/python'))
-
-    _usdhydra.init(str(utils.DELEGATES_DIR))
 
 
 def exit():
@@ -71,6 +61,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
             self.session = session_create(self)
 
         self.bl_use_gpu_context = depsgraph.scene.usdhydra.final.is_gl_delegate
+
         session_reset(self.session, data, bpy.context, depsgraph, is_blender_scene, stage)
         session_final_update(self.session, depsgraph)
 
@@ -143,3 +134,7 @@ def session_view_draw(session, depsgraph, context, space_data, region_data):
 def session_view_update(session, depsgraph, context, space_data, region_data):
     _usdhydra.session.view_update(session, depsgraph.as_pointer(), context.as_pointer(),
                              space_data.as_pointer(), region_data.as_pointer(), depsgraph.scene.usdhydra.viewport.delegate)
+
+
+def session_get_render_plugins():
+    return _usdhydra.session.get_render_plugins()

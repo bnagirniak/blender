@@ -1,9 +1,14 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <boost/random.hpp>
+
 #include "utils.h"
 
 namespace usdhydra {
+
+boost::random::mt19937 rng;
+boost::random::uniform_int_distribution<> distribution(0, 63);
 
 string get_random_string(const int len)
 {
@@ -15,7 +20,7 @@ string get_random_string(const int len)
   tmp_s.reserve(len);
 
   for (int i = 0; i < len; ++i) {
-      tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+      tmp_s += alphanum[distribution(rng) % (sizeof(alphanum) - 1)];
   }
     
   return tmp_s;

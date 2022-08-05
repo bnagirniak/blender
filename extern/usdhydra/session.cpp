@@ -453,9 +453,9 @@ static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
   TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
   PyObject *ret = PyTuple_New(pluginsIds.size());
   for (int i = 0; i < pluginsIds.size(); ++i) {
-    PyObject *descr = PyTuple_New(3);
-    PyTuple_SetItem(descr, 0, PyUnicode_FromString(pluginsIds[i].GetText()));
-    PyTuple_SetItem(descr, 1, PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
+    PyObject *descr = PyDict_New();
+    PyDict_SetItemString(descr, "id", PyUnicode_FromString(pluginsIds[i].GetText()));
+    PyDict_SetItemString(descr, "name", PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
 
     std::string plugin_name = pluginsIds[i];
     plugin_name = plugin_name.substr(0, plugin_name.size()-6);
@@ -465,13 +465,12 @@ static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
     if (plugin) {
         path = plugin->GetPath();
     }
+    PyDict_SetItemString(descr, "path", PyUnicode_FromString(path.c_str()));
 
-    PyTuple_SetItem(descr, 2, PyUnicode_FromString(path.c_str()));
     PyTuple_SetItem(ret, i, descr);
   }
   return ret;
 }
-
 
 static PyMethodDef methods[] = {
   {"create", create_func, METH_VARARGS, ""},

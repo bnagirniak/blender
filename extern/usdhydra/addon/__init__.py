@@ -45,19 +45,11 @@ from .utils import logging
 log = logging.Log('init')
 
 
-def create_delegates_folder():
-    from pathlib import Path
-    from .properties import preferences
-    Path(preferences.DELEGATES_DIR).mkdir(exist_ok=True)
-    log(preferences.DELEGATES_DIR)
-
-
 def exit():
     engine.exit()
 
 
 def register():
-    create_delegates_folder()
     # Make sure we only registered the callback once.
     atexit.unregister(exit)
     atexit.register(exit)
@@ -65,7 +57,7 @@ def register():
     mx_nodes.register()
     properties.register()
 
-    engine.init()
+    # engine.init()
     ui.register()
     # operators.register()
     # presets.register()

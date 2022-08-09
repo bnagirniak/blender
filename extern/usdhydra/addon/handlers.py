@@ -25,7 +25,7 @@ def on_load_post(*args):
     node_tree.reset()
 
 
-# _do_depsgraph_update = True
+_do_depsgraph_update = True
 #
 #
 # @bpy.app.handlers.persistent
@@ -45,17 +45,17 @@ def on_load_post(*args):
 #     material_ui.depsgraph_update(depsgraph)
 #
 #
-# def no_depsgraph_update_call(op, *args, **kwargs):
-#     """This function prevents call of self.update() during calling our function"""
-#     global _do_depsgraph_update
-#     if not _do_depsgraph_update:
-#         return op(*args, **kwargs)
-#
-#     _do_depsgraph_update = False
-#     try:
-#         return op(*args, **kwargs)
-#     finally:
-#         _do_depsgraph_update = True
+def no_depsgraph_update_call(op, *args, **kwargs):
+    """This function prevents call of self.update() during calling our function"""
+    global _do_depsgraph_update
+    if not _do_depsgraph_update:
+        return op(*args, **kwargs)
+
+    _do_depsgraph_update = False
+    try:
+        return op(*args, **kwargs)
+    finally:
+        _do_depsgraph_update = True
 #
 #
 # @bpy.app.handlers.persistent
@@ -67,18 +67,18 @@ def on_load_post(*args):
 #     node_tree.frame_change(depsgraph)
 #
 #
-# @bpy.app.handlers.persistent
-# def on_save_pre(*args):
-#     log("on_save_pre", args)
-#     from ..viewport import usd_collection
-#     usd_collection.scene_save_pre()
+@bpy.app.handlers.persistent
+def on_save_pre(*args):
+    # log("on_save_pre", args)
+    from .viewport import usd_collection
+    usd_collection.scene_save_pre()
 #
 #
-# @bpy.app.handlers.persistent
-# def on_save_post(*args):
-#     log("on_save_post", args)
-#     from ..viewport import usd_collection
-#     usd_collection.scene_save_post()
+@bpy.app.handlers.persistent
+def on_save_post(*args):
+    # log("on_save_post", args)
+    from .viewport import usd_collection
+    usd_collection.scene_save_post()
 
 
 def register():
@@ -86,8 +86,8 @@ def register():
     bpy.app.handlers.load_post.append(on_load_post)
     # bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
     # bpy.app.handlers.frame_change_post.append(on_frame_change_post)
-    # bpy.app.handlers.save_pre.append(on_save_pre)
-    # bpy.app.handlers.save_post.append(on_save_post)
+    bpy.app.handlers.save_pre.append(on_save_pre)
+    bpy.app.handlers.save_post.append(on_save_post)
 
 
 def unregister():
@@ -95,5 +95,5 @@ def unregister():
     bpy.app.handlers.load_post.remove(on_load_post)
     # bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
     # bpy.app.handlers.frame_change_post.remove(on_frame_change_post)
-    # bpy.app.handlers.save_pre.remove(on_save_pre)
-    # bpy.app.handlers.save_post.remove(on_save_post)
+    bpy.app.handlers.save_pre.remove(on_save_pre)
+    bpy.app.handlers.save_post.remove(on_save_post)

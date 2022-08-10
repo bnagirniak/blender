@@ -7,7 +7,7 @@ import bpy
 
 from .nodes.output import OutputNode
 
-# from ..viewport import usd_collection
+from ..viewport import usd_collection
 # from ..engine.viewport_engine import ViewportEngineNodetree
 
 
@@ -119,12 +119,12 @@ class USDTree(bpy.types.ShaderNodeTree):
 
     def output_node_computed(self):
         context = bpy.context
-        # if context.scene.usdhydra.viewport.data_source == self.name:
-        #     usd_collection.update(context)
-        #
-        # if context.scene.usdhydra.final.data_source == self.name:
-        #     context.scene.usdhydra.final.nodetree_update(context)
-        #
+        if context.scene.usdhydra.viewport.data_source == self.name:
+            usd_collection.update(context)
+
+        if context.scene.usdhydra.final.data_source == self.name:
+            context.scene.usdhydra.final.nodetree_update(context)
+
         # ViewportEngineNodetree.nodetree_output_node_computed(self)
 
 

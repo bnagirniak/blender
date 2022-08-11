@@ -5,6 +5,7 @@
 
 import bpy
 import mathutils
+import numpy as np
 import _usdhydra
 
 from . import USDHydraProperties#, CachedStageProp
@@ -12,7 +13,7 @@ from . import USDHydraProperties#, CachedStageProp
 # from ..utils import usd as usd_utils
 
 
-GEOM_TYPES = ('Xform', 'SkelRoot', 
+GEOM_TYPES = ('Xform', 'SkelRoot',
             # 'Scope'
              )
 
@@ -62,12 +63,17 @@ class ObjectProperties(USDHydraProperties):
 
         prim_obj.name = prim_info['name']
         prim_obj.parent = root_obj
-        prim_obj.matrix_local = mathutils.Matrix(_usdhydra.utils.get_xform_transform(stage, path)).transposed()
+        prim_obj.matrix_local = mathutils.Matrix(
+            np.array(_usdhydra.stage.get_xform_transform(stage, path)).reshape(4, 4))\
+            .transposed()
+
         prim_obj.hide_viewport = prim_info['type'] not in GEOM_TYPES
 
     def sync_transform_from_prim(self, stage, path):
         prim_obj = self.id_data
-        prim_obj.matrix_local = mathutils.Matrix(_usdhydra.utils.get_xform_transform(stage, path)).transposed()
+        prim_obj.matrix_local = mathutils.Matrix(
+            np.array(_usdhydra.stage.get_xform_transform(stage, path)).reshape(4, 4))\
+            .transposed()
 
 #     def sync_to_prim(self):
 #         prim = self.get_prim()

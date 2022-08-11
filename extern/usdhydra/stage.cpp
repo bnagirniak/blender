@@ -3,6 +3,7 @@
 
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/primRange.h>
+#include <pxr/usd/usdGeom/xform.h>
 #include <pxr/usd/usdGeom/imageable.h>
 
 #include "stage.h"
@@ -137,12 +138,57 @@ static PyObject* traverse_stage_func(PyObject* /*self*/, PyObject* args)
   return pyTuple;
 }
 
+static PyObject *get_xform_transform_func(PyObject * /*self*/, PyObject *args)
+{
+  long stageId;
+  const char *path;
+  if (!PyArg_ParseTuple(args, "ls", &stageId, &path)) {
+    Py_RETURN_NONE;
+  }
+
+  UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+  UsdPrim usd_prim = stage->GetPrimAtPath(SdfPath(path));
+  UsdGeomXform xForm = UsdGeomXform(usd_prim);
+
+  GfMatrix4d transform;
+  bool resets_xform_stack;
+
+  xForm.GetLocalTransformation(&transform, &resets_xform_stack);
+
+  auto matrix = (double(*)[4][4])transform.GetArray();
+
+  PyObject *pyMatrix = PyTuple_New(16);
+
+  PyTuple_SetItem(pyMatrix, 0, PyFloat_FromDouble((*matrix)[0][0]));
+  PyTuple_SetItem(pyMatrix, 1, PyFloat_FromDouble((*matrix)[0][1]));
+  PyTuple_SetItem(pyMatrix, 2, PyFloat_FromDouble((*matrix)[0][2]));
+  PyTuple_SetItem(pyMatrix, 3, PyFloat_FromDouble((*matrix)[0][3]));
+                                                          
+  PyTuple_SetItem(pyMatrix, 4, PyFloat_FromDouble((*matrix)[1][0]));
+  PyTuple_SetItem(pyMatrix, 5, PyFloat_FromDouble((*matrix)[1][1]));
+  PyTuple_SetItem(pyMatrix, 6, PyFloat_FromDouble((*matrix)[1][2]));
+  PyTuple_SetItem(pyMatrix, 7, PyFloat_FromDouble((*matrix)[1][3]));
+                                                          
+  PyTuple_SetItem(pyMatrix, 8, PyFloat_FromDouble((*matrix)[2][0]));
+  PyTuple_SetItem(pyMatrix, 9, PyFloat_FromDouble((*matrix)[2][1]));
+  PyTuple_SetItem(pyMatrix, 10, PyFloat_FromDouble((*matrix)[2][2]));
+  PyTuple_SetItem(pyMatrix, 11, PyFloat_FromDouble((*matrix)[2][3]));
+                                                           
+  PyTuple_SetItem(pyMatrix, 12, PyFloat_FromDouble((*matrix)[3][0]));
+  PyTuple_SetItem(pyMatrix, 13, PyFloat_FromDouble((*matrix)[3][1]));
+  PyTuple_SetItem(pyMatrix, 14, PyFloat_FromDouble((*matrix)[3][2]));
+  PyTuple_SetItem(pyMatrix, 15, PyFloat_FromDouble((*matrix)[3][3]));
+
+  return pyMatrix;
+}
+
 static PyMethodDef methods[] = {
   {"export_to_str", export_to_str_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
   {"prim_get_info", prim_get_info_func, METH_VARARGS, ""},
   {"stage_get_info", stage_get_info_func, METH_VARARGS, ""},
   {"traverse_stage", traverse_stage_func, METH_VARARGS, ""},
+  {"get_xform_transform", get_xform_transform_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

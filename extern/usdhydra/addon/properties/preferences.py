@@ -20,7 +20,7 @@ log = logging.Log('preferences')
 
 class USDHYDRA_ADDON_OP_after_install_delegate_notifier(bpy.types.Operator):
     bl_idname = "usdhydra.after_install_delegate_notifier"
-    bl_label = "Render delegate was successfully installed"
+    bl_label = "New render delegate was successfully installed"
 
     def execute(self, context):
         return {'FINISHED'}
@@ -30,7 +30,7 @@ class USDHYDRA_ADDON_OP_after_install_delegate_notifier(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
-        self.layout.label(text="Restart Blender and new delegate should be shown!")
+        self.layout.label(text="Please restart Blender to update available render delegates")
 
 
 class USDHYDRA_ADDON_OP_install_delegate(Operator, ImportHelper):

@@ -65,17 +65,6 @@ protected:
   void notify_status(const char *info, const char *status, bool redraw = true);
   void notify_final_render_status(float progress, const char *title, const char *info);
 
-  template <typename T>
-  void set_scene_camera(T* renderer, BL::Scene b_scene)
-  {
-    UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
-    UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
-    GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
-
-    renderer->get()->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                    gf_camera.GetFrustum().ComputeProjectionMatrix());
-  }
-
 public:
   BL::RenderEngine b_engine;
   //BL::BlendData b_data;

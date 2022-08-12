@@ -77,9 +77,8 @@ public:
 
     /// Free camera API
     /// Set camera framing state directly (without pointing to a camera on the 
-    /// USD stage). The projection matrix is expected to be pre-adjusted for the
-    /// window policy.
-    void SetCameraState(const GfMatrix4d& viewMatrix, const GfMatrix4d& projectionMatrix);
+    /// USD stage).
+    void SetCameraState(const GfCamera& cam);
 
     /// @}
 

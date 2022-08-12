@@ -58,7 +58,12 @@ void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_de
   draw_target_ptr->Bind();
   draw_target_ptr->AddAttachment("color", GL_RGBA, GL_FLOAT, GL_RGBA);
 
-  set_scene_camera(&imagingGLEngine, b_scene);
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+
+  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+                                  gf_camera.GetFrustum().ComputeProjectionMatrix());
 
   imagingGLEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingGLEngine->SetRendererAov(HdAovTokens->color);
@@ -114,10 +119,15 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
 
-  set_scene_camera(&imagingLiteEngine, b_scene);
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+
+  imagingLiteEngine->SetCameraState(gf_camera);
 
   imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingLiteEngine->SetRendererAov(HdAovTokens->color);
+  imagingLiteEngine->SetRendererAov(HdAovTokens->depth);
 
   UsdImagingLiteRenderParams render_params;
 
@@ -137,6 +147,10 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
 
   map<string, vector<float>> render_images{{"Combined", vector<float>(width * height * channels)}};
   vector<float> &pixels = render_images["Combined"];
+
+  std::string str;
+  stage->ExportToString(&str);
+  printf("%s\n", str.c_str());
 
   while (true) {
     if (b_engine.test_break()) {

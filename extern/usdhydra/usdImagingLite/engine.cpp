@@ -246,7 +246,7 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
         SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
 
     _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
-        SdfPath::AbsoluteRootPath().AppendElementString("taskDataDelegate"));
+        SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
 
     // The task context holds on to resources in the render
     // deletegate, so we want to destroy it first and thus

@@ -60,7 +60,10 @@ class USDHydraEngine(bpy.types.RenderEngine):
         if not self.session:
             self.session = session_create(self)
 
+        self.bl_use_gpu_context = depsgraph.scene.usdhydra.final.is_gl_delegate
+
         session_reset(self.session, data, bpy.context, depsgraph, is_blender_scene, stage)
+        session_final_update(self.session, depsgraph)
 
     def render(self, depsgraph):
         if not self.session:
@@ -117,6 +120,10 @@ def session_reset(session, data, context, depsgraph, is_blender_scene, stage):
 
 def session_render(session, depsgraph):
     _usdhydra.session.render(session, depsgraph.as_pointer(), depsgraph.scene.usdhydra.final.delegate)
+
+
+def session_final_update(session, depsgraph ):
+    _usdhydra.session.final_update(session, depsgraph.as_pointer())
 
 
 def session_view_draw(session, depsgraph, context, space_data, region_data):

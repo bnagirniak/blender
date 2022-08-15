@@ -9,6 +9,7 @@
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
+#include <pxr/usdImaging/usdAppUtils/camera.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -37,14 +38,32 @@ public:
 
   void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
+  void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+  void sync_final_render(BL::Depsgraph &b_depsgraph);
   pxr::UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph);
-  float get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer);
+
+  template <typename T>
+  float get_renderer_percent_done(T *renderer)
+  {
+    float percent_done = 0.0;
+
+    VtDictionary render_stats = renderer->get()->GetRenderStats();
+
+    auto it = render_stats.find("percentDone");
+    if (it != render_stats.end()) {
+      percent_done = (float)it->second.UncheckedGet<double>();
+    }
+
+    return round(percent_done * 10.0f) / 10.0f;
+  }
 
 protected:
+  void update_render_result(map<string, vector<float>> &render_images, string b_render_layer_name, int width, int height, int channels = 4);
   void notify_status(const char *info, const char *status, bool redraw = true);
+  void notify_final_render_status(float progress, const char *title, const char *info);
 
 public:
   BL::RenderEngine b_engine;
@@ -56,6 +75,10 @@ public:
 
 protected:
   chrono::time_point<chrono::steady_clock> time_begin;
+
+  int width;
+  int height;
+  string b_render_layer_name;
 };
 
 PyObject *addPythonSubmodule_session(PyObject *mod);

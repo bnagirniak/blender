@@ -40,7 +40,6 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
   env += defaultPath;
   putenv(env.c_str());
 
-  blender::io::usd::ensure_usd_plugin_path_registered();
   pxr::PlugRegistry &registry = pxr::PlugRegistry::GetInstance();
   std::vector<std::string> paths;
   paths.push_back(BKE_appdir_folder_id(BLENDER_DATAFILES, "usd"));

@@ -4,8 +4,7 @@
 # <pep8 compliant>
 
 import bpy
-import os
-#from pxr import UsdImagingGL
+import _usdhydra
 
 #from ..viewport import usd_collection
 #from ..export.camera import CameraData
@@ -14,20 +13,17 @@ from . import USDHydraProperties, hdrpr_render
 from ..engine import session_get_render_plugins
 
 
-#log("Render Delegates", _render_delegates)
-
-
 class RenderSettings(bpy.types.PropertyGroup):
     def delegate_items(self, context):
-        _render_delegates = [(name, display_name, f"Hydra render delegate: {display_name}")
-                               for name, display_name, *_ in session_get_render_plugins()]
+        delegates = _usdhydra.session.get_render_plugins()
+        ret = [(d['id'], d['name'], f"Hydra render delegate: {d['name']}") for d in delegates]
 
-        # make Rpr to the beginning to make it default delegate
-        index = next((index for index, (name, *_) in enumerate(_render_delegates) if name == 'HdRprPlugin'), 0)
+        # move Rpr to the beginning of the list to make it default delegate
+        index = next((index for index, (name, *_) in enumerate(ret) if name == 'HdRprPlugin'), 0)
         if index != 0:
-            _render_delegates.insert(0, _render_delegates.pop(index))
+            ret.insert(0, ret.pop(index))
 
-        return tuple(_render_delegates)
+        return ret
 
     @property
     def is_gl_delegate(self):
@@ -84,6 +80,7 @@ class ViewportRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=RenderSettings.delegate_items,
+        description="Render delegate for viewport render",
     )
 
     # def data_source_update(self, context):

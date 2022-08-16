@@ -31,10 +31,10 @@ from . import (
     window_manager,
     hdrpr_render,
 )
-register, unregister = bpy.utils.register_classes_factory((
+register_classes, unregister_classes = bpy.utils.register_classes_factory((
+    preferences.USDHYDRA_ADDON_OP_after_install_delegate_notifier,
     preferences.USDHYDRA_ADDON_OP_install_delegate,
     preferences.USDHYDRA_ADDON_PT_preferences,
-
 
     hdrpr_render.QualitySettings,
     hdrpr_render.InteractiveQualitySettings,
@@ -55,3 +55,14 @@ register, unregister = bpy.utils.register_classes_factory((
 
     window_manager.WindowManagerProperties,
 ))
+
+
+def register():
+    register_classes()
+
+    pref = preferences.get_addon_pref()
+    pref.init()
+
+
+def unregister():
+    unregister_classes()

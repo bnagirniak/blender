@@ -16,6 +16,8 @@
 
 #include "glog/logging.h"
 
+#include "usdImagingLite/engine.h"
+#include "usdImagingLite/renderParams.h"
 #include "session.h"
 
 using namespace pxr;
@@ -37,55 +39,37 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
     stage = export_scene_to_usd(b_context, depsgraph, materialx_data);
   }
   else {
-    stage = stageCache->Find(pxr::UsdStageCache::Id::FromLongInt(stageId));
+    stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
   }
 }
 
-void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_delegate)
+void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate)
 {
-  imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+  std::unique_ptr<UsdImagingGLEngine> imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
 
   if (!imagingGLEngine->SetRendererPlugin(TfToken(render_delegate))) {
     return;
   }
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
-  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
-  string b_render_layer_name = b_view_layer.name();
-  vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
 
-  if (b_scene.render().use_border()) {
-    border = {
-      {b_scene.render().border_min_x(),
-       b_scene.render().border_min_y()},
-      {b_scene.render().border_max_x() - b_scene.render().border_min_x(),
-       b_scene.render().border_max_y() - b_scene.render().border_min_y()}
-    };
-  }
-
-  int screen_width = int(b_scene.render().resolution_x() * b_scene.render().resolution_percentage() / 100);
-  int screen_height = int(b_scene.render().resolution_y() * b_scene.render().resolution_percentage() / 100);
-
-  int width = int(screen_width * border[1][0]);
-  int height = int(screen_height * border[1][1]);
-
-  pxr::GlfDrawTargetRefPtr draw_target_ptr = pxr::GlfDrawTarget::New(pxr::GfVec2i(width, height));
+  GlfDrawTargetRefPtr draw_target_ptr = GlfDrawTarget::New(GfVec2i(width, height));
 
   draw_target_ptr->Bind();
   draw_target_ptr->AddAttachment("color", GL_RGBA, GL_FLOAT, GL_RGBA);
 
-  pxr::UsdGeomCamera usd_camera = pxr::UsdAppUtilsGetCameraAtPath(stage, pxr::SdfPath(pxr::TfMakeValidIdentifier(b_scene.camera().data().name())));
-  pxr::UsdTimeCode usd_timecode = pxr::UsdTimeCode(b_scene.frame_current());
-  pxr::GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
 
   imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                           gf_camera.GetFrustum().ComputeProjectionMatrix());
+                                  gf_camera.GetFrustum().ComputeProjectionMatrix());
 
-  imagingGLEngine->SetRenderViewport(pxr::GfVec4d(0, 0, width, height));
-  imagingGLEngine->SetRendererAov(pxr::HdAovTokens->color);
+  imagingGLEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
+  imagingGLEngine->SetRendererAov(HdAovTokens->color);
 
-  render_params.frame = usd_timecode;
-  render_params.clearColor = pxr::GfVec4f(1.0, 1.0, 1.0, 0.0);
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
+  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
 
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
@@ -125,6 +109,72 @@ void BlenderSession::render(BL::Depsgraph &b_depsgraph, const char *render_deleg
   b_engine.end_result(b_result, false, false, false);
 }
 
+void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_delegate)
+{
+  std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
+
+  if (!imagingLiteEngine->SetRendererPlugin(TfToken(render_delegate))) {
+    return;
+  }
+
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+
+  imagingLiteEngine->SetCameraState(gf_camera);
+
+  imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
+  imagingLiteEngine->SetRendererAov(HdAovTokens->color);
+
+  UsdImagingLiteRenderParams render_params;
+
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
+  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+
+  time_begin = chrono::steady_clock::now();
+
+  chrono::time_point<chrono::steady_clock> time_current;
+  chrono::milliseconds elapsed_time;
+
+  string formatted_time;
+
+  float percent_done = 0.0;
+
+  int channels = 4;
+
+  map<string, vector<float>> render_images{{"Combined", vector<float>(width * height * channels)}};
+  vector<float> &pixels = render_images["Combined"];
+
+  while (true) {
+    if (b_engine.test_break()) {
+      break;
+    }
+
+    imagingLiteEngine->Render(stage->GetPseudoRoot(), render_params);
+
+    percent_done = get_renderer_percent_done(&imagingLiteEngine);
+    time_current = chrono::steady_clock::now();
+    elapsed_time = chrono::duration_cast<chrono::milliseconds>(time_current - time_begin);
+    formatted_time = format_milliseconds(elapsed_time);
+
+    notify_final_render_status(percent_done / 100.0,
+      (b_scene.name() + ": " + b_render_layer_name).c_str(),
+      ("Render Time: " + formatted_time + " | Done: " + to_string(int(percent_done)) + '%').c_str());
+
+    if (imagingLiteEngine->IsConverged()) {
+      break;
+    }
+
+    imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
+    update_render_result(render_images, b_render_layer_name, width, height, channels);
+  }
+
+  imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
+  update_render_result(render_images, b_render_layer_name, width, height, channels);
+}
+
 void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
   BL::Scene b_scene = b_depsgraph.scene_eval();
@@ -135,18 +185,18 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     return;
   };
 
-  pxr::GfCamera gf_camera = view_settings.export_camera();
+  GfCamera gf_camera = view_settings.export_camera();
 
-  vector<pxr::GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
+  vector<GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
 
   for (int i = 0; i < clip_planes.size(); i++) {
-    render_params.clipPlanes.push_back((pxr::GfVec4d)clip_planes[i]);
+    render_params.clipPlanes.push_back((GfVec4d)clip_planes[i]);
   }
 
   imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
-                                           gf_camera.GetFrustum().ComputeProjectionMatrix());
-  imagingGLEngine->SetRenderViewport(pxr::GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
-                                                  (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
+                                  gf_camera.GetFrustum().ComputeProjectionMatrix());
+  imagingGLEngine->SetRenderViewport(GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
+                                             (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
 
   b_engine.bind_display_space_shader(b_scene);
 
@@ -178,7 +228,7 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
 void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate)
 {
   if (!imagingGLEngine) {
-    imagingGLEngine = std::make_unique<pxr::UsdImagingGLEngine>();
+    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
     imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
   }
 
@@ -198,7 +248,29 @@ void BlenderSession::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
   BL::Scene b_scene = b_depsgraph.scene_eval();
   ViewSettings view_settings(b_context);
 
-  render_params.frame = pxr::UsdTimeCode(b_scene.frame_current());  
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
+}
+
+void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  b_render_layer_name = b_depsgraph.view_layer().name();
+
+  vector<vector<float>> border ={{0.0, 0.0}, {1.0, 1.0}};
+
+  if (b_scene.render().use_border()) {
+    border = {
+      {b_scene.render().border_min_x(),
+       b_scene.render().border_min_y()},
+      {b_scene.render().border_max_x() - b_scene.render().border_min_x(),
+       b_scene.render().border_max_y() - b_scene.render().border_min_y()}
+    };
+  }
+
+  int screen_width = int(b_scene.render().resolution_x() * b_scene.render().resolution_percentage() / 100);
+  int screen_height = int(b_scene.render().resolution_y() * b_scene.render().resolution_percentage() / 100);
+
+  width = int(screen_width * border[1][0]);
+  height = int(screen_height * border[1][1]);
 }
 
 pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, std::map<std::string, std::pair<std::string, std::string>> materialx_data)
@@ -213,10 +285,10 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   const int orig_frame = CFRA;
 
   string filepath = usdhydra::get_temp_file(".usda");
-  pxr::UsdStageRefPtr usd_stage = pxr::UsdStage::CreateNew(filepath);
+  UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
 
-  usd_stage->SetMetadata(pxr::UsdGeomTokens->upAxis, pxr::VtValue(pxr::UsdGeomTokens->z));
-  usd_stage->SetMetadata(pxr::UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
+  usd_stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
+  usd_stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
   usd_stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
 
   /* Set up the stage for animated data. */
@@ -290,18 +362,35 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   return usd_stage;
 }
 
-float BlenderSession::get_renderer_percent_done(std::unique_ptr<pxr::UsdImagingGLEngine> *renderer)
+void BlenderSession::update_render_result(map<string, vector<float>> &render_images, string b_render_layer_name, int width, int height, int channels)
 {
-  float percent_done = 0.0;
+  BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
+  BL::CollectionRef b_render_passes = b_result.layers[0].passes;
 
-  VtDictionary render_stats = renderer->get()->GetRenderStats();
+  vector<float> images;
 
-  auto it = render_stats.find("percentDone");
-  if (it != render_stats.end()) {
-    percent_done = (float)it->second.UncheckedGet<double>();
+  for (BL::RenderPass b_pass : b_render_passes) {
+    map<string, vector<float>>::iterator it_image = render_images.find(b_pass.name());
+    vector<float> image = it_image->second;
+
+    if (it_image == render_images.end()) {
+      image = vector<float>(width * height * channels);
+    }
+
+    if (b_pass.channels() != channels) {
+      for (int i = image.size(); i >= b_pass.channels(); i -= b_pass.channels()) {
+        image.erase(image.end() - i);
+      }
+    }
+
+    images.insert(images.end(), image.begin(), image.end());
   }
 
-  return round(percent_done * 10.0f) / 10.0f;
+  for (BL::RenderPass b_pass : b_render_passes) {
+    b_pass.rect(images.data());
+  }
+
+  b_engine.end_result(b_result, false, false, false);
 }
 
 void BlenderSession::notify_status(const char *info, const char *status, bool redraw)
@@ -312,6 +401,13 @@ void BlenderSession::notify_status(const char *info, const char *status, bool re
     b_engine.tag_redraw();
   }
 };
+
+void BlenderSession::notify_final_render_status(float progress, const char *title, const char* info)
+{
+  b_engine.update_progress(progress);
+  b_engine.update_stats(title, info);
+}
+
 /* ------------------------------------------------------------------------- */
 /* Python API for BlenderSession
  */
@@ -411,6 +507,25 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
+static PyObject* final_update_func(PyObject* /*self*/, PyObject* args)
+{
+  LOG(INFO) << "final_update_func";
+  PyObject *pysession, *pydepsgraph;
+
+  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
+    Py_RETURN_NONE;
+  }
+
+  PointerRNA depsgraphptr;
+  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  BL::Depsgraph depsgraph(depsgraphptr);
+
+  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+
+  session->sync_final_render(depsgraph);
+
+  Py_RETURN_NONE;
+}
 
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
@@ -427,7 +542,13 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   BL::Depsgraph depsgraph(depsgraphptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  session->render(depsgraph, render_delegate);
+
+  if (strcmp(render_delegate, "HdStormRendererPlugin") == 0) {
+    session->render_gl(depsgraph, render_delegate);
+  }
+  else {
+    session->render(depsgraph, render_delegate);
+  }
 
   Py_RETURN_NONE;
 }
@@ -496,13 +617,13 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
 {
-  pxr::PlugRegistry &registry = pxr::PlugRegistry::GetInstance();
+  PlugRegistry &registry = PlugRegistry::GetInstance();
   TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
   PyObject *ret = PyTuple_New(pluginsIds.size());
   for (int i = 0; i < pluginsIds.size(); ++i) {
-    PyObject *descr = PyTuple_New(3);
-    PyTuple_SetItem(descr, 0, PyUnicode_FromString(pluginsIds[i].GetText()));
-    PyTuple_SetItem(descr, 1, PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
+    PyObject *descr = PyDict_New();
+    PyDict_SetItemString(descr, "id", PyUnicode_FromString(pluginsIds[i].GetText()));
+    PyDict_SetItemString(descr, "name", PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
 
     std::string plugin_name = pluginsIds[i];
     plugin_name = plugin_name.substr(0, plugin_name.size()-6);
@@ -512,19 +633,19 @@ static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
     if (plugin) {
         path = plugin->GetPath();
     }
+    PyDict_SetItemString(descr, "path", PyUnicode_FromString(path.c_str()));
 
-    PyTuple_SetItem(descr, 2, PyUnicode_FromString(path.c_str()));
     PyTuple_SetItem(ret, i, descr);
   }
   return ret;
 }
-
 
 static PyMethodDef methods[] = {
   {"create", create_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
   {"render", render_func, METH_VARARGS, ""},
   {"reset", reset_func, METH_VARARGS, ""},
+  {"final_update", final_update_func, METH_VARARGS, ""},
   {"render_frame_finish", render_frame_finish_func, METH_VARARGS, ""},
   {"view_update", view_update_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},

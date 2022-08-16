@@ -155,29 +155,11 @@ static PyObject *get_xform_transform_func(PyObject * /*self*/, PyObject *args)
 
   xForm.GetLocalTransformation(&transform, &resets_xform_stack);
 
-  auto matrix = (double(*)[4][4])transform.GetArray();
-
   PyObject *pyMatrix = PyTuple_New(16);
 
-  PyTuple_SetItem(pyMatrix, 0, PyFloat_FromDouble((*matrix)[0][0]));
-  PyTuple_SetItem(pyMatrix, 1, PyFloat_FromDouble((*matrix)[0][1]));
-  PyTuple_SetItem(pyMatrix, 2, PyFloat_FromDouble((*matrix)[0][2]));
-  PyTuple_SetItem(pyMatrix, 3, PyFloat_FromDouble((*matrix)[0][3]));
-                                                          
-  PyTuple_SetItem(pyMatrix, 4, PyFloat_FromDouble((*matrix)[1][0]));
-  PyTuple_SetItem(pyMatrix, 5, PyFloat_FromDouble((*matrix)[1][1]));
-  PyTuple_SetItem(pyMatrix, 6, PyFloat_FromDouble((*matrix)[1][2]));
-  PyTuple_SetItem(pyMatrix, 7, PyFloat_FromDouble((*matrix)[1][3]));
-                                                          
-  PyTuple_SetItem(pyMatrix, 8, PyFloat_FromDouble((*matrix)[2][0]));
-  PyTuple_SetItem(pyMatrix, 9, PyFloat_FromDouble((*matrix)[2][1]));
-  PyTuple_SetItem(pyMatrix, 10, PyFloat_FromDouble((*matrix)[2][2]));
-  PyTuple_SetItem(pyMatrix, 11, PyFloat_FromDouble((*matrix)[2][3]));
-                                                           
-  PyTuple_SetItem(pyMatrix, 12, PyFloat_FromDouble((*matrix)[3][0]));
-  PyTuple_SetItem(pyMatrix, 13, PyFloat_FromDouble((*matrix)[3][1]));
-  PyTuple_SetItem(pyMatrix, 14, PyFloat_FromDouble((*matrix)[3][2]));
-  PyTuple_SetItem(pyMatrix, 15, PyFloat_FromDouble((*matrix)[3][3]));
+  for (int i = 0; i < 16; ++i) {
+    PyTuple_SetItem(pyMatrix, i, PyFloat_FromDouble(transform.GetArray()[i]));
+  }
 
   return pyMatrix;
 }

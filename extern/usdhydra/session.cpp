@@ -262,8 +262,9 @@ void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_cont
 {
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
-    imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
   }
+  
+  imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
 
   if (imagingGLEngine->IsPauseRendererSupported()) {
     imagingGLEngine->PauseRenderer();

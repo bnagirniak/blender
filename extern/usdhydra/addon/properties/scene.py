@@ -6,7 +6,7 @@
 import bpy
 import _usdhydra
 
-#from ..viewport import usd_collection
+from ..viewport import usd_collection
 #from ..export.camera import CameraData
 #from ..viewport.usd_collection import USD_CAMERA
 from . import USDHydraProperties, hdrpr_render
@@ -83,8 +83,8 @@ class ViewportRenderSettings(RenderSettings):
         description="Render delegate for viewport render",
     )
 
-    # def data_source_update(self, context):
-    #     usd_collection.update(context)
+    def data_source_update(self, context):
+        usd_collection.update(context)
     #
     # def nodetree_camera_update(self, context):
     #     viewport_camera = context.scene.objects.get(USD_CAMERA, None)
@@ -120,7 +120,7 @@ class ViewportRenderSettings(RenderSettings):
         name="Data Source",
         description="Data source for viewport render",
         default="",
-        #update=data_source_update
+        update=data_source_update
     )
     nodetree_camera: bpy.props.StringProperty(
         name="Camera",

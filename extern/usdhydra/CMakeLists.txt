@@ -141,6 +141,11 @@ set(ADDON_UTILS_FILES
   addon/utils/logging.py
 )
 
+set(ADDON_VIEWPORT_FILES
+  addon/viewport/__init__.py
+  addon/viewport/usd_collection.py
+)
+
 set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
 
 add_definitions(${GFLAGS_DEFINES})
@@ -155,6 +160,7 @@ add_dependencies(extern_usdhydra bf_rna)
 
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${USDHYDRA_INSTALL_PATH})
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_UTILS_FILES}" ${USDHYDRA_INSTALL_PATH}/utils)
+delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_VIEWPORT_FILES}" ${USDHYDRA_INSTALL_PATH}/viewport)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_MX_NODES_FILES}" ${USDHYDRA_INSTALL_PATH}/mx_nodes)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_MX_NODES_NODES_FILES}" ${USDHYDRA_INSTALL_PATH}/mx_nodes/nodes)
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_PROPERTIES_FILES}" ${USDHYDRA_INSTALL_PATH}/properties)

@@ -4,15 +4,18 @@
 # <pep8 compliant>
 
 import bpy
-
-#from pxr import UsdGeom, Gf, UsdShade
+import mathutils
+import numpy as np
+import _usdhydra
 
 from . import USDHydraProperties#, CachedStageProp
 # from ..export import object, material
 # from ..utils import usd as usd_utils
 
 
-GEOM_TYPES = ('Xform', 'SkelRoot', 'Scope')
+GEOM_TYPES = ('Xform', 'SkelRoot',
+            # 'Scope'
+             )
 
 
 class ObjectProperties(USDHydraProperties):
@@ -51,21 +54,27 @@ class ObjectProperties(USDHydraProperties):
 #
 #         return stage.GetPrimAtPath(self.sdf_path)
 #
-#     def sync_from_prim(self, root_obj, prim):
-#         prim_obj = self.id_data
-#
-#         self.sdf_path = str(prim.GetPath())
-#         self.cached_stage.assign(prim.GetStage())
-#
-#         prim_obj.name = prim.GetName()
-#         prim_obj.parent = root_obj
-#         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
-#         prim_obj.hide_viewport = prim.GetTypeName() not in GEOM_TYPES
-#
-#     def sync_transform_from_prim(self, prim):
-#         prim_obj = self.id_data
-#         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
-#
+    def sync_from_prim(self, root_obj, stage, path):
+        prim_obj = self.id_data
+
+        prim_info = _usdhydra.stage.prim_get_info(stage, path)
+
+        self.sdf_path = prim_info['path']
+
+        prim_obj.name = prim_info['name']
+        prim_obj.parent = root_obj
+        prim_obj.matrix_local = mathutils.Matrix(
+            np.array(_usdhydra.stage.get_xform_transform(stage, path)).reshape(4, 4))\
+            .transposed()
+
+        prim_obj.hide_viewport = prim_info['type'] not in GEOM_TYPES
+
+    def sync_transform_from_prim(self, stage, path):
+        prim_obj = self.id_data
+        prim_obj.matrix_local = mathutils.Matrix(
+            np.array(_usdhydra.stage.get_xform_transform(stage, path)).reshape(4, 4))\
+            .transposed()
+
 #     def sync_to_prim(self):
 #         prim = self.get_prim()
 #         if not prim:

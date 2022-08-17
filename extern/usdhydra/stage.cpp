@@ -2,20 +2,20 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usd/primRange.h>
+#include <pxr/usd/usdGeom/xform.h>
 #include <pxr/usd/usdGeom/imageable.h>
 
 #include "stage.h"
 
-using namespace pxr;
-
 namespace usdhydra {
 
-std::unique_ptr<pxr::UsdStageCache> stageCache;
+unique_ptr<UsdStageCache> stageCache;
 
 void stage_init()
 {
   if (!stageCache) {
-    stageCache = std::make_unique<pxr::UsdStageCache>();
+    stageCache = make_unique<UsdStageCache>();
   }
 }
 
@@ -34,7 +34,7 @@ static PyObject *export_to_str_func(PyObject * /*self*/, PyObject *args)
     Py_RETURN_NONE;
   }
 
-  std::string str;
+  string str;
   if (flatten) {
     stage->ExportToString(&str);
   }
@@ -111,11 +111,66 @@ static PyObject *stage_get_info_func(PyObject * /*self*/, PyObject *args)
   return ret;
 }
 
+static PyObject* traverse_stage_func(PyObject* /*self*/, PyObject* args)
+{
+  long stageId;
+  if (!PyArg_ParseTuple(args, "l", &stageId)) {
+    Py_RETURN_NONE;
+  }
+
+  vector<UsdPrim> usd_prims;
+
+  UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+  for (UsdPrim usd_prim : stage->TraverseAll()) {
+    usd_prims.push_back(usd_prim);
+  }
+
+  PyObject *pyTuple = PyTuple_New(usd_prims.size());
+  for (int i = 0; i < usd_prims.size(); ++i) {
+    PyObject *pyDict = PyDict_New();
+    PyDict_SetItemString(pyDict, "name", PyUnicode_FromString(usd_prims[i].GetName().GetText()));
+    PyDict_SetItemString(pyDict, "path", PyUnicode_FromString(usd_prims[i].GetPath().GetText()));
+    PyDict_SetItemString(pyDict, "type", PyUnicode_FromString(usd_prims[i].GetTypeName().GetText()));
+
+    PyTuple_SetItem(pyTuple, i, pyDict);
+  }
+
+  return pyTuple;
+}
+
+static PyObject *get_xform_transform_func(PyObject * /*self*/, PyObject *args)
+{
+  long stageId;
+  const char *path;
+  if (!PyArg_ParseTuple(args, "ls", &stageId, &path)) {
+    Py_RETURN_NONE;
+  }
+
+  UsdStageRefPtr stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+  UsdPrim usd_prim = stage->GetPrimAtPath(SdfPath(path));
+  UsdGeomXform xForm = UsdGeomXform(usd_prim);
+
+  GfMatrix4d transform;
+  bool resets_xform_stack;
+
+  xForm.GetLocalTransformation(&transform, &resets_xform_stack);
+
+  PyObject *pyMatrix = PyTuple_New(16);
+
+  for (int i = 0; i < 16; ++i) {
+    PyTuple_SetItem(pyMatrix, i, PyFloat_FromDouble(transform.GetArray()[i]));
+  }
+
+  return pyMatrix;
+}
+
 static PyMethodDef methods[] = {
   {"export_to_str", export_to_str_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
   {"prim_get_info", prim_get_info_func, METH_VARARGS, ""},
   {"stage_get_info", stage_get_info_func, METH_VARARGS, ""},
+  {"traverse_stage", traverse_stage_func, METH_VARARGS, ""},
+  {"get_xform_transform", get_xform_transform_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

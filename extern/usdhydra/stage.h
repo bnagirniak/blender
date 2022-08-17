@@ -11,9 +11,12 @@
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/stageCache.h>
 
+using namespace std;
+using namespace pxr;
+
 namespace usdhydra {
 
-extern std::unique_ptr<pxr::UsdStageCache> stageCache;
+extern unique_ptr<pxr::UsdStageCache> stageCache;
 void stage_init();
 
 PyObject *addPythonSubmodule_stage(PyObject *mod);

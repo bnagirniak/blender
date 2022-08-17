@@ -116,7 +116,6 @@ static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
   return PyUnicode_FromString(path.u8string().c_str());
 }
 
-
 static PyMethodDef methods[] = {
   {"get_temp_file", get_temp_file_func, METH_VARARGS, ""},
   {"get_temp_dir", get_temp_dir_func, METH_VARARGS, ""},

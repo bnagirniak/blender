@@ -33,13 +33,46 @@ BlenderSession::~BlenderSession()
 {
 }
 
+void BlenderSession::create()
+{
+  string filepath = usdhydra::get_temp_file(".usda");
+  stage = UsdStage::CreateNew(filepath);
+}
+
 void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId)
 {
+  UsdStageRefPtr new_stage;
+
   if (is_blender_scene) {
-    stage = export_scene_to_usd(b_context, depsgraph);
+    new_stage = export_scene_to_usd(b_context, depsgraph);
   }
   else {
-    stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+    new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+  }
+
+  set<SdfPath> existing_paths, new_paths, paths_to_remove;
+
+  for (auto prim : stage->GetPseudoRoot().GetAllChildren()) {
+    existing_paths.insert(prim.GetPath());
+  }
+
+  for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
+    new_paths.insert(prim.GetPath());
+  }
+
+  set_difference(existing_paths.begin(), existing_paths.end(),
+                 new_paths.begin(), new_paths.end(),
+                 inserter(paths_to_remove, paths_to_remove.end()));
+
+  for (auto obj : paths_to_remove) {
+    stage->GetPrimAtPath(obj).SetActive(false);
+  }
+
+  for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
+    UsdPrim override_prim = stage->OverridePrim(stage->GetPseudoRoot().GetPath().AppendChild(prim.GetName()));
+    override_prim.SetActive(true);
+    override_prim.GetReferences().ClearReferences();
+    override_prim.GetReferences().AddReference(new_stage->GetRootLayer()->GetRealPath(), prim.GetPath());
   }
 }
 
@@ -229,8 +262,9 @@ void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_cont
 {
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
-    imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
   }
+  
+  imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
 
   if (imagingGLEngine->IsPauseRendererSupported()) {
     imagingGLEngine->PauseRenderer();
@@ -409,6 +443,8 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 
   /* create session */
   BlenderSession *session = new BlenderSession(engine);
+
+  session->create();
 
   return PyLong_FromVoidPtr(session);
 }

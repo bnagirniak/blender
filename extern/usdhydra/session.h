@@ -36,6 +36,7 @@ public:
   BlenderSession(BL::RenderEngine &b_engine);
   ~BlenderSession();
 
+  void create();
   void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate);

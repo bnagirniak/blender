@@ -88,10 +88,6 @@ struct InputSpec {
 using InputSpecMap = std::map<std::string, InputSpec>;
 
 /* Static function forward declarations. */
-static pxr::UsdShadeShader create_materialx(const USDExporterContext &usd_export_context,
-                                                     pxr::UsdShadeMaterial &material,
-                                                     bNode *node,
-                                                     pxr::UsdGeomMesh &usd_mesh);
 static pxr::UsdShadeShader create_usd_preview_shader(const USDExporterContext &usd_export_context,
                                                      pxr::UsdShadeMaterial &material,
                                                      const char *name,

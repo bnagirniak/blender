@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright 2006 Blender Foundation. All rights reserved.
 
+if(HAVE_EXECINFO_H)
+  add_definitions(-DHAVE_EXECINFO_H)
+endif()
+
 set(INC
   .
   # ../blenkernel  # don't add this back!
@@ -424,6 +428,7 @@ if(WITH_GTESTS)
     tests/BLI_array_store_test.cc
     tests/BLI_array_test.cc
     tests/BLI_array_utils_test.cc
+    tests/BLI_bitmap_test.cc
     tests/BLI_bounds_test.cc
     tests/BLI_color_test.cc
     tests/BLI_cpp_type_test.cc

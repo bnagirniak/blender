@@ -515,6 +515,9 @@ static void clip_operatortypes(void)
   WM_operatortype_append(CLIP_OT_keyframe_insert);
   WM_operatortype_append(CLIP_OT_keyframe_delete);
 
+  WM_operatortype_append(CLIP_OT_new_image_from_plane_marker);
+  WM_operatortype_append(CLIP_OT_update_image_from_plane_marker);
+
   /* ** clip_graph_ops.c  ** */
 
   /* graph editing */
@@ -808,8 +811,8 @@ static void clip_main_region_draw(const bContext *C, ARegion *region)
   int width, height;
   bool show_cursor = false;
 
-  /* if tracking is in progress, we should synchronize framenr from clipuser
-   * so latest tracked frame would be shown */
+  /* If tracking is in progress, we should synchronize the frame from the clip-user
+   * (#MovieClipUser.framenr) so latest tracked frame would be shown. */
   if (clip && clip->tracking_context) {
     BKE_autotrack_context_sync_user(clip->tracking_context, &sc->user);
   }

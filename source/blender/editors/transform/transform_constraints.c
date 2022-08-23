@@ -402,7 +402,7 @@ static void applyAxisConstraintVec(const TransInfo *t,
     if (activeSnap(t)) {
       if (validSnap(t)) {
         is_snap_to_edge = (t->tsnap.snapElem & SCE_SNAP_MODE_EDGE) != 0;
-        is_snap_to_face = (t->tsnap.snapElem & SCE_SNAP_MODE_FACE) != 0;
+        is_snap_to_face = (t->tsnap.snapElem & SCE_SNAP_MODE_FACE_RAYCAST) != 0;
         is_snap_to_point = !is_snap_to_edge && !is_snap_to_face;
       }
       else if (t->tsnap.snapElem & SCE_SNAP_MODE_GRID) {
@@ -701,12 +701,12 @@ void setLocalConstraint(TransInfo *t, int mode, const char text[])
   }
 }
 
-void setUserConstraint(TransInfo *t, int mode, const char ftext[])
+void setUserConstraint(TransInfo *t, int mode, const char text_[])
 {
   char text[256];
   const short orientation = transform_orientation_or_default(t);
   const char *spacename = transform_orientations_spacename_get(t, orientation);
-  BLI_snprintf(text, sizeof(text), ftext, spacename);
+  BLI_snprintf(text, sizeof(text), text_, spacename);
 
   switch (orientation) {
     case V3D_ORIENT_LOCAL:

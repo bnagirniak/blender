@@ -57,6 +57,7 @@
 #include "BKE_lib_id.h"
 #include "BKE_lib_override.h"
 #include "BKE_main.h"
+#include "BKE_main_namemap.h"
 #include "BKE_modifier.h"
 #include "BKE_node.h"
 #include "BKE_screen.h"
@@ -408,7 +409,7 @@ static void do_versions_sequencer_speed_effect_recursive(Scene *scene, const Lis
           v->speed_control_type = SEQ_SPEED_MULTIPLY;
           v->speed_fader = globalSpeed *
                            ((float)seq->seq1->len /
-                            max_ff((float)(SEQ_time_right_handle_frame_get(seq->seq1) -
+                            max_ff((float)(SEQ_time_right_handle_frame_get(scene, seq->seq1) -
                                            seq->seq1->start),
                                    1.0f));
         }
@@ -593,6 +594,39 @@ static bNodeTree *add_realize_node_tree(Main *bmain)
 
   version_socket_update_is_used(node_tree);
   return node_tree;
+}
+
+static void seq_speed_factor_fix_rna_path(Sequence *seq, ListBase *fcurves)
+{
+  char name_esc[(sizeof(seq->name) - 2) * 2];
+  BLI_str_escape(name_esc, seq->name + 2, sizeof(name_esc));
+  char *path = BLI_sprintfN("sequence_editor.sequences_all[\"%s\"].pitch", name_esc);
+  FCurve *fcu = BKE_fcurve_find(fcurves, path, 0);
+  if (fcu != NULL) {
+    MEM_freeN(fcu->rna_path);
+    fcu->rna_path = BLI_sprintfN("sequence_editor.sequences_all[\"%s\"].speed_factor", name_esc);
+  }
+  MEM_freeN(path);
+}
+
+static bool seq_speed_factor_set(Sequence *seq, void *user_data)
+{
+  const Scene *scene = user_data;
+  if (seq->type == SEQ_TYPE_SOUND_RAM) {
+    /* Move `pitch` animation to `speed_factor` */
+    if (scene->adt && scene->adt->action) {
+      seq_speed_factor_fix_rna_path(seq, &scene->adt->action->curves);
+    }
+    if (scene->adt && !BLI_listbase_is_empty(&scene->adt->drivers)) {
+      seq_speed_factor_fix_rna_path(seq, &scene->adt->drivers);
+    }
+
+    seq->speed_factor = seq->pitch;
+  }
+  else {
+    seq->speed_factor = 1.0f;
+  }
+  return true;
 }
 
 void do_versions_after_linking_300(Main *bmain, ReportList *UNUSED(reports))
@@ -819,6 +853,45 @@ void do_versions_after_linking_300(Main *bmain, ReportList *UNUSED(reports))
       }
     }
   }
+
+  if (!MAIN_VERSION_ATLEAST(bmain, 303, 5)) {
+    LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+      Editing *ed = SEQ_editing_get(scene);
+      if (ed == NULL) {
+        continue;
+      }
+      SEQ_for_each_callback(&ed->seqbase, seq_speed_factor_set, scene);
+    }
+  }
+
+  if (!MAIN_VERSION_ATLEAST(bmain, 303, 6)) {
+    /* In the Dope Sheet, for every mode other than Timeline, open the Properties panel. */
+    LISTBASE_FOREACH (bScreen *, screen, &bmain->screens) {
+      LISTBASE_FOREACH (ScrArea *, area, &screen->areabase) {
+        LISTBASE_FOREACH (SpaceLink *, sl, &area->spacedata) {
+          if (sl->spacetype != SPACE_ACTION) {
+            continue;
+          }
+
+          /* Skip the timeline, it shouldn't get its Properties panel opened. */
+          SpaceAction *saction = (SpaceAction *)sl;
+          if (saction->mode == SACTCONT_TIMELINE) {
+            continue;
+          }
+
+          const bool is_first_space = sl == area->spacedata.first;
+          ListBase *regionbase = is_first_space ? &area->regionbase : &sl->regionbase;
+          ARegion *region = BKE_region_find_in_listbase_by_type(regionbase, RGN_TYPE_UI);
+          if (region == NULL) {
+            continue;
+          }
+
+          region->flag &= ~RGN_FLAG_HIDDEN;
+        }
+      }
+    }
+  }
+
   /**
    * Versioning code until next subversion bump goes here.
    *
@@ -1973,7 +2046,7 @@ void blo_do_versions_300(FileData *fd, Library *UNUSED(lib), Main *bmain)
   /* Font names were copied directly into ID names, see: T90417. */
   if (!MAIN_VERSION_ATLEAST(bmain, 300, 16)) {
     ListBase *lb = which_libbase(bmain, ID_VF);
-    BKE_main_id_repair_duplicate_names_listbase(lb);
+    BKE_main_id_repair_duplicate_names_listbase(bmain, lb);
   }
 
   if (!MAIN_VERSION_ATLEAST(bmain, 300, 17)) {
@@ -3115,6 +3188,17 @@ void blo_do_versions_300(FileData *fd, Library *UNUSED(lib), Main *bmain)
       }
     }
     FOREACH_NODETREE_END;
+
+    LISTBASE_FOREACH (Object *, ob, &bmain->objects) {
+      LISTBASE_FOREACH (GpencilModifierData *, gpd, &ob->greasepencil_modifiers) {
+        if (gpd->type == eGpencilModifierType_Lineart) {
+          LineartGpencilModifierData *lmd = (LineartGpencilModifierData *)gpd;
+          lmd->shadow_camera_near = 0.1f;
+          lmd->shadow_camera_far = 200.0f;
+          lmd->shadow_camera_size = 200.0f;
+        }
+      }
+    }
   }
 
   if (!MAIN_VERSION_ATLEAST(bmain, 303, 2)) {
@@ -3140,6 +3224,17 @@ void blo_do_versions_300(FileData *fd, Library *UNUSED(lib), Main *bmain)
             ((SpaceImage *)sl)->mask_info.draw_flag |= MASK_DRAWFLAG_SPLINE;
           }
         }
+      }
+    }
+
+    LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+      ToolSettings *tool_settings = scene->toolsettings;
+      /* Zero isn't a valid value, use for versioning. */
+      if (tool_settings->snap_face_nearest_steps == 0) {
+        /* Minimum of snap steps for face nearest is 1. */
+        tool_settings->snap_face_nearest_steps = 1;
+        /* Set snap to edited and non-edited as default. */
+        tool_settings->snap_flag |= SCE_SNAP_TO_INCLUDE_EDITED | SCE_SNAP_TO_INCLUDE_NONEDITED;
       }
     }
   }
@@ -3171,18 +3266,7 @@ void blo_do_versions_300(FileData *fd, Library *UNUSED(lib), Main *bmain)
     }
   }
 
-  /**
-   * Versioning code until next subversion bump goes here.
-   *
-   * \note Be sure to check when bumping the version:
-   * - "versioning_userdef.c", #blo_do_versions_userdef
-   * - "versioning_userdef.c", #do_versions_theme
-   *
-   * \note Keep this message at the bottom of the function.
-   */
-  {
-    /* Keep this block, even when empty. */
-
+  if (!MAIN_VERSION_ATLEAST(bmain, 303, 5)) {
     /* Fix for T98925 - remove channels region, that was initialized in incorrect editor types. */
     for (bScreen *screen = bmain->screens.first; screen; screen = screen->id.next) {
       LISTBASE_FOREACH (ScrArea *, area, &screen->areabase) {
@@ -3198,6 +3282,53 @@ void blo_do_versions_300(FileData *fd, Library *UNUSED(lib), Main *bmain)
           if (channels_region) {
             BLI_freelinkN(regionbase, channels_region);
           }
+        }
+      }
+    }
+  }
+
+  if (!MAIN_VERSION_ATLEAST(bmain, 303, 6)) {
+    /* Initialize brush curves sculpt settings. */
+    LISTBASE_FOREACH (Brush *, brush, &bmain->brushes) {
+      if (brush->ob_mode != OB_MODE_SCULPT_CURVES) {
+        continue;
+      }
+      brush->curves_sculpt_settings->density_add_attempts = 100;
+    }
+
+    /* Disable 'show_bounds' option of curve objects. Option was set as there was no object mode
+     * outline implementation. See T95933. */
+    LISTBASE_FOREACH (Object *, ob, &bmain->objects) {
+      if (ob->type == OB_CURVES) {
+        ob->dtx &= ~OB_DRAWBOUNDOX;
+      }
+    }
+
+    BKE_main_namemap_validate_and_fix(bmain);
+  }
+
+  /**
+   * Versioning code until next subversion bump goes here.
+   *
+   * \note Be sure to check when bumping the version:
+   * - "versioning_userdef.c", #blo_do_versions_userdef
+   * - "versioning_userdef.c", #do_versions_theme
+   *
+   * \note Keep this message at the bottom of the function.
+   */
+  {
+    /* Keep this block, even when empty. */
+
+    /* Image generation information transferred to tiles. */
+    if (!DNA_struct_elem_find(fd->filesdna, "ImageTile", "int", "gen_x")) {
+      for (Image *ima = bmain->images.first; ima; ima = ima->id.next) {
+        for (ImageTile *tile = ima->tiles.first; tile; tile = tile->next) {
+          tile->gen_x = ima->gen_x;
+          tile->gen_y = ima->gen_y;
+          tile->gen_type = ima->gen_type;
+          tile->gen_flag = ima->gen_flag;
+          tile->gen_depth = ima->gen_depth;
+          copy_v4_v4(tile->gen_color, ima->gen_color);
         }
       }
     }

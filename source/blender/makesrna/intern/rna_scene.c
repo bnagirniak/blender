@@ -88,6 +88,11 @@ static const EnumPropertyItem uv_sculpt_relaxation_items[] = {
      "Laplacian",
      "Use Laplacian method for relaxation"},
     {UV_SCULPT_TOOL_RELAX_HC, "HC", 0, "HC", "Use HC method for relaxation"},
+    {UV_SCULPT_TOOL_RELAX_COTAN,
+     "COTAN",
+     0,
+     "Geometry",
+     "Use Geometry (cotangent) relaxation, making UV's follow the underlying 3D geometry"},
     {0, NULL, 0, NULL, NULL},
 };
 #endif
@@ -151,7 +156,16 @@ const EnumPropertyItem rna_enum_snap_element_items[] = {
      "Snap to increments of grid"},
     {SCE_SNAP_MODE_VERTEX, "VERTEX", ICON_SNAP_VERTEX, "Vertex", "Snap to vertices"},
     {SCE_SNAP_MODE_EDGE, "EDGE", ICON_SNAP_EDGE, "Edge", "Snap to edges"},
-    {SCE_SNAP_MODE_FACE, "FACE", ICON_SNAP_FACE, "Face", "Snap to faces"},
+    {SCE_SNAP_MODE_FACE_RAYCAST,
+     "FACE", /* TODO(@gfxcoder): replace with "FACE_RAYCAST" as "FACE" is not descriptive. */
+     ICON_SNAP_FACE,
+     "Face Project",
+     "Snap by projecting onto faces"},
+    {SCE_SNAP_MODE_FACE_NEAREST,
+     "FACE_NEAREST",
+     ICON_SNAP_FACE_NEAREST,
+     "Face Nearest",
+     "Snap to nearest point on faces"},
     {SCE_SNAP_MODE_VOLUME, "VOLUME", ICON_SNAP_VOLUME, "Volume", "Snap to volume"},
     {SCE_SNAP_MODE_EDGE_MIDPOINT,
      "EDGE_MIDPOINT",
@@ -1286,7 +1300,7 @@ static const EnumPropertyItem *rna_ImageFormatSettings_color_mode_itemf(bContext
   ID *id = ptr->owner_id;
   const bool is_render = (id && GS(id->name) == ID_SCE);
 
-  /* NOTE(campbell): we need to act differently for render
+  /* NOTE(@campbellbarton): we need to act differently for render
    * where 'BW' will force grayscale even if the output format writes
    * as RGBA, this is age old blender convention and not sure how useful
    * it really is but keep it for now. */
@@ -1469,7 +1483,7 @@ static void rna_ImageFormatSettings_color_management_set(PointerRNA *ptr, int va
       if (owner_id && GS(owner_id->name) == ID_NT) {
         /* For compositing nodes, find the corresponding scene. */
         const IDTypeInfo *type_info = BKE_idtype_get_info_from_id(owner_id);
-        owner_id = type_info->owner_get(G_MAIN, owner_id);
+        owner_id = type_info->owner_get(G_MAIN, owner_id, NULL);
       }
       if (owner_id && GS(owner_id->name) == ID_SCE) {
         BKE_image_format_color_management_copy_from_scene(imf, (Scene *)owner_id);
@@ -2492,7 +2506,7 @@ static void rna_ViewLayerLightgroup_name_set(PointerRNA *ptr, const char *value)
   Scene *scene = (Scene *)ptr->owner_id;
   ViewLayer *view_layer = BKE_view_layer_find_with_lightgroup(scene, lightgroup);
 
-  BKE_view_layer_rename_lightgroup(view_layer, lightgroup, value);
+  BKE_view_layer_rename_lightgroup(scene, view_layer, lightgroup, value);
 }
 
 /* Fake value, used internally (not saved to DNA). */
@@ -2719,7 +2733,11 @@ static void rna_FFmpegSettings_codec_update(Main *UNUSED(bmain),
                                             PointerRNA *ptr)
 {
   FFMpegCodecData *codec_data = (FFMpegCodecData *)ptr->data;
-  if (!ELEM(codec_data->codec, AV_CODEC_ID_H264, AV_CODEC_ID_MPEG4, AV_CODEC_ID_VP9)) {
+  if (!ELEM(codec_data->codec,
+            AV_CODEC_ID_H264,
+            AV_CODEC_ID_MPEG4,
+            AV_CODEC_ID_VP9,
+            AV_CODEC_ID_DNXHD)) {
     /* Constant Rate Factor (CRF) setting is only available for H264,
      * MPEG4 and WEBM/VP9 codecs. So changing encoder quality mode to
      * CBR as CRF is not supported.
@@ -3125,6 +3143,7 @@ static void rna_def_tool_settings(BlenderRNA *brna)
   prop = RNA_def_property(srna, "workspace_tool_type", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_sdna(prop, NULL, "workspace_tool_type");
   RNA_def_property_enum_items(prop, workspace_tool_items);
+  RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_EDITOR_VIEW3D);
   RNA_def_property_ui_text(prop, "Drag", "Action when dragging in the viewport");
 
   /* Transform */
@@ -3301,6 +3320,21 @@ static void rna_def_tool_settings(BlenderRNA *brna)
   RNA_def_property_ui_text(prop, "Snap Element", "Type of element to snap to");
   RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
 
+  prop = RNA_def_property(srna, "snap_face_nearest_steps", PROP_INT, PROP_FACTOR);
+  RNA_def_property_int_sdna(prop, NULL, "snap_face_nearest_steps");
+  RNA_def_property_range(prop, 1, 100);
+  RNA_def_property_ui_text(
+      prop,
+      "Face Nearest Steps",
+      "Number of steps to break transformation into for face nearest snapping");
+
+  prop = RNA_def_property(srna, "use_snap_to_same_target", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, NULL, "snap_flag", SCE_SNAP_KEEP_ON_SAME_OBJECT);
+  RNA_def_property_ui_text(
+      prop,
+      "Snap to Same Target",
+      "Snap only to target that source was initially near (Face Nearest Only)");
+
   /* node editor uses own set of snap modes */
   prop = RNA_def_property(srna, "snap_node_element", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_bitflag_sdna(prop, NULL, "snap_node_mode");
@@ -3323,9 +3357,9 @@ static void rna_def_tool_settings(BlenderRNA *brna)
       "Absolute grid alignment while translating (based on the pivot center)");
   RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
 
-  /* TODO(@gfxcoder): Rename `snap_target` to `snap_source` to avoid
-   * previous ambiguity of "target" (now, "source" is geometry to be moved and "target" is
-   * geometry to which moved geometry is snapped). */
+  /* TODO(@gfxcoder): Rename `snap_target` to `snap_source` to avoid previous ambiguity of "target"
+   * (now, "source" is geometry to be moved and "target" is geometry to which moved geometry is
+   * snapped). */
   prop = RNA_def_property(srna, "snap_target", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_sdna(prop, NULL, "snap_target");
   RNA_def_property_enum_items(prop, rna_enum_snap_source_items);
@@ -3350,9 +3384,30 @@ static void rna_def_tool_settings(BlenderRNA *brna)
   RNA_def_property_ui_text(prop, "Backface Culling", "Exclude back facing geometry from snapping");
   RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
 
+  /* TODO(@gfxcoder): Rename `use_snap_self` to `use_snap_active`, because active is correct but
+   * self is not (breaks API). This only makes a difference when more than one mesh is edited. */
   prop = RNA_def_property(srna, "use_snap_self", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_negative_sdna(prop, NULL, "snap_flag", SCE_SNAP_NO_SELF);
-  RNA_def_property_ui_text(prop, "Project onto Self", "Snap onto itself (Edit Mode Only)");
+  RNA_def_property_boolean_negative_sdna(prop, NULL, "snap_flag", SCE_SNAP_NOT_TO_ACTIVE);
+  RNA_def_property_ui_text(
+      prop, "Snap onto Active", "Snap onto itself only if enabled (Edit Mode Only)");
+  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
+
+  prop = RNA_def_property(srna, "use_snap_edit", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, NULL, "snap_flag", SCE_SNAP_TO_INCLUDE_EDITED);
+  RNA_def_property_ui_text(
+      prop, "Snap onto Edited", "Snap onto non-active objects in Edit Mode (Edit Mode Only)");
+  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
+
+  prop = RNA_def_property(srna, "use_snap_nonedit", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, NULL, "snap_flag", SCE_SNAP_TO_INCLUDE_NONEDITED);
+  RNA_def_property_ui_text(
+      prop, "Snap onto Non-edited", "Snap onto objects not in Edit Mode (Edit Mode Only)");
+  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
+
+  prop = RNA_def_property(srna, "use_snap_selectable", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, NULL, "snap_flag", SCE_SNAP_TO_ONLY_SELECTABLE);
+  RNA_def_property_ui_text(
+      prop, "Snap onto Selectable Only", "Snap only onto objects that are selectable");
   RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, NULL); /* header redraw */
 
   prop = RNA_def_property(srna, "use_snap_translate", PROP_BOOLEAN, PROP_NONE);

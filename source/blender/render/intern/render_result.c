@@ -301,7 +301,7 @@ RenderResult *render_result_new(Render *re,
     } \
   } while (false)
 
-      /* A renderlayer should always have a Combined pass. */
+      /* A render-layer should always have a "Combined" pass. */
       render_layer_add_pass(rr, rl, 4, "Combined", view, "RGBA", false);
 
       if (view_layer->passflag & SCE_PASS_Z) {
@@ -398,7 +398,7 @@ RenderResult *render_result_new(Render *re,
         }
       }
 
-      /* a renderlayer should always have a Combined pass */
+      /* A render-layer should always have a "Combined" pass. */
       render_layer_add_pass(rr, rl, 4, RE_PASSNAME_COMBINED, view, "RGBA", false);
     }
 
@@ -989,6 +989,8 @@ void render_result_exr_file_cache_write(Render *re)
   RenderResult *rr = re->result;
   char str[FILE_MAXFILE + FILE_MAXFILE + MAX_ID_NAME + 100];
   char *root = U.render_cachedir;
+
+  render_result_passes_allocated_ensure(rr);
 
   render_result_exr_file_cache_path(re->scene, root, str);
   printf("Caching exr file, %dx%d, %s\n", rr->rectx, rr->recty, str);

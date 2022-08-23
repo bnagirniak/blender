@@ -110,8 +110,7 @@ pxr::UsdShadeMaterial USDAbstractWriter::ensure_usd_material(const HierarchyCont
   }
   else if (material->use_nodes && this->usd_export_context_.export_params.export_materialx &&
            !this->usd_export_context_.materialx_data.empty()) {
-    create_materialx(
-        this->usd_export_context_, material, usd_material, *usd_mesh);
+    create_materialx(this->usd_export_context_, material, usd_material, *usd_mesh);
   }
   else {
     create_usd_viewport_material(this->usd_export_context_, material, usd_material);

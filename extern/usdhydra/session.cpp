@@ -33,13 +33,46 @@ BlenderSession::~BlenderSession()
 {
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, std::map<std::string, std::pair<std::string, std::string>> materialx_data)
+void BlenderSession::create()
 {
+  string filepath = usdhydra::get_temp_file(".usda");
+  stage = UsdStage::CreateNew(filepath);
+}
+
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, map<string, pair<string, string>> materialx_data)
+{
+  UsdStageRefPtr new_stage;
+
   if (is_blender_scene) {
-    stage = export_scene_to_usd(b_context, depsgraph, materialx_data);
+    new_stage = export_scene_to_usd(b_context, depsgraph, materialx_data);
   }
   else {
-    stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+    new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
+  }
+
+  set<SdfPath> existing_paths, new_paths, paths_to_remove;
+
+  for (auto prim : stage->GetPseudoRoot().GetAllChildren()) {
+    existing_paths.insert(prim.GetPath());
+  }
+
+  for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
+    new_paths.insert(prim.GetPath());
+  }
+
+  set_difference(existing_paths.begin(), existing_paths.end(),
+                 new_paths.begin(), new_paths.end(),
+                 inserter(paths_to_remove, paths_to_remove.end()));
+
+  for (auto obj : paths_to_remove) {
+    stage->GetPrimAtPath(obj).SetActive(false);
+  }
+
+  for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
+    UsdPrim override_prim = stage->OverridePrim(stage->GetPseudoRoot().GetPath().AppendChild(prim.GetName()));
+    override_prim.SetActive(true);
+    override_prim.GetReferences().ClearReferences();
+    override_prim.GetReferences().AddReference(new_stage->GetRootLayer()->GetRealPath(), prim.GetPath());
   }
 }
 
@@ -274,7 +307,7 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, std::map<std::string, std::pair<std::string, std::string>> materialx_data)
+UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, map<string, pair<string, string>> materialx_data)
 {
   LOG(INFO) << "export_scene_to_usd";
 
@@ -306,18 +339,15 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
 
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
 
   if (!materialx_data.empty()) {
     usd_export_params.export_materialx = true;
     blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
-    iter.iterate_and_write();
-    iter.release_writers();
   }
   else {
     usd_export_params.export_materialx = false;
     blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
-    iter.iterate_and_write();
-    iter.release_writers();
   }
 
   //if (data->params.export_animation) {
@@ -345,6 +375,9 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
   //  /* If we're not animating, a single iteration over all objects is enough. */
   //  iter.iterate_and_write();
   //}
+
+  iter.iterate_and_write();
+  iter.release_writers();
 
   /* Finish up by going back to the keyframe that was current before we started. */
   if (CFRA != orig_frame) {
@@ -420,6 +453,8 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   /* create session */
   BlenderSession *session = new BlenderSession(engine);
 
+  session->create();
+
   return PyLong_FromVoidPtr(session);
 }
 
@@ -456,7 +491,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  std::map<std::string, std::pair<std::string, std::string>> materialx_data;
+  map<string, pair<string, string>> materialx_data;
 
   if (materialx_data_ != Py_None){
 
@@ -480,9 +515,9 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
           if (!PyArg_ParseTuple(next, "sss", &i0, &i1, &i2)) {
               Py_RETURN_NONE;
           }
-          std::string material(i0);
-          materialx_data.insert(std::pair<std::string, std::pair<std::string, std::string>>(material, std::pair<std::string,std::string>(std::string(i1),std::string(i2))));
 
+          string material(i0);
+          materialx_data.insert(pair<string, pair<string, string>>(material, pair<string, string>(string(i1), string(i2))));
       }
     }
 

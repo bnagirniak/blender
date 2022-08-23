@@ -36,14 +36,15 @@ public:
   BlenderSession(BL::RenderEngine &b_engine);
   ~BlenderSession();
 
-  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, std::map<std::string, std::pair<std::string, std::string>> materialx_data);
+  void create();
+  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, map<string, pair<string, string>> materialx_data);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void sync_final_render(BL::Depsgraph &b_depsgraph);
-  pxr::UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, std::map<std::string, std::pair<std::string, std::string>> materialx_data);
+  UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, map<string, pair<string, string>> materialx_data);
 
   template <typename T>
   float get_renderer_percent_done(T *renderer)

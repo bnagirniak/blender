@@ -126,7 +126,6 @@ class USDHydraEngine(bpy.types.RenderEngine):
 
         session_view_draw(self.session, depsgraph, context, context.space_data, context.region_data)
 
-
     def get_materialx_data(self, context, depsgraph):
         data =[]
         for obj in bpy.context.scene.objects:

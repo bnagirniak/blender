@@ -27,6 +27,7 @@
 
 #include "BLI_blenlib.h"
 #include "BLI_dynstr.h"
+#include "BLI_ghash.h"
 #include "BLI_math.h"
 #include "BLI_timer.h"
 #include "BLI_utildefines.h"
@@ -190,7 +191,7 @@ void wm_event_free(wmEvent *event)
     printf("%s: 'is_repeat=true' for non-keyboard event, this should not happen.\n", __func__);
     WM_event_print(event);
   }
-  if (ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE) && (event->val != KM_NOTHING)) {
+  if (ISMOUSE_MOTION(event->type) && (event->val != KM_NOTHING)) {
     printf("%s: 'val != NOTHING' for a cursor motion event, this should not happen.\n", __func__);
     WM_event_print(event);
   }
@@ -252,36 +253,56 @@ void wm_event_init_from_window(wmWindow *win, wmEvent *event)
 /** \name Notifiers & Listeners
  * \{ */
 
-static bool wm_test_duplicate_notifier(const wmWindowManager *wm, uint type, void *reference)
+/**
+ * Hash for #wmWindowManager.notifier_queue_set, ignores `window`.
+ */
+static uint note_hash_for_queue_fn(const void *ptr)
 {
-  LISTBASE_FOREACH (wmNotifier *, note, &wm->notifier_queue) {
-    if ((note->category | note->data | note->subtype | note->action) == type &&
-        note->reference == reference) {
-      return true;
-    }
-  }
+  const wmNotifier *note = static_cast<const wmNotifier *>(ptr);
+  return (BLI_ghashutil_ptrhash(note->reference) ^
+          (note->category | note->data | note->subtype | note->action));
+}
 
-  return false;
+/**
+ * Comparison for #wmWindowManager.notifier_queue_set
+ *
+ * \note This is not an exact equality function as the `window` is ignored.
+ */
+static bool note_cmp_for_queue_fn(const void *a, const void *b)
+{
+  const wmNotifier *note_a = static_cast<const wmNotifier *>(a);
+  const wmNotifier *note_b = static_cast<const wmNotifier *>(b);
+  return !(((note_a->category | note_a->data | note_a->subtype | note_a->action) ==
+            (note_b->category | note_b->data | note_b->subtype | note_b->action)) &&
+           (note_a->reference == note_b->reference));
 }
 
 void WM_event_add_notifier_ex(wmWindowManager *wm, const wmWindow *win, uint type, void *reference)
 {
-  if (wm_test_duplicate_notifier(wm, type, reference)) {
-    return;
+  wmNotifier note_test = {nullptr};
+
+  note_test.window = win;
+
+  note_test.category = type & NOTE_CATEGORY;
+  note_test.data = type & NOTE_DATA;
+  note_test.subtype = type & NOTE_SUBTYPE;
+  note_test.action = type & NOTE_ACTION;
+
+  note_test.reference = reference;
+
+  if (wm->notifier_queue_set == nullptr) {
+    wm->notifier_queue_set = BLI_gset_new_ex(
+        note_hash_for_queue_fn, note_cmp_for_queue_fn, __func__, 1024);
   }
 
-  wmNotifier *note = MEM_cnew<wmNotifier>(__func__);
-
+  void **note_p;
+  if (BLI_gset_ensure_p_ex(wm->notifier_queue_set, &note_test, &note_p)) {
+    return;
+  }
+  wmNotifier *note = MEM_new<wmNotifier>(__func__);
+  *note = note_test;
+  *note_p = note;
   BLI_addtail(&wm->notifier_queue, note);
-
-  note->window = win;
-
-  note->category = type & NOTE_CATEGORY;
-  note->data = type & NOTE_DATA;
-  note->subtype = type & NOTE_SUBTYPE;
-  note->action = type & NOTE_ACTION;
-
-  note->reference = reference;
 }
 
 /* XXX: in future, which notifiers to send to other windows? */
@@ -295,20 +316,7 @@ void WM_main_add_notifier(unsigned int type, void *reference)
   Main *bmain = G_MAIN;
   wmWindowManager *wm = static_cast<wmWindowManager *>(bmain->wm.first);
 
-  if (!wm || wm_test_duplicate_notifier(wm, type, reference)) {
-    return;
-  }
-
-  wmNotifier *note = MEM_cnew<wmNotifier>(__func__);
-
-  BLI_addtail(&wm->notifier_queue, note);
-
-  note->category = type & NOTE_CATEGORY;
-  note->data = type & NOTE_DATA;
-  note->subtype = type & NOTE_SUBTYPE;
-  note->action = type & NOTE_ACTION;
-
-  note->reference = reference;
+  WM_event_add_notifier_ex(wm, nullptr, type, reference);
 }
 
 void WM_main_remove_notifier_reference(const void *reference)
@@ -319,6 +327,9 @@ void WM_main_remove_notifier_reference(const void *reference)
   if (wm) {
     LISTBASE_FOREACH_MUTABLE (wmNotifier *, note, &wm->notifier_queue) {
       if (note->reference == reference) {
+        const bool removed = BLI_gset_remove(wm->notifier_queue_set, note, nullptr);
+        BLI_assert(removed);
+        UNUSED_VARS_NDEBUG(removed);
         /* Don't remove because this causes problems for #wm_event_do_notifiers
          * which may be looping on the data (deleting screens). */
         wm_notifier_clear(note);
@@ -567,6 +578,9 @@ void wm_event_do_notifiers(bContext *C)
   /* The notifiers are sent without context, to keep it clean. */
   wmNotifier *note;
   while ((note = static_cast<wmNotifier *>(BLI_pophead(&wm->notifier_queue)))) {
+    const bool removed = BLI_gset_remove(wm->notifier_queue_set, note, nullptr);
+    BLI_assert(removed);
+    UNUSED_VARS_NDEBUG(removed);
     LISTBASE_FOREACH (wmWindow *, win, &wm->windows) {
       Scene *scene = WM_window_get_active_scene(win);
       bScreen *screen = WM_window_get_active_screen(win);
@@ -667,14 +681,23 @@ static int wm_event_always_pass(const wmEvent *event)
  * Debug only sanity check for the return value of event handlers. Checks that "always pass" events
  * don't cause non-passing handler return values, and thus actually pass.
  *
- * Can't be executed if the handler just loaded a file (typically identified by `CTX_wm_window(C)`
- * returning `nullptr`), because the event will have been freed then.
+ * \param C: Pass in the context to check if it's "window" was cleared.
+ * The event check can't be executed if the handler just loaded a file or closed the window.
+ * (typically identified by `CTX_wm_window(C)` returning null),
+ * because the event will have been freed then.
+ * When null, always check the event (assume the caller knows the event was not freed).
  */
-BLI_INLINE void wm_event_handler_return_value_check(const wmEvent *event, const int action)
+BLI_INLINE void wm_event_handler_return_value_check(const bContext *C,
+                                                    const wmEvent *event,
+                                                    const int action)
 {
-  BLI_assert_msg(!wm_event_always_pass(event) || (action != WM_HANDLER_BREAK),
-                 "Return value for events that should always pass should never be BREAK.");
-  UNUSED_VARS_NDEBUG(event, action);
+#ifndef NDEBUG
+  if (C == nullptr || CTX_wm_window(C)) {
+    BLI_assert_msg(!wm_event_always_pass(event) || (action != WM_HANDLER_BREAK),
+                   "Return value for events that should always pass should never be BREAK.");
+  }
+#endif
+  UNUSED_VARS_NDEBUG(C, event, action);
 }
 
 /** \} */
@@ -1378,22 +1401,20 @@ static int wm_operator_invoke(bContext *C,
     }
 
     if (op->type->invoke && event) {
-      /* Temporarily write into `mval` (not technically `const` correct) but this is restored. */
-      const int mval_prev[2] = {UNPACK2(event->mval)};
-      wm_region_mouse_co(C, (wmEvent *)event);
+      /* Make a copy of the event as it's `const` and the #wmEvent.mval to be written into. */
+      wmEvent event_temp = *event;
+      wm_region_mouse_co(C, &event_temp);
 
       if (op->type->flag & OPTYPE_UNDO) {
         wm->op_undo_depth++;
       }
 
-      retval = op->type->invoke(C, op, event);
+      retval = op->type->invoke(C, op, &event_temp);
       OPERATOR_RETVAL_CHECK(retval);
 
       if (op->type->flag & OPTYPE_UNDO && CTX_wm_manager(C) == wm) {
         wm->op_undo_depth--;
       }
-
-      copy_v2_v2_int(((wmEvent *)event)->mval, mval_prev);
     }
     else if (op->type->exec) {
       if (op->type->flag & OPTYPE_UNDO) {
@@ -2088,9 +2109,7 @@ static bool wm_eventmatch(const wmEvent *winevent, const wmKeyMapItem *kmi)
   /* The matching rules. */
   if (kmitype == KM_TEXTINPUT) {
     if (winevent->val == KM_PRESS) { /* Prevent double clicks. */
-      /* Not using #ISTEXTINPUT anymore because (at least on Windows) some key codes above 255
-       * could have printable ascii keys, See T30479. */
-      if (ISKEYBOARD(winevent->type) && (winevent->ascii || winevent->utf8_buf[0])) {
+      if (ISKEYBOARD(winevent->type) && winevent->utf8_buf[0]) {
         return true;
       }
     }
@@ -2355,7 +2374,7 @@ static int wm_handler_operator_call(bContext *C,
           }
         }
 
-        /* Important to run 'wm_operator_finished' before nullptr-ing the context members. */
+        /* Important to run 'wm_operator_finished' before setting the context members to null. */
         if (retval & OPERATOR_FINISHED) {
           wm_operator_finished(C, op, false, true);
           handler->op = nullptr;
@@ -3099,13 +3118,13 @@ static int wm_handlers_do_intern(bContext *C, wmWindow *win, wmEvent *event, Lis
   const bool do_debug_handler =
       (G.debug & G_DEBUG_HANDLERS) &&
       /* Comment this out to flood the console! (if you really want to test). */
-      !ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE);
+      !ISMOUSE_MOTION(event->type);
 
   wmWindowManager *wm = CTX_wm_manager(C);
   int action = WM_HANDLER_CONTINUE;
 
   if (handlers == nullptr) {
-    wm_event_handler_return_value_check(event, action);
+    wm_event_handler_return_value_check(C, event, action);
     return action;
   }
 
@@ -3271,9 +3290,7 @@ static int wm_handlers_do_intern(bContext *C, wmWindow *win, wmEvent *event, Lis
   }
 
   /* Do some extra sanity checking before returning the action. */
-  if (CTX_wm_window(C) != nullptr) {
-    wm_event_handler_return_value_check(event, action);
-  }
+  wm_event_handler_return_value_check(C, event, action);
   return action;
 }
 
@@ -3290,7 +3307,7 @@ static int wm_handlers_do(bContext *C, wmEvent *event, ListBase *handlers)
     return action;
   }
 
-  if (ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE)) {
+  if (ISMOUSE_MOTION(event->type)) {
     /* Test for #KM_CLICK_DRAG events. */
 
     /* NOTE(@campbellbarton): Needed so drag can be used for editors that support both click
@@ -3444,7 +3461,7 @@ static int wm_handlers_do(bContext *C, wmEvent *event, ListBase *handlers)
     }
   }
 
-  wm_event_handler_return_value_check(event, action);
+  wm_event_handler_return_value_check(C, event, action);
   return action;
 }
 
@@ -3572,7 +3589,7 @@ static void wm_event_drag_and_drop_test(wmWindowManager *wm, wmWindow *win, wmEv
     /* Clear drop icon. */
     screen->do_draw_drag = true;
 
-    /* Restore cursor (disabled, see `wm_dragdrop.c`) */
+    /* Restore cursor (disabled, see `wm_dragdrop.cc`) */
     // WM_cursor_modal_restore(win);
   }
 }
@@ -3721,7 +3738,7 @@ static int wm_event_do_handlers_area_regions(bContext *C, wmEvent *event, ScrAre
       action |= wm_event_do_region_handlers(C, event, region);
     }
 
-    wm_event_handler_return_value_check(event, action);
+    wm_event_handler_return_value_check(C, event, action);
     return action;
   }
 
@@ -3825,15 +3842,14 @@ void wm_event_do_handlers(bContext *C)
       /* Active screen might change during handlers, update pointer. */
       screen = WM_window_get_active_screen(win);
 
-      if (G.debug & (G_DEBUG_HANDLERS | G_DEBUG_EVENTS) &&
-          !ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE)) {
+      if (G.debug & (G_DEBUG_HANDLERS | G_DEBUG_EVENTS) && !ISMOUSE_MOTION(event->type)) {
         printf("\n%s: Handling event\n", __func__);
         WM_event_print(event);
       }
 
       /* Take care of pie event filter. */
       if (wm_event_pie_filter(win, event)) {
-        if (!ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE)) {
+        if (!ISMOUSE_MOTION(event->type)) {
           CLOG_INFO(WM_LOG_HANDLERS, 1, "event filtered due to pie button pressed");
         }
         BLI_remlink(&win->event_queue, event);
@@ -3855,7 +3871,7 @@ void wm_event_do_handlers(bContext *C)
 
       /* Clear tool-tip on mouse move. */
       if (screen->tool_tip && screen->tool_tip->exit_on_event) {
-        if (ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE)) {
+        if (ISMOUSE_MOTION(event->type)) {
           if (len_manhattan_v2v2_int(screen->tool_tip->event_xy, event->xy) >
               WM_EVENT_CURSOR_MOTION_THRESHOLD) {
             WM_tooltip_clear(C, win);
@@ -4979,7 +4995,7 @@ static bool wm_event_is_double_click(const wmEvent *event)
 {
   if ((event->type == event->prev_type) && (event->prev_val == KM_RELEASE) &&
       (event->val == KM_PRESS)) {
-    if (ISMOUSE(event->type) && WM_event_drag_test(event, event->prev_press_xy)) {
+    if (ISMOUSE_BUTTON(event->type) && WM_event_drag_test(event, event->prev_press_xy)) {
       /* Pass. */
     }
     else {
@@ -5044,7 +5060,6 @@ static wmEvent *wm_event_add_mousemove_to_head(wmWindow *win)
     tevent = *event_last;
 
     tevent.flag = (eWM_EventFlag)0;
-    tevent.ascii = '\0';
     tevent.utf8_buf[0] = '\0';
 
     wm_event_custom_clear(&tevent);
@@ -5138,6 +5153,53 @@ static void wm_event_state_update_and_click_set(wmEvent *event,
   wm_event_state_update_and_click_set_ex(event, event_state, is_keyboard, check_double_click);
 }
 
+/* Returns true when the two events corresponds to a press of the same key with the same modifiers.
+ */
+static bool wm_event_is_same_key_press(const wmEvent &event_a, const wmEvent &event_b)
+{
+  if (event_a.val != KM_PRESS || event_b.val != KM_PRESS) {
+    return false;
+  }
+
+  if (event_a.modifier != event_b.modifier || event_a.type != event_b.type) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Returns true if the event is a key press event which is to be ignored and not added to the event
+ * queue.
+ *
+ * A key press event will be ignored if there is already matched key press in the queue.
+ * This avoids the event queue "clogging" in the situations when there is an operator bound to a
+ * key press event and the execution time of the operator is longer than the key repeat.
+ */
+static bool wm_event_is_ignorable_key_press(const wmWindow *win, const wmEvent &event)
+{
+  if (BLI_listbase_is_empty(&win->event_queue)) {
+    /* If the queue is empty never ignore the event.
+     * Empty queue at this point means that the events are handled fast enough, and there is no
+     * reason to ignore anything. */
+    return false;
+  }
+
+  if ((event.flag & WM_EVENT_IS_REPEAT) == 0) {
+    /* Only ignore repeat events from the keyboard, and allow accumulation of non-repeat events.
+     *
+     * The goal of this check is to allow events coming from a keyboard macro software, which can
+     * generate events quicker than the main loop handles them. In this case we want all events to
+     * be handled (unless the keyboard macro software tags them as repeat) because otherwise it
+     * will become impossible to get reliable results of automated events testing. */
+    return false;
+  }
+
+  const wmEvent &last_event = *static_cast<const wmEvent *>(win->event_queue.last);
+
+  return wm_event_is_same_key_press(last_event, event);
+}
+
 void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void *customdata)
 {
   if (UNLIKELY(G.f & G_FLAG_EVENT_SIMULATE)) {
@@ -5172,6 +5234,13 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
    */
   event.prev_type = event.type;
   event.prev_val = event.val;
+
+  /* Always use modifiers from the active window since
+     changes to modifiers aren't sent to inactive windows, see: T66088. */
+  if ((wm->winactive != win) && (wm->winactive && wm->winactive->eventstate)) {
+    event.modifier = wm->winactive->eventstate->modifier;
+    event.keymodifier = wm->winactive->eventstate->keymodifier;
+  }
 
   /* Ensure the event state is correct, any deviation from this may cause bugs.
    *
@@ -5214,6 +5283,10 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
       wmWindow *win_other = wm_event_cursor_other_windows(wm, win, &event);
       if (win_other) {
         wmEvent event_other = *win_other->eventstate;
+
+        /* Use the modifier state of this window. */
+        event_other.modifier = event.modifier;
+        event_other.keymodifier = event.keymodifier;
 
         /* See comment for this operation on `event` for details. */
         event_other.prev_type = event_other.type;
@@ -5304,6 +5377,10 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
       if (win_other) {
         wmEvent event_other = *win_other->eventstate;
 
+        /* Use the modifier state of this window. */
+        event_other.modifier = event.modifier;
+        event_other.keymodifier = event.keymodifier;
+
         /* See comment for this operation on `event` for details. */
         event_other.prev_type = event_other.type;
         event_other.prev_val = event_other.val;
@@ -5331,8 +5408,7 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
         break;
       }
 
-      event.ascii = kd->ascii;
-      /* Might be not nullptr terminated. */
+      /* Might be not null terminated. */
       memcpy(event.utf8_buf, kd->utf8_buf, sizeof(event.utf8_buf));
       if (kd->is_repeat) {
         event.flag |= WM_EVENT_IS_REPEAT;
@@ -5343,8 +5419,6 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
 
       /* Exclude arrow keys, escape, etc from text input. */
       if (type == GHOST_kEventKeyUp) {
-        event.ascii = '\0';
-
         /* Ghost should do this already for key up. */
         if (event.utf8_buf[0]) {
           CLOG_ERROR(WM_LOG_EVENTS,
@@ -5353,15 +5427,28 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
         event.utf8_buf[0] = '\0';
       }
       else {
-        if (event.ascii < 32 && event.ascii > 0) {
-          event.ascii = '\0';
-        }
         if (event.utf8_buf[0] < 32 && event.utf8_buf[0] > 0) {
           event.utf8_buf[0] = '\0';
         }
       }
 
       if (event.utf8_buf[0]) {
+        /* NOTE(@campbellbarton): Detect non-ASCII characters stored in `utf8_buf`,
+         * ideally this would never happen but it can't be ruled out for X11 which has
+         * special handling of Latin1 when building without UTF8 support.
+         * Avoid regressions by adding this conversions, it should eventually be removed. */
+        if ((event.utf8_buf[0] >= 0x80) && (event.utf8_buf[1] == '\0')) {
+          const uint c = (uint)event.utf8_buf[0];
+          int utf8_buf_len = BLI_str_utf8_from_unicode(c, event.utf8_buf, sizeof(event.utf8_buf));
+          CLOG_ERROR(WM_LOG_EVENTS,
+                     "ghost detected non-ASCII single byte character '%u', converting to utf8 "
+                     "('%.*s', length=%d)",
+                     c,
+                     utf8_buf_len,
+                     event.utf8_buf,
+                     utf8_buf_len);
+        }
+
         if (BLI_str_utf8_size(event.utf8_buf) == -1) {
           CLOG_ERROR(WM_LOG_EVENTS,
                      "ghost detected an invalid unicode character '%d'",
@@ -5434,7 +5521,9 @@ void wm_event_add_ghostevent(wmWindowManager *wm, wmWindow *win, int type, void 
         G.is_break = true;
       }
 
-      wm_event_add(win, &event);
+      if (!wm_event_is_ignorable_key_press(win, event)) {
+        wm_event_add(win, &event);
+      }
 
       break;
     }

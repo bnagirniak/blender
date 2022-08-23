@@ -26,7 +26,6 @@
 #  include "util/task.h"
 #  include "util/time.h"
 
-#  undef __KERNEL_CPU__
 #  define __KERNEL_OPTIX__
 #  include "kernel/device/optix/globals.h"
 
@@ -40,6 +39,9 @@ CCL_NAMESPACE_BEGIN
 // The original code is Copyright NVIDIA Corporation, BSD-3-Clause.
 namespace {
 
+#  if OPTIX_ABI_VERSION >= 60
+using ::optixUtilDenoiserInvokeTiled;
+#  else
 static OptixResult optixUtilDenoiserSplitImage(const OptixImage2D &input,
                                                const OptixImage2D &output,
                                                unsigned int overlapWindowSizeInPixels,
@@ -216,6 +218,7 @@ static OptixResult optixUtilDenoiserInvokeTiled(OptixDenoiser denoiser,
   }
   return OPTIX_SUCCESS;
 }
+#  endif
 
 #  if OPTIX_ABI_VERSION >= 55
 static void execute_optix_task(TaskPool &pool, OptixTask task, OptixResult &failure_reason)
@@ -2047,7 +2050,7 @@ void OptiXDevice::const_copy_to(const char *name, void *host, size_t size)
 
     /* Update traversable handle (since it is different for each device on multi devices). */
     KernelData *const data = (KernelData *)host;
-    *(OptixTraversableHandle *)&data->bvh.scene = tlas_handle;
+    *(OptixTraversableHandle *)&data->device_bvh = tlas_handle;
 
     update_launch_params(offsetof(KernelParamsOptiX, data), host, size);
     return;

@@ -229,8 +229,9 @@ void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_cont
 {
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
-    imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
   }
+
+  imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
 
   if (imagingGLEngine->IsPauseRendererSupported()) {
     imagingGLEngine->PauseRenderer();
@@ -319,14 +320,6 @@ pxr::UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, D
     iter.release_writers();
   }
 
-  std::string s2;
-  std::string s3;
-  usd_stage->ExportToString(&s2);
-  usd_stage->Export("D:/usd.usda");
-  printf("%s", s2.c_str());
-  usd_stage->GetRootLayer()->ExportToString(&s3);
-  usd_stage->GetRootLayer()->Export("D:/usd_root.usda");
-  printf("%s", s3.c_str());
   //if (data->params.export_animation) {
   //  /* Writing the animated frames is not 100% of the work, but it's our best guess. */
   //  float progress_per_frame = 1.0f / std::max(1, (scene->r.efra - scene->r.sfra + 1));

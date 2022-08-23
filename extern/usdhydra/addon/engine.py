@@ -118,7 +118,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
         materialx_data = self.get_materialx_data(context, depsgraph)
         print(materialx_data)
         session_reset(self.session, data, context, depsgraph, materialx_data, is_blender_scene, stage)
-        # session_view_update(self.session, depsgraph, context, context.space_data, context.region_data)
+        session_view_update(self.session, depsgraph, context, context.space_data, context.region_data)
 
     def view_draw(self, context, depsgraph):
         if not self.session:

@@ -30,10 +30,15 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
   if (!PyArg_ParseTuple(args, "s", &delegates_dir)) {
     Py_RETURN_NONE;
   }
-
+  
   std::string delegates_dir_str(delegates_dir);
 
   LOG(INFO) << "init_func(" << delegates_dir_str << ")";
+
+  // TODO: add PXR_MTLX_PLUGIN_SEARCH_PATHS if there are custom mtlx files
+  string MatX_libs_folder = BKE_appdir_folder_id(BLENDER_DATAFILES, "MaterialX");
+  string MatX = "PXR_MTLX_STDLIB_SEARCH_PATHS=" + MatX_libs_folder + "/libraries;";
+  putenv(MatX.c_str());
 
   std::string env("PATH=");
   env += delegates_dir_str + "/lib;";

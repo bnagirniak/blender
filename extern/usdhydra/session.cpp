@@ -237,6 +237,8 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     time_begin = chrono::steady_clock::now();
   }
 
+  stage->Save();
+
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
   b_engine.unbind_display_space_shader();
@@ -339,15 +341,18 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
 
-  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
 
   if (!materialx_data.empty()) {
     usd_export_params.export_materialx = true;
     blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
+    iter.iterate_and_write();
+    iter.release_writers();
   }
   else {
     usd_export_params.export_materialx = false;
     blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
+    iter.iterate_and_write();
+    iter.release_writers();
   }
 
   //if (data->params.export_animation) {
@@ -375,9 +380,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   //  /* If we're not animating, a single iteration over all objects is enough. */
   //  iter.iterate_and_write();
   //}
-
-  iter.iterate_and_write();
-  iter.release_writers();
 
   /* Finish up by going back to the keyframe that was current before we started. */
   if (CFRA != orig_frame) {

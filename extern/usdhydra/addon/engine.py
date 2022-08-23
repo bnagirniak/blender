@@ -80,7 +80,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
         self.bl_use_gpu_context = depsgraph.scene.usdhydra.final.is_gl_delegate
 
         materialx_data = self.get_materialx_data(data, depsgraph)
-        print(materialx_data)
+
         session_reset(self.session, data, bpy.context, depsgraph, materialx_data, is_blender_scene, stage)
         session_final_update(self.session, depsgraph)
 
@@ -116,7 +116,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
             self.session = session_create(self)
 
         materialx_data = self.get_materialx_data(context, depsgraph)
-        print(materialx_data)
+
         session_reset(self.session, data, context, depsgraph, materialx_data, is_blender_scene, stage)
         session_view_update(self.session, depsgraph, context, context.space_data, context.region_data)
 
@@ -139,8 +139,8 @@ class USDHydraEngine(bpy.types.RenderEngine):
 
                 mat = mat_slot.material
 
-                mx_file = _usdhydra.utils.get_temp_file(".mtlx", f'{mat.name}{mat.usdhydra.mx_node_tree.name if mat.usdhydra.mx_node_tree else ""}', False)
-                print(mx_file, str(mx_file))
+                mx_file = _usdhydra.utils.get_temp_file(".mtlx", f'{mat.name}{mat.usdhydra.mx_node_tree.name if mat.usdhydra.mx_node_tree else ""}', True)
+
                 doc = mat.usdhydra.export(obj)
                 if not doc:
                     # log.warn("MX export failed", mat)

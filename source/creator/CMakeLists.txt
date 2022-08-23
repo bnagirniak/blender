@@ -1274,7 +1274,7 @@ if(WITH_USD)
   )
   install(
     FILES ${USD_LIBRARY_DIR}/usd_usd_ms_d.dll
-          ${USD_LIBRARY_DIR}/boost_python310-vc142-mt-gd-x64-1_78.dll
+          ${USD_LIBRARY_DIR}/boost_python310-vc142-mt-gyd-x64-1_78.dll
     DESTINATION "."
     CONFIGURATIONS Debug
   )

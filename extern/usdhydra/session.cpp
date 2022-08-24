@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include <GL/glew.h>
-
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/base/gf/camera.h>
@@ -315,9 +313,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   DEG_graph_build_for_all_objects(depsgraph);
 
-  /* For restoring the current frame after exporting animation is done. */
-  const int orig_frame = CFRA;
-
   string filepath = usdhydra::get_temp_file(".usda");
   UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
 
@@ -369,12 +364,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   iter.iterate_and_write();
   iter.release_writers();
-
-  /* Finish up by going back to the keyframe that was current before we started. */
-  if (CFRA != orig_frame) {
-    CFRA = orig_frame;
-    BKE_scene_graph_update_for_newframe(depsgraph);
-  }
 
   return usd_stage;
 }

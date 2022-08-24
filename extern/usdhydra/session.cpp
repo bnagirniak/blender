@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include <GL/glew.h>
-
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/base/gf/camera.h>
@@ -39,12 +37,12 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, map<string, pair<string, string>> materialx_data)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId)
 {
   UsdStageRefPtr new_stage;
 
   if (is_blender_scene) {
-    new_stage = export_scene_to_usd(b_context, depsgraph, materialx_data);
+    new_stage = export_scene_to_usd(b_context, depsgraph);
   }
   else {
     new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
@@ -237,8 +235,6 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     time_begin = chrono::steady_clock::now();
   }
 
-  stage->Save();
-
   imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
 
   b_engine.unbind_display_space_shader();
@@ -265,7 +261,7 @@ void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_cont
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
   }
-
+  
   imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
 
   if (imagingGLEngine->IsPauseRendererSupported()) {
@@ -317,9 +313,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   DEG_graph_build_for_all_objects(depsgraph);
 
-  /* For restoring the current frame after exporting animation is done. */
-  const int orig_frame = CFRA;
-
   string filepath = usdhydra::get_temp_file(".usda");
   UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
 
@@ -340,7 +333,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
-
 
   if (!materialx_data.empty()) {
     usd_export_params.export_materialx = true;
@@ -380,12 +372,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   //  /* If we're not animating, a single iteration over all objects is enough. */
   //  iter.iterate_and_write();
   //}
-
-  /* Finish up by going back to the keyframe that was current before we started. */
-  if (CFRA != orig_frame) {
-    CFRA = orig_frame;
-    BKE_scene_graph_update_for_newframe(depsgraph);
-  }
 
   return usd_stage;
 }

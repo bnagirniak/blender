@@ -74,15 +74,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         return doc
 
     def export_includes(self, doc):
-        MX_LIBS_FOLDER = "libraries"
-        MX_LIBS_DIR = Path(bpy.utils.system_resource('DATAFILES', path='MaterialX'))/MX_LIBS_FOLDER
-
         # we need to export every deps only once
         unique_paths = set(node._file_path for node in self.nodes)
 
         for mtlx_path in unique_paths:
             # defining paths
-            source_path = MX_LIBS_DIR.parent / mtlx_path
+            source_path = mx_utils.MX_LIBS_DIR / mtlx_path
             mx.prependXInclude(doc, str(source_path))
 
     def import_(self, doc: mx.Document, file_path):

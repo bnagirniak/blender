@@ -13,7 +13,6 @@ IS_WIN = OS == 'Windows'
 IS_MAC = OS == 'Darwin'
 IS_LINUX = OS == 'Linux'
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
-LIBS_DIR = Path(f"{bpy.utils.resource_path('LOCAL')}/datafiles/MaterialX")
 
 
 def title_str(str):

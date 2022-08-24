@@ -26,12 +26,12 @@ class MaterialProperties(USDHydraProperties):
 
     mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree, update=update_mx_node_tree)
 
-    @property
-    def output_node(self):
-        material = self.id_data
-
-        if not material.node_tree:
-            return None
+    # @property
+    # def output_node(self):
+    #     material = self.id_data
+    #
+    #     if not material.node_tree:
+    #         return None
 
         # return next((node for node in material.node_tree.nodes if
         #              node.bl_idname == ShaderNodeOutputMaterial.__name__ and

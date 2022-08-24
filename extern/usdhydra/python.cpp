@@ -19,34 +19,35 @@
 #include "session.h"
 #include "utils.h"
 
+using namespace std;
 
 namespace usdhydra {
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
-  static std::string defaultPath = getenv("PATH");
+  static string defaultPath = getenv("PATH");
 
   char *delegates_dir;
   if (!PyArg_ParseTuple(args, "s", &delegates_dir)) {
     Py_RETURN_NONE;
   }
   
-  std::string delegates_dir_str(delegates_dir);
+  string delegates_dir_str(delegates_dir);
 
   LOG(INFO) << "init_func(" << delegates_dir_str << ")";
 
   // TODO: add PXR_MTLX_PLUGIN_SEARCH_PATHS if there are custom mtlx files
   string MatX_libs_folder = BKE_appdir_folder_id(BLENDER_DATAFILES, "MaterialX");
-  string MatX = "PXR_MTLX_STDLIB_SEARCH_PATHS=" + MatX_libs_folder + "/libraries;";
-  putenv(MatX.c_str());
+  string MatX_libs_env_var = "PXR_MTLX_STDLIB_SEARCH_PATHS=" + MatX_libs_folder + "/libraries;";
+  putenv(MatX_libs_env_var.c_str());
 
-  std::string env("PATH=");
+  string env("PATH=");
   env += delegates_dir_str + "/lib;";
   env += defaultPath;
   putenv(env.c_str());
 
   pxr::PlugRegistry &registry = pxr::PlugRegistry::GetInstance();
-  std::vector<std::string> paths;
+  vector<string> paths;
   paths.push_back(BKE_appdir_folder_id(BLENDER_DATAFILES, "usd"));
   paths.push_back(delegates_dir_str + "/plugin");
   registry.RegisterPlugins(paths);

@@ -108,6 +108,7 @@ class USDHYDRA_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
         mx_node_tree.create_basic_nodes()
 
         mat.usdhydra.mx_node_tree = mx_node_tree
+
         return {"FINISHED"}
 
 
@@ -119,6 +120,7 @@ class USDHYDRA_MATERIAL_OP_duplicate_mat_mx_node_tree(bpy.types.Operator):
     def execute(self, context):
         bpy.ops.material.new()
         bpy.ops.usdhydra.material_duplicate_mx_node_tree()
+
         return {"FINISHED"}
 
 
@@ -158,9 +160,10 @@ class USDHYDRA_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
 
     def execute(self, context):
         #context.material.usdhydra.mx_node_tree = bpy.data.node_groups[self.mx_node_tree_name]
+
         return {"FINISHED"}
-#
-#
+
+
 class USDHYDRA_MATERIAL_OP_unlink_mx_node_tree(bpy.types.Operator):
     """Unlink MaterialX node tree from selected material"""
     bl_idname = "usdhydra.material_unlink_mx_node_tree"
@@ -168,9 +171,10 @@ class USDHYDRA_MATERIAL_OP_unlink_mx_node_tree(bpy.types.Operator):
 
     def execute(self, context):
         #context.material.usdhydra.mx_node_tree = None
+
         return {"FINISHED"}
-#
-#
+
+
 class USDHYDRA_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
     bl_idname = "USDHYDRA_MATERIAL_MT_mx_node_tree"
     bl_label = "MX Nodetree"

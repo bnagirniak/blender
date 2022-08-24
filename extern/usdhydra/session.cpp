@@ -12,11 +12,12 @@
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
 
-#include "glog/logging.h"
-
+#include "intern/usd_hierarchy_iterator.h"
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
+
+#include "glog/logging.h"
 
 using namespace pxr;
 
@@ -37,7 +38,7 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, map<string, pair<string, string>> materialx_data)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, blender::io::usd::materialx_data_type materialx_data)
 {
   UsdStageRefPtr new_stage;
 
@@ -305,7 +306,7 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, map<string, pair<string, string>> materialx_data)
+UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data)
 {
   LOG(INFO) << "export_scene_to_usd";
 
@@ -333,19 +334,11 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
+  usd_export_params.export_materialx = !materialx_data.empty();
 
-  if (!materialx_data.empty()) {
-    usd_export_params.export_materialx = true;
-    blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
-    iter.iterate_and_write();
-    iter.release_writers();
-  }
-  else {
-    usd_export_params.export_materialx = false;
-    blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
-    iter.iterate_and_write();
-    iter.release_writers();
-  }
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
+  iter.iterate_and_write();
+  iter.release_writers();
 
   //if (data->params.export_animation) {
   //  /* Writing the animated frames is not 100% of the work, but it's our best guess. */
@@ -479,7 +472,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  map<string, pair<string, string>> materialx_data;
+  blender::io::usd::materialx_data_type materialx_data;
 
   if (pyMaterialx_data != Py_None) {
     PyObject *iter = PyObject_GetIter(pyMaterialx_data);

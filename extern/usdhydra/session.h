@@ -15,7 +15,7 @@
 #include "RNA_blender_cpp.h"
 
 #include "usd.h"
-#include "intern/usd_hierarchy_iterator.h"
+#include "intern/usd_exporter_context.h"
 #include "BKE_main.h"
 #include "BKE_scene.h"
 #include "BKE_context.h"
@@ -37,14 +37,14 @@ public:
   ~BlenderSession();
 
   void create();
-  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, map<string, pair<string, string>> materialx_data);
+  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, blender::io::usd::materialx_data_type materialx_data);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void sync_final_render(BL::Depsgraph &b_depsgraph);
-  UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, map<string, pair<string, string>> materialx_data);
+  UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data);
 
   template <typename T>
   float get_renderer_percent_done(T *renderer)

@@ -873,6 +873,7 @@ if(WITH_USD)
   set(BOOST_DEBUG_POSTFIX2 "vc142-mt-gyd-x64-${BOOST_VERSION}.lib")
   set(USD_LIBRARIES ${USD_LIBRARIES}
     debug ${USD_LIBRARY_DIR}/boost_python310-${BOOST_DEBUG_POSTFIX2}
+          ${USD_LIBRARY_DIR}/boost_python310-${BOOST_DEBUG_POSTFIX}
     optimized ${USD_LIBRARY_DIR}/boost_python310-${BOOST_POSTFIX})
 endif()
 

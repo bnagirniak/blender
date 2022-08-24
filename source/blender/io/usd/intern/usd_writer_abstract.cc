@@ -96,20 +96,14 @@ pxr::UsdShadeMaterial USDAbstractWriter::ensure_usd_material(const HierarchyCont
   pxr::TfToken material_name(usd_export_context_.hierarchy_iterator->get_id_name(&material->id));
   pxr::SdfPath usd_path = material_library_path.AppendChild(material_name);
 
-  //pxr::UsdShadeMaterial usd_material = pxr::UsdShadeMaterial::Get(stage, usd_path);
-  //if (usd_material) {
-  //  return usd_material;
-  //}
-
   pxr::UsdShadeMaterial usd_material = pxr::UsdShadeMaterial::Define(stage, usd_path);
 
-  if (material->use_nodes && this->usd_export_context_.export_params.generate_preview_surface && !this->usd_export_context_.export_params.export_materialx) {
+  if (material->use_nodes && this->usd_export_context_.export_params.generate_preview_surface &&
+      !this->usd_export_context_.export_params.export_materialx) {
     std::string active_uv = get_mesh_active_uvlayer_name(context.object);
-    create_usd_preview_surface_material(
-        this->usd_export_context_, material, usd_material, active_uv);
+    create_usd_preview_surface_material(this->usd_export_context_, material, usd_material, active_uv);
   }
-  else if (material->use_nodes && this->usd_export_context_.export_params.export_materialx &&
-           !this->usd_export_context_.materialx_data.empty()) {
+  else if (material->use_nodes && this->usd_export_context_.export_params.export_materialx) {
     create_materialx(this->usd_export_context_, material, usd_material, *usd_mesh);
   }
   else {

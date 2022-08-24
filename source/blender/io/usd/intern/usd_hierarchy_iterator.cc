@@ -32,16 +32,8 @@ namespace blender::io::usd {
 USDHierarchyIterator::USDHierarchyIterator(Main *bmain,
                                            Depsgraph *depsgraph,
                                            pxr::UsdStageRefPtr stage,
-                                           const USDExportParams &params)
-    : AbstractHierarchyIterator(bmain, depsgraph), stage_(stage), params_(params)
-{
-}
-
-USDHierarchyIterator::USDHierarchyIterator(Main *bmain,
-                                           Depsgraph *depsgraph,
-                                           pxr::UsdStageRefPtr stage,
                                            const USDExportParams &params,
-                                           std::map<std::string, std::pair<std::string, std::string>> materialx_data)
+                                           materialx_data_type materialx_data)
     : AbstractHierarchyIterator(bmain, depsgraph),
       stage_(stage),
       params_(params),

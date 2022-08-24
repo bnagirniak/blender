@@ -144,9 +144,8 @@ class USDHydraEngine(bpy.types.RenderEngine):
                 if not doc:
                     # log.warn("MX export failed", mat)
                     return None
-                # self.nodedef.getOutput(self.outputs[out_key].name)
 
-                mx.writeToXmlFile(doc, str(mx_file).replace('/', "\\"))
+                mx.writeToXmlFile(doc, str(mx_file))
                 surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
 
                 data.append((mat.name, str(mx_file), surfacematerial.getName()))

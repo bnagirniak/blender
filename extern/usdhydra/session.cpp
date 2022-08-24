@@ -461,12 +461,12 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "reset_func";
-  PyObject *pysession, *pydata, *pycontext, *pydepsgraph, *materialx_data_;
+  PyObject *pysession, *pydata, *pycontext, *pydepsgraph, *pyMaterialx_data;
 
   int stageId = 0;
   int is_blender_scene = 1;
 
-  if (!PyArg_ParseTuple(args, "OOOOOii", &pysession, &pydata, &pycontext, &pydepsgraph, &materialx_data_, &is_blender_scene, &stageId)) {
+  if (!PyArg_ParseTuple(args, "OOOOOii", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, &is_blender_scene, &stageId)) {
     Py_RETURN_NONE;
   }
 
@@ -481,34 +481,29 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
   map<string, pair<string, string>> materialx_data;
 
-  if (materialx_data_ != Py_None){
+  if (pyMaterialx_data != Py_None) {
+    PyObject *iter = PyObject_GetIter(pyMaterialx_data);
 
-      PyObject *iter = PyObject_GetIter(materialx_data_);
-
-      if (!iter) {
-        Py_RETURN_NONE;
-      }
+    if (iter) {
+      char *material_name = nullptr;
+      char *file_path = nullptr;
+      char *node_name = nullptr;
 
       while (true) {
-          PyObject *next = PyIter_Next(iter);
+        PyObject *next = PyIter_Next(iter);
 
-          if (!next) {
-              break;
-          }
+        if (!next) {
+            break;
+        }
 
-          char *i0 = nullptr;
-          char *i1 = nullptr;
-          char *i2 = nullptr;
+        if (!PyArg_ParseTuple(next, "sss", &material_name, &file_path, &node_name)) {
+            continue;
+        }
 
-          if (!PyArg_ParseTuple(next, "sss", &i0, &i1, &i2)) {
-              Py_RETURN_NONE;
-          }
-
-          string material(i0);
-          materialx_data.insert(pair<string, pair<string, string>>(material, pair<string, string>(string(i1), string(i2))));
+        materialx_data.insert(pair<string, pair<string, string>>(string(material_name), pair<string, string>(string(file_path), string(node_name))));
       }
     }
-
+  }
 
   //PointerRNA dataptr;
   //RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
@@ -608,7 +603,6 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   if (!PyArg_ParseTuple(args, "OOOOO", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData)) {
     Py_RETURN_NONE;
   }
-
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);

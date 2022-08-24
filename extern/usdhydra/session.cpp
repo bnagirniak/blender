@@ -37,12 +37,12 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, map<string, pair<string, string>> materialx_data)
 {
   UsdStageRefPtr new_stage;
 
   if (is_blender_scene) {
-    new_stage = export_scene_to_usd(b_context, depsgraph);
+    new_stage = export_scene_to_usd(b_context, depsgraph, materialx_data);
   }
   else {
     new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));

@@ -127,33 +127,33 @@ class USDHydraEngine(bpy.types.RenderEngine):
         session_view_draw(self.session, depsgraph, context, context.space_data, context.region_data)
 
 
-def get_materialx_data(self, context, depsgraph):
-    data = []
-    for obj in bpy.context.scene.objects:
-        if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
-            continue
-
-        for mat_slot in obj.material_slots:
-            if not mat_slot:
+    def get_materialx_data(self, context, depsgraph):
+        data = []
+        for obj in bpy.context.scene.objects:
+            if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
                 continue
 
-            mat = mat_slot.material
+            for mat_slot in obj.material_slots:
+                if not mat_slot:
+                    continue
 
-            mx_file = _usdhydra.utils.get_temp_file(".mtlx",
-                                                    f'{mat.name}{mat.usdhydra.mx_node_tree.name if mat.usdhydra.mx_node_tree else ""}',
-                                                    True)
+                mat = mat_slot.material
 
-            doc = mat.usdhydra.export(obj)
-            if not doc:
-                # log.warn("MX export failed", mat)
-                return None
+                mx_file = _usdhydra.utils.get_temp_file(".mtlx",
+                                                        f'{mat.name}{mat.usdhydra.mx_node_tree.name if mat.usdhydra.mx_node_tree else ""}',
+                                                        True)
 
-            mx.writeToXmlFile(doc, str(mx_file))
-            surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
+                doc = mat.usdhydra.export(obj)
+                if not doc:
+                    # log.warn("MX export failed", mat)
+                    return None
 
-            data.append((mat.name, str(mx_file), surfacematerial.getName()))
+                mx.writeToXmlFile(doc, str(mx_file))
+                surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
 
-    return tuple(data)
+                data.append((mat.name, str(mx_file), surfacematerial.getName()))
+
+        return tuple(data)
 
 
 def session_create(engine: USDHydraEngine):

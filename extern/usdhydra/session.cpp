@@ -17,6 +17,7 @@
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
+#include <intern/usd_writer_world.h>
 
 using namespace pxr;
 
@@ -37,12 +38,12 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, const char *render_delegate)
 {
   UsdStageRefPtr new_stage;
 
   if (is_blender_scene) {
-    new_stage = export_scene_to_usd(b_context, depsgraph);
+    new_stage = export_scene_to_usd(b_context, depsgraph, render_delegate);
   }
   else {
     new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
@@ -305,13 +306,21 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph)
+UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, const char *render_delegate)
 {
   LOG(INFO) << "export_scene_to_usd";
 
   Scene *scene = DEG_get_input_scene(depsgraph);
+  World *world = scene->world;
 
   DEG_graph_build_for_all_objects(depsgraph);
+
+  bContext *C = (bContext *)b_context.ptr.data;
+  Main *bmain = CTX_data_main(C);
+  USDExportParams usd_export_params;
+
+  usd_export_params.selected_objects_only = false;
+  usd_export_params.visible_objects_only = false;
 
   string filepath = usdhydra::get_temp_file(".usda");
   UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
@@ -320,6 +329,7 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   usd_stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
   usd_stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
 
+  blender::io::usd::create_world(usd_stage, world, render_delegate);
   /* Set up the stage for animated data. */
   /*if (data->params.export_animation) {
     usd_stage->SetTimeCodesPerSecond(FPS);
@@ -327,12 +337,7 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
     usd_stage->SetEndTimeCode(scene->r.efra);
   }*/
 
-  bContext *C = (bContext *)b_context.ptr.data;
-  Main *bmain = CTX_data_main(C);
-  USDExportParams usd_export_params;
 
-  usd_export_params.selected_objects_only = false;
-  usd_export_params.visible_objects_only = false;
 
   blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
 
@@ -364,6 +369,11 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   iter.iterate_and_write();
   iter.release_writers();
+
+  string s;
+  usd_stage->ExportToString(&s);
+  usd_stage->Export("d:\\test.usda");
+  printf("%s\n", s.c_str());
 
   return usd_stage;
 }
@@ -457,8 +467,9 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 
   int stageId = 0;
   int is_blender_scene = 1;
+  const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOOOii", &pysession, &pydata, &pycontext, &pydepsgraph, &is_blender_scene, &stageId)) {
+  if (!PyArg_ParseTuple(args, "OOOOiis", &pysession, &pydata, &pycontext, &pydepsgraph, &is_blender_scene, &stageId, &render_delegate)) {
     Py_RETURN_NONE;
   }
 
@@ -480,7 +491,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, depsgraph, is_blender_scene, stageId);
+  session->reset(b_context, depsgraph, is_blender_scene, stageId, render_delegate);
 
   Py_RETURN_NONE;
 }

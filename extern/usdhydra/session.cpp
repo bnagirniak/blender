@@ -349,7 +349,7 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   iter.iterate_and_write();
   iter.release_writers();
 
-  pxr::UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Get(usd_stage, pxr::SdfPath("/World/World"));
+  UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Get(usd_stage, SdfPath("/World/World"));
   if (world_light){
     pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
     pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();
@@ -483,7 +483,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   int is_blender_scene = 1;
   const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OO0OOiis", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, &is_blender_scene, &stageId, &render_delegate)) {
+  if (!PyArg_ParseTuple(args, "OOOOOiis", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, &is_blender_scene, &stageId, &render_delegate)) {
     Py_RETURN_NONE;
   }
 

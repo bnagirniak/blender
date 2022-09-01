@@ -166,9 +166,9 @@ def session_free(session):
     _usdhydra.session.free(session)
 
 
-def session_reset(session, data, context, depsgraph, is_blender_scene, stage, delegate):
+def session_reset(session, data, context, depsgraph, materialx_data, is_blender_scene, stage, delegate):
     _usdhydra.session.reset(session, data.as_pointer(), context.as_pointer(),
-                            depsgraph.as_pointer(), is_blender_scene, stage, delegate)
+                            depsgraph.as_pointer(), materialx_data, is_blender_scene, stage, delegate)
 
 
 def session_render(session, depsgraph):

@@ -5,6 +5,7 @@
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdShade/material.h>
+#include <pxr/usd/usdGeom/mesh.h>
 
 #include <string>
 
@@ -31,6 +32,11 @@ struct USDExporterContext;
  * \param default_uv: used as the default UV set name sampled by the `primvar`
  * reader shaders generated for image texture nodes that don't have an attached UVMap node.
  */
+void create_materialx(const USDExporterContext &usd_export_context,
+                                         Material *material,
+                                         pxr::UsdShadeMaterial &usd_material,
+                                         pxr::UsdGeomMesh &usd_mesh);
+
 void create_usd_preview_surface_material(const USDExporterContext &usd_export_context,
                                          Material *material,
                                          pxr::UsdShadeMaterial &usd_material,

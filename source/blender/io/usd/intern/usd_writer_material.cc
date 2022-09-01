@@ -114,6 +114,37 @@ bNode *traverse_channel(bNodeSocket *input, short target_type);
 template<typename T1, typename T2>
 void create_input(pxr::UsdShadeShader &shader, const InputSpec &spec, const void *value);
 
+void create_materialx(const USDExporterContext &usd_export_context,
+                                         Material *material,
+                                         pxr::UsdShadeMaterial &usd_material,
+                                         pxr::UsdGeomMesh &usd_mesh)
+ {
+  if (!material) {
+    return;
+  }
+
+  std::string mat_name =  material->id.name + 2;
+  std::pair<std::string, std::string> item = usd_export_context.materialx_data.find(mat_name)->second;
+
+  std::string materialx_path(item.first);
+  std::string surfacematerial(item.second);
+
+  pxr::UsdPrim prim = usd_material.GetPrim();
+  prim.GetReferences().AddReference(materialx_path, pxr::SdfPath("/MaterialX"));
+  prim.GetPath()
+      .AppendChild(pxr::TfToken("Materials"))
+      .AppendChild(pxr::TfToken(surfacematerial));
+
+  pxr::UsdPrim prim_mesh = usd_mesh.GetPrim();
+  pxr::SdfPath mat_path = prim_mesh.GetParent().GetPath().AppendChild(pxr::TfToken(mat_name));
+  pxr::UsdPrim prim_mat = usd_export_context.stage->DefinePrim(mat_path);
+  prim_mat.GetReferences().AddInternalReference(prim.GetPath());
+
+  usd_material = pxr::UsdShadeMaterial::Define(usd_export_context.stage, prim_mat.GetPath()
+                                                   .AppendChild(pxr::TfToken("Materials"))
+                                                   .AppendChild(pxr::TfToken(surfacematerial)));
+}
+
 void create_usd_preview_surface_material(const USDExporterContext &usd_export_context,
                                          Material *material,
                                          pxr::UsdShadeMaterial &usd_material,

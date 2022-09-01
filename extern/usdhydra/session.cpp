@@ -14,12 +14,13 @@
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
 
-#include "glog/logging.h"
-
+#include "intern/usd_hierarchy_iterator.h"
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
 #include "intern/usd_writer_world.h"
+
+#include "glog/logging.h"
 
 using namespace pxr;
 
@@ -40,12 +41,12 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, const char *render_delegate)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, blender::io::usd::materialx_data_type materialx_data, const char *render_delegate)
 {
   UsdStageRefPtr new_stage;
 
   if (is_blender_scene) {
-    new_stage = export_scene_to_usd(b_context, depsgraph, render_delegate);
+    new_stage = export_scene_to_usd(b_context, depsgraph, materialx_data, render_delegate);
   }
   else {
     new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
@@ -308,7 +309,7 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, const char *render_delegate)
+UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data, const char *render_delegate)
 {
   LOG(INFO) << "export_scene_to_usd";
 
@@ -325,6 +326,7 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   usd_export_params.visible_objects_only = false;
   usd_export_params.export_textures = true;
   usd_export_params.overwrite_textures = true;
+  usd_export_params.export_materialx = !materialx_data.empty();
 
   string filepath = usdhydra::get_temp_file(".usda");
   UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
@@ -343,8 +345,23 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   }*/
 
 
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
+  iter.iterate_and_write();
+  iter.release_writers();
 
-  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params);
+  pxr::UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Get(usd_stage, pxr::SdfPath("/World/World"));
+  if (world_light){
+    pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
+    pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();
+
+    if (strcmp(render_delegate, "HdStormRendererPlugin") == 0){
+      yOp.Set(90.0f);
+    }
+    else if (strcmp(render_delegate, "HdRprPlugin") == 0){
+      xOp.Set(180.0f);
+      yOp.Set(-90.0f);
+    }
+  }
 
   //if (data->params.export_animation) {
   //  /* Writing the animated frames is not 100% of the work, but it's our best guess. */
@@ -371,23 +388,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   //  /* If we're not animating, a single iteration over all objects is enough. */
   //  iter.iterate_and_write();
   //}
-
-  iter.iterate_and_write();
-  iter.release_writers();
-
-  pxr::UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Get(usd_stage, pxr::SdfPath("/World/World"));
-  if (world_light){
-    pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
-    pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();
-
-    if (strcmp(render_delegate, "HdStormRendererPlugin") == 0){
-      yOp.Set(90.0f);
-    }
-    else if (strcmp(render_delegate, "HdRprPlugin") == 0){
-      xOp.Set(180.0f);
-      yOp.Set(-90.0f);
-    }
-  }
 
   return usd_stage;
 }
@@ -477,13 +477,13 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "reset_func";
-  PyObject *pysession, *pydata, *pycontext, *pydepsgraph;
+  PyObject *pysession, *pydata, *pycontext, *pydepsgraph, *pyMaterialx_data;
 
   int stageId = 0;
   int is_blender_scene = 1;
   const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOOOiis", &pysession, &pydata, &pycontext, &pydepsgraph, &is_blender_scene, &stageId, &render_delegate)) {
+  if (!PyArg_ParseTuple(args, "OO0OOiis", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, &is_blender_scene, &stageId, &render_delegate)) {
     Py_RETURN_NONE;
   }
 
@@ -496,6 +496,31 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  blender::io::usd::materialx_data_type materialx_data;
+
+  if (pyMaterialx_data != Py_None) {
+    PyObject *iter = PyObject_GetIter(pyMaterialx_data);
+
+    if (iter) {
+      char *material_name = nullptr;
+      char *file_path = nullptr;
+      char *node_name = nullptr;
+
+      while (true) {
+        PyObject *next = PyIter_Next(iter);
+
+        if (!next) {
+            break;
+        }
+
+        if (!PyArg_ParseTuple(next, "sss", &material_name, &file_path, &node_name)) {
+            continue;
+        }
+
+        materialx_data.insert(pair<string, pair<string, string>>(string(material_name), pair<string, string>(string(file_path), string(node_name))));
+      }
+    }
+  }
 
   //PointerRNA dataptr;
   //RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
@@ -505,7 +530,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, depsgraph, is_blender_scene, stageId, render_delegate);
+  session->reset(b_context, depsgraph, is_blender_scene, stageId, materialx_data, render_delegate);
 
   Py_RETURN_NONE;
 }
@@ -595,7 +620,6 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   if (!PyArg_ParseTuple(args, "OOOOO", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData)) {
     Py_RETURN_NONE;
   }
-
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);

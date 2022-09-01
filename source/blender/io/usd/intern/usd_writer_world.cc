@@ -33,6 +33,8 @@ void create_world(const pxr::UsdStageRefPtr stage, World *world)
   pxr::UsdPrim world_prim = stage->DefinePrim(pxr::SdfPath("/World"));
   pxr::UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Define(stage, world_prim.GetPath().AppendChild(pxr::TfToken(pxr::TfMakeValidIdentifier("World"))));
   USDExportParams export_params;
+  export_params.export_textures = true;
+  export_params.overwrite_textures = true;
 
   LISTBASE_FOREACH (bNodeSocket *, sock, &node->inputs) {
 

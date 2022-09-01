@@ -324,8 +324,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
-  usd_export_params.export_textures = true;
-  usd_export_params.overwrite_textures = true;
   usd_export_params.export_materialx = !materialx_data.empty();
 
   string filepath = usdhydra::get_temp_file(".usda");

@@ -349,7 +349,7 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   iter.iterate_and_write();
   iter.release_writers();
 
-  UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Get(usd_stage, SdfPath("/World/World"));
+  UsdLuxDomeLight world_light = UsdLuxDomeLight::Get(usd_stage, SdfPath("/World/World"));
   if (world_light){
     pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
     pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();

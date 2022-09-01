@@ -6,6 +6,8 @@
 #include <pxr/base/gf/camera.h>
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usd/usdGeom/camera.h>
+#include <pxr/usd/usdLux/domeLight.h>
+#include <pxr/usd/usdLux/shapingAPI.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImagingGL/renderParams.h>
 #include <pxr/usdImaging/usdAppUtils/camera.h>
@@ -17,7 +19,7 @@
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
-#include <intern/usd_writer_world.h>
+#include "intern/usd_writer_world.h"
 
 using namespace pxr;
 
@@ -321,6 +323,8 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
+  usd_export_params.export_textures = true;
+  usd_export_params.overwrite_textures = true;
 
   string filepath = usdhydra::get_temp_file(".usda");
   UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
@@ -329,7 +333,8 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   usd_stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
   usd_stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
 
-  blender::io::usd::create_world(usd_stage, world, render_delegate);
+  blender::io::usd::create_world(usd_stage, world);
+
   /* Set up the stage for animated data. */
   /*if (data->params.export_animation) {
     usd_stage->SetTimeCodesPerSecond(FPS);
@@ -370,10 +375,19 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   iter.iterate_and_write();
   iter.release_writers();
 
-  string s;
-  usd_stage->ExportToString(&s);
-  usd_stage->Export("d:\\test.usda");
-  printf("%s\n", s.c_str());
+  pxr::UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Get(usd_stage, pxr::SdfPath("/World/World"));
+  if (world_light){
+    pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
+    pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();
+
+    if (strcmp(render_delegate, "HdStormRendererPlugin") == 0){
+      yOp.Set(90.0f);
+    }
+    else if (strcmp(render_delegate, "HdRprPlugin") == 0){
+      xOp.Set(180.0f);
+      yOp.Set(-90.0f);
+    }
+  }
 
   return usd_stage;
 }

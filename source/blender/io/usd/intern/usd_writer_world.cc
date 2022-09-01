@@ -1,14 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright 2019 Blender Foundation. All rights reserved. */
-#include "usd_writer_world.h"
 
 #include <pxr/pxr.h>
 #include <pxr/usd/usdLux/domeLight.h>
 #include <pxr/usd/usdLux/shapingAPI.h>
-#include <pxr/usd/usd/variantSets.h>
-#include <pxr/usd/usd/editContext.h>
+
 #include "BKE_node.h"
 #include "DNA_world_types.h"
+#include "usd_writer_world.h"
 #include "usd_writer_material.h"
 #include "usd_exporter_context.h"
 
@@ -20,7 +19,7 @@ auto get_value(const void *value)
   const T1 *cast_value = static_cast<const T1 *>(value);
   return T2(cast_value->value);
 }
-void create_world(const pxr::UsdStageRefPtr stage, World *world, const char *render_delegate)
+void create_world(const pxr::UsdStageRefPtr stage, World *world)
 {
   if (!world) {
     return;
@@ -34,8 +33,6 @@ void create_world(const pxr::UsdStageRefPtr stage, World *world, const char *ren
   pxr::UsdPrim world_prim = stage->DefinePrim(pxr::SdfPath("/World"));
   pxr::UsdLuxDomeLight world_light = pxr::UsdLuxDomeLight::Define(stage, world_prim.GetPath().AppendChild(pxr::TfToken(pxr::TfMakeValidIdentifier("World"))));
   USDExportParams export_params;
-  export_params.export_textures = true;
-  export_params.overwrite_textures = true;
 
   LISTBASE_FOREACH (bNodeSocket *, sock, &node->inputs) {
 
@@ -58,22 +55,7 @@ void create_world(const pxr::UsdStageRefPtr stage, World *world, const char *ren
         if (!imagePath.empty()) {
           pxr::UsdAttribute texattr = world_light.CreateTextureFileAttr(pxr::VtValue(pxr::SdfAssetPath(imagePath)));
           texattr.Set(pxr::VtValue(pxr::SdfAssetPath(imagePath)));
-
-          world_light.OrientToStageUpAxis();
-
-          pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
-          pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();
-
-          if (strcmp(render_delegate, "HdStormRendererPlugin") == 0){
-            yOp.Set(90.0f);
-          }
-          else if (strcmp(render_delegate, "HdRprPlugin") == 0){
-            xOp.Set(180.0f);
-            yOp.Set(-90.0f);
-          }
         }
-
-
       }
     }
     else if (std::string(sock->name) == "Strength"){
@@ -81,6 +63,7 @@ void create_world(const pxr::UsdStageRefPtr stage, World *world, const char *ren
     }
 
     world_light.GetPrim().CreateAttribute(pxr::TfToken("inputs:transparency"), pxr::SdfValueTypeNames->Float).Set(1.0f);
+    world_light.OrientToStageUpAxis();
   }
 }
 static bNode *find_background_node(World *world)

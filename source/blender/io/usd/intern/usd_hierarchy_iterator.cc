@@ -32,8 +32,12 @@ namespace blender::io::usd {
 USDHierarchyIterator::USDHierarchyIterator(Main *bmain,
                                            Depsgraph *depsgraph,
                                            pxr::UsdStageRefPtr stage,
-                                           const USDExportParams &params)
-    : AbstractHierarchyIterator(bmain, depsgraph), stage_(stage), params_(params)
+                                           const USDExportParams &params,
+                                           materialx_data_type materialx_data)
+    : AbstractHierarchyIterator(bmain, depsgraph),
+      stage_(stage),
+      params_(params),
+      materialx_data_(materialx_data)
 {
 }
 
@@ -78,7 +82,7 @@ const pxr::UsdTimeCode &USDHierarchyIterator::get_export_time_code() const
 USDExporterContext USDHierarchyIterator::create_usd_export_context(const HierarchyContext *context)
 {
   return USDExporterContext{
-      bmain_, depsgraph_, stage_, pxr::SdfPath(context->export_path), this, params_};
+      bmain_, depsgraph_, stage_, pxr::SdfPath(context->export_path), this, params_, materialx_data_};
 }
 
 AbstractHierarchyWriter *USDHierarchyIterator::create_transform_writer(

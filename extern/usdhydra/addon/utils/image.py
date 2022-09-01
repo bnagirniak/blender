@@ -22,7 +22,7 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
     image_path = Path(image.filepath_from_user())
     if not image.packed_file and image.source != 'GENERATED':
         if not image_path.is_file():
-            log.warn("Image is missing", image, image_path)
+            # log.warn("Image is missing", image, image_path)
             return None
 
         image_suffix = image_path.suffix.lower()
@@ -34,7 +34,7 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
         if image_suffix in READONLY_IMAGE_FORMATS:
             return image_path
 
-    temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.stem)
+    temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.stem, False)
     if cache_check and image.source != 'GENERATED' and temp_path.is_file():
         return temp_path
 
@@ -64,7 +64,7 @@ def cache_image_file_path(image_path, cache_check=True):
         return image_path
 
     if cache_check:
-        temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.name)
+        temp_path = _usdhydra.utils.get_temp_file(DEFAULT_FORMAT, image_path.name, False)
         if temp_path.is_file():
             return temp_path
 

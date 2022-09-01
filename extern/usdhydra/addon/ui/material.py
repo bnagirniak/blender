@@ -11,7 +11,7 @@ from bpy_extras.io_utils import ExportHelper
 
 from pathlib import Path
 from . import USDHydra_Panel, USDHydra_ChildPanel, USDHydra_Operator
-#from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
+from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 #from ..mx_nodes.nodes.base_node import is_mx_node_valid
 #from ..utils import pass_node_reroute, title_str, BLENDER_VERSION
 #from ..utils import mx as mx_utils
@@ -103,11 +103,12 @@ class USDHYDRA_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
     bl_label = "New"
 
     def execute(self, context):
-        # mat = context.material
-        # mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-        # mx_node_tree.create_basic_nodes()
-        #
-        # mat.usdhydra.mx_node_tree = mx_node_tree
+        mat = context.material
+        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+        mx_node_tree.create_basic_nodes()
+
+        mat.usdhydra.mx_node_tree = mx_node_tree
+
         return {"FINISHED"}
 
 
@@ -117,8 +118,9 @@ class USDHYDRA_MATERIAL_OP_duplicate_mat_mx_node_tree(bpy.types.Operator):
     bl_label = ""
 
     def execute(self, context):
-        # bpy.ops.material.new()
-        # bpy.ops.usdhydra.material_duplicate_mx_node_tree()
+        bpy.ops.material.new()
+        bpy.ops.usdhydra.material_duplicate_mx_node_tree()
+
         return {"FINISHED"}
 
 
@@ -128,11 +130,11 @@ class USDHYDRA_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
     bl_label = ""
 
     def execute(self, context):
-        # mat = context.object.active_material
-        # mx_node_tree = mat.usdhydra.mx_node_tree
-        #
-        # if mx_node_tree:
-        #     mat.usdhydra.mx_node_tree = mx_node_tree.copy()
+        mat = context.object.active_material
+        mx_node_tree = mat.usdhydra.mx_node_tree
+
+        if mx_node_tree:
+            mat.usdhydra.mx_node_tree = mx_node_tree.copy()
 
         return {"FINISHED"}
 
@@ -158,9 +160,10 @@ class USDHYDRA_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
 
     def execute(self, context):
         #context.material.usdhydra.mx_node_tree = bpy.data.node_groups[self.mx_node_tree_name]
+
         return {"FINISHED"}
-#
-#
+
+
 class USDHYDRA_MATERIAL_OP_unlink_mx_node_tree(bpy.types.Operator):
     """Unlink MaterialX node tree from selected material"""
     bl_idname = "usdhydra.material_unlink_mx_node_tree"
@@ -168,9 +171,10 @@ class USDHYDRA_MATERIAL_OP_unlink_mx_node_tree(bpy.types.Operator):
 
     def execute(self, context):
         #context.material.usdhydra.mx_node_tree = None
+
         return {"FINISHED"}
-#
-#
+
+
 class USDHYDRA_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
     bl_idname = "USDHYDRA_MATERIAL_MT_mx_node_tree"
     bl_label = "MX Nodetree"
@@ -237,23 +241,23 @@ class USDHYDRA_MATERIAL_OP_link_mx_node(bpy.types.Operator):
     def execute(self, context):
         layout = self.layout
 
-        # node_tree = context.material.usdhydra.mx_node_tree
-        # current_node = context.material.usdhydra.mx_node_tree.nodes[self.current_node_name]
-        #
-        # input = current_node.inputs[self.input_num]
-        # link = next((link for link in input.links), None) if input.is_linked else None
-        # linked_node_name = link.from_node.bl_idname if link else None
-        #
-        # if linked_node_name:
-        #     if linked_node_name != self.new_node_name:
-        #         bpy.ops.usdhydra.material_remove_node(input_node_name=link.from_node.name)
-        #     else:
-        #         return {"FINISHED"}
-        #
-        # new_node = node_tree.nodes.new(self.new_node_name)
-        # new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-        #                     current_node.location[1])
-        # node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
+        node_tree = context.material.usdhydra.mx_node_tree
+        current_node = context.material.usdhydra.mx_node_tree.nodes[self.current_node_name]
+
+        input = current_node.inputs[self.input_num]
+        link = next((link for link in input.links), None) if input.is_linked else None
+        linked_node_name = link.from_node.bl_idname if link else None
+
+        if linked_node_name:
+            if linked_node_name != self.new_node_name:
+                bpy.ops.usdhydra.material_remove_node(input_node_name=link.from_node.name)
+            else:
+                return {"FINISHED"}
+
+        new_node = node_tree.nodes.new(self.new_node_name)
+        new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                            current_node.location[1])
+        node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
 
         return {"FINISHED"}
 

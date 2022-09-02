@@ -81,7 +81,8 @@ class USDHydraEngine(bpy.types.RenderEngine):
 
         materialx_data = self.get_materialx_data(data, depsgraph)
 
-        session_reset(self.session, data, bpy.context, depsgraph, materialx_data, is_blender_scene, stage)
+        session_reset(self.session, data, bpy.context, depsgraph, materialx_data, is_blender_scene,
+                      stage, depsgraph.scene.usdhydra.final.delegate)
         session_final_update(self.session, depsgraph)
 
     def render(self, depsgraph):
@@ -117,7 +118,8 @@ class USDHydraEngine(bpy.types.RenderEngine):
 
         materialx_data = self.get_materialx_data(context, depsgraph)
 
-        session_reset(self.session, data, context, depsgraph, materialx_data, is_blender_scene, stage)
+        session_reset(self.session, data, context, depsgraph, materialx_data, is_blender_scene,
+                      stage, depsgraph.scene.usdhydra.viewport.delegate)
         session_view_update(self.session, depsgraph, context, context.space_data, context.region_data)
 
     def view_draw(self, context, depsgraph):
@@ -164,9 +166,9 @@ def session_free(session):
     _usdhydra.session.free(session)
 
 
-def session_reset(session, data, context, depsgraph, materialx_data, is_blender_scene, stage):
-    _usdhydra.session.reset(session, data.as_pointer(), context.as_pointer(), depsgraph.as_pointer(), materialx_data,
-                            is_blender_scene, stage)
+def session_reset(session, data, context, depsgraph, materialx_data, is_blender_scene, stage, delegate):
+    _usdhydra.session.reset(session, data.as_pointer(), context.as_pointer(),
+                            depsgraph.as_pointer(), materialx_data, is_blender_scene, stage, delegate)
 
 
 def session_render(session, depsgraph):
@@ -183,8 +185,9 @@ def session_view_draw(session, depsgraph, context, space_data, region_data):
 
 
 def session_view_update(session, depsgraph, context, space_data, region_data):
-    _usdhydra.session.view_update(session, depsgraph.as_pointer(), context.as_pointer(), space_data.as_pointer(),
-                                  region_data.as_pointer(), depsgraph.scene.usdhydra.viewport.delegate)
+    _usdhydra.session.view_update(session, depsgraph.as_pointer(), context.as_pointer(),
+                                  space_data.as_pointer(), region_data.as_pointer(),
+                                  depsgraph.scene.usdhydra.viewport.delegate)
 
 
 def session_get_render_plugins():

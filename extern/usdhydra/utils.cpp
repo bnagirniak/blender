@@ -2,6 +2,7 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <boost/random.hpp>
+#include <boost/filesystem.hpp>
 
 #include "utils.h"
 
@@ -73,6 +74,16 @@ string get_temp_file(string suffix, string name, bool is_rand)
   return get_temp_pid_dir().u8string() + "/" + name;
 }
 
+bool clear_temp_dir(void)
+{
+  boost::filesystem::path temp_dir(get_temp_dir());
+  if (boost::filesystem::is_empty(temp_dir)) {
+    return true;
+  }
+
+  return boost::filesystem::remove_all(temp_dir);
+}
+
 string format_milliseconds(chrono::milliseconds millisecs)
 {
     bool neg = millisecs < 0ms;
@@ -116,9 +127,15 @@ static PyObject *get_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
   return PyUnicode_FromString(path.u8string().c_str());
 }
 
+static PyObject *clear_temp_dir_func(PyObject * /*self*/, PyObject * /*args*/)
+{
+  return PyBool_FromLong(clear_temp_dir());
+}
+
 static PyMethodDef methods[] = {
   {"get_temp_file", get_temp_file_func, METH_VARARGS, ""},
   {"get_temp_dir", get_temp_dir_func, METH_VARARGS, ""},
+  {"clear_temp_dir", clear_temp_dir_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

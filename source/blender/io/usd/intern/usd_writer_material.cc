@@ -122,7 +122,7 @@ void create_materialx(const USDExporterContext &usd_export_context,
   if (!material) {
     return;
   }
-  
+
   std::string mat_name =  material->id.name + 2;
 
   auto it = usd_export_context.materialx_data.find(mat_name);
@@ -134,7 +134,7 @@ void create_materialx(const USDExporterContext &usd_export_context,
 
   std::string materialx_path(item.first);
   std::string surfacematerial(item.second);
-  
+
   pxr::UsdPrim prim = usd_material.GetPrim();
   prim.GetReferences().AddReference(materialx_path, pxr::SdfPath("/MaterialX"));
   prim.GetPath()

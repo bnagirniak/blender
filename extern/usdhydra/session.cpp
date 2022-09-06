@@ -342,7 +342,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
     usd_stage->SetEndTimeCode(scene->r.efra);
   }*/
 
-
   blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
   iter.iterate_and_write();
   iter.release_writers();

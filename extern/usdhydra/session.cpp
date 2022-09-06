@@ -41,7 +41,8 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, blender::io::usd::materialx_data_type materialx_data, const char *render_delegate)
+void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, 
+                           blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview)
 {
   UsdStageRefPtr new_stage;
 
@@ -72,9 +73,20 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
 
   for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
     UsdPrim override_prim = stage->OverridePrim(stage->GetPseudoRoot().GetPath().AppendChild(prim.GetName()));
-    override_prim.SetActive(true);
     override_prim.GetReferences().ClearReferences();
     override_prim.GetReferences().AddReference(new_stage->GetRootLayer()->GetRealPath(), prim.GetPath());
+    auto test = prim.GetName().GetString();
+    if (is_preview) {
+      for (auto allowed_prim_name : preview_allowed_prims) {
+        if (prim.GetName().GetString().rfind(allowed_prim_name) == std::string::npos) {
+          override_prim.SetActive(false);
+        }
+        else {
+          override_prim.SetActive(true);
+          break;
+        }
+      }
+    }
   }
 }
 
@@ -159,7 +171,6 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
 
   imagingLiteEngine->SetCameraState(gf_camera);
-
   imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingLiteEngine->SetRendererAov(HdAovTokens->color);
 
@@ -477,10 +488,11 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   PyObject *pysession, *pydata, *pycontext, *pydepsgraph, *pyMaterialx_data;
 
   int stageId = 0;
-  int is_blender_scene = 1;
+  int is_blender_scene = 1, is_preview = 0;
   const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOOOOiis", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, &is_blender_scene, &stageId, &render_delegate)) {
+  if (!PyArg_ParseTuple(args, "OOOOOiisi", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, 
+                                           &is_blender_scene, &stageId, &render_delegate, &is_preview)) {
     Py_RETURN_NONE;
   }
 
@@ -527,7 +539,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, depsgraph, is_blender_scene, stageId, materialx_data, render_delegate);
+  session->reset(b_context, depsgraph, is_blender_scene, stageId, materialx_data, render_delegate, is_preview);
 
   Py_RETURN_NONE;
 }

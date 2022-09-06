@@ -41,6 +41,26 @@ void BlenderSession::create()
   stage = UsdStage::CreateNew(filepath);
 }
 
+void add_reference_to_prim(int is_preview, UsdStageRefPtr stage, UsdStageRefPtr new_stage, UsdPrim prim) {
+  if (is_preview) {
+    for (auto allowed_prim_name : preview_allowed_prims) {
+      if (prim.GetName().GetString().rfind(allowed_prim_name) != std::string::npos) {
+        UsdPrim override_prim = stage->OverridePrim(stage->GetPseudoRoot().GetPath().AppendChild(prim.GetName()));
+        override_prim.SetActive(true);
+        override_prim.GetReferences().ClearReferences();
+        override_prim.GetReferences().AddReference(new_stage->GetRootLayer()->GetRealPath(), prim.GetPath());
+        break;
+      }
+    }
+  }
+  else {
+    UsdPrim override_prim = stage->OverridePrim(stage->GetPseudoRoot().GetPath().AppendChild(prim.GetName()));
+    override_prim.SetActive(true);
+    override_prim.GetReferences().ClearReferences();
+    override_prim.GetReferences().AddReference(new_stage->GetRootLayer()->GetRealPath(), prim.GetPath());
+  }
+}
+
 void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, 
                            blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview)
 {
@@ -72,21 +92,7 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
   }
 
   for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
-    UsdPrim override_prim = stage->OverridePrim(stage->GetPseudoRoot().GetPath().AppendChild(prim.GetName()));
-    override_prim.GetReferences().ClearReferences();
-    override_prim.GetReferences().AddReference(new_stage->GetRootLayer()->GetRealPath(), prim.GetPath());
-    auto test = prim.GetName().GetString();
-    if (is_preview) {
-      for (auto allowed_prim_name : preview_allowed_prims) {
-        if (prim.GetName().GetString().rfind(allowed_prim_name) == std::string::npos) {
-          override_prim.SetActive(false);
-        }
-        else {
-          override_prim.SetActive(true);
-          break;
-        }
-      }
-    }
+    add_reference_to_prim(is_preview, stage, new_stage, prim);
   }
 }
 

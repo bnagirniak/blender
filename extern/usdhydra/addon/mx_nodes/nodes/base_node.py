@@ -9,7 +9,7 @@ import bpy
 
 from ...utils import title_str, code_str, pass_node_reroute, BLENDER_VERSION
 from ...utils import mx as mx_utils
-# from . import log
+from . import log
 
 
 class MxNodeInputSocket(bpy.types.NodeSocket):

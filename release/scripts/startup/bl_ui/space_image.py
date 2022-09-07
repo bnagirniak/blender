@@ -292,6 +292,10 @@ class IMAGE_MT_uvs_transform(Menu):
 
         layout.operator("transform.shear")
 
+        layout.separator()
+
+        layout.operator("uv.randomize_uv_transform")
+
 
 class IMAGE_MT_uvs_snap(Menu):
     bl_label = "Snap"
@@ -432,6 +436,7 @@ class IMAGE_MT_uvs(Menu):
         layout.operator("uv.minimize_stretch")
         layout.operator("uv.stitch")
         layout.menu("IMAGE_MT_uvs_align")
+        layout.operator("uv.align_rotation")
 
         layout.separator()
 

@@ -16,7 +16,7 @@ from .image import cache_image_file
 from . import logging
 log = logging.Log('utils.mx')
 
-MX_LIBS_DIR = Path(bpy.utils.resource_path('LOCAL')) / "datafiles/MaterialX"
+MX_LIBS_DIR = Path(bpy.utils.system_resource('DATAFILES', path='MaterialX'))
 
 os.environ['MATERIALX_SEARCH_PATH'] = str(MX_LIBS_DIR)
 

@@ -90,7 +90,7 @@ static int wm_usd_export_invoke(bContext *C, wmOperator *op, const wmEvent *UNUS
     const char *main_blendfile_path = BKE_main_blendfile_path(bmain);
 
     if (main_blendfile_path[0] == '\0') {
-      BLI_strncpy(filepath, "untitled", sizeof(filepath));
+      BLI_strncpy(filepath, DATA_("untitled"), sizeof(filepath));
     }
     else {
       BLI_strncpy(filepath, main_blendfile_path, sizeof(filepath));
@@ -130,6 +130,7 @@ static int wm_usd_export_exec(bContext *C, wmOperator *op)
   const bool evaluation_mode = RNA_enum_get(op->ptr, "evaluation_mode");
 
   const bool generate_preview_surface = RNA_boolean_get(op->ptr, "generate_preview_surface");
+  const bool export_materialx = RNA_boolean_get(op->ptr, "export_materialx");
   const bool export_textures = RNA_boolean_get(op->ptr, "export_textures");
   const bool overwrite_textures = RNA_boolean_get(op->ptr, "overwrite_textures");
   const bool relative_paths = RNA_boolean_get(op->ptr, "relative_paths");
@@ -145,6 +146,7 @@ static int wm_usd_export_exec(bContext *C, wmOperator *op)
       use_instancing,
       evaluation_mode,
       generate_preview_surface,
+      export_materialx,
       export_textures,
       overwrite_textures,
       relative_paths,
@@ -295,6 +297,13 @@ void WM_OT_usd_export(struct wmOperatorType *ot)
                   true,
                   "To USD Preview Surface",
                   "Generate an approximate USD Preview Surface shader "
+                  "representation of a Principled BSDF node network");
+
+  RNA_def_boolean(ot->srna,
+                  "export_materialx",
+                  false,
+                  "To MaterialX",
+                  "Generate an approximate MaterialX shader "
                   "representation of a Principled BSDF node network");
 
   RNA_def_boolean(ot->srna,

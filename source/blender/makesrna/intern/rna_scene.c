@@ -707,7 +707,7 @@ static void rna_Gpencil_extend_selection(bContext *C, PointerRNA *UNUSED(ptr))
 {
   /* Extend selection to all points in all selected strokes. */
   ViewLayer *view_layer = CTX_data_view_layer(C);
-  Object *ob = OBACT(view_layer);
+  Object *ob = BKE_view_layer_active_object_get(view_layer);
   if ((ob) && (ob->type == OB_GPENCIL)) {
     bGPdata *gpd = (bGPdata *)ob->data;
     CTX_DATA_BEGIN (C, bGPDstroke *, gps, editable_gpencil_strokes) {
@@ -1483,7 +1483,7 @@ static void rna_ImageFormatSettings_color_management_set(PointerRNA *ptr, int va
       if (owner_id && GS(owner_id->name) == ID_NT) {
         /* For compositing nodes, find the corresponding scene. */
         const IDTypeInfo *type_info = BKE_idtype_get_info_from_id(owner_id);
-        owner_id = type_info->owner_get(G_MAIN, owner_id, NULL);
+        owner_id = type_info->owner_get(owner_id);
       }
       if (owner_id && GS(owner_id->name) == ID_SCE) {
         BKE_image_format_color_management_copy_from_scene(imf, (Scene *)owner_id);
@@ -2250,7 +2250,7 @@ static char *rna_MeshStatVis_path(const PointerRNA *UNUSED(ptr))
 static void rna_Scene_update_active_object_data(bContext *C, PointerRNA *UNUSED(ptr))
 {
   ViewLayer *view_layer = CTX_data_view_layer(C);
-  Object *ob = OBACT(view_layer);
+  Object *ob = BKE_view_layer_active_object_get(view_layer);
 
   if (ob) {
     DEG_id_tag_update(&ob->id, ID_RECALC_GEOMETRY);
@@ -5817,19 +5817,19 @@ static void rna_def_scene_image_format_data(BlenderRNA *brna)
   prop = RNA_def_property(srna, "cineon_black", PROP_INT, PROP_NONE);
   RNA_def_property_int_sdna(prop, NULL, "cineon_black");
   RNA_def_property_range(prop, 0, 1024);
-  RNA_def_property_ui_text(prop, "B", "Log conversion reference blackpoint");
+  RNA_def_property_ui_text(prop, "Black", "Log conversion reference blackpoint");
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, NULL);
 
   prop = RNA_def_property(srna, "cineon_white", PROP_INT, PROP_NONE);
   RNA_def_property_int_sdna(prop, NULL, "cineon_white");
   RNA_def_property_range(prop, 0, 1024);
-  RNA_def_property_ui_text(prop, "W", "Log conversion reference whitepoint");
+  RNA_def_property_ui_text(prop, "White", "Log conversion reference whitepoint");
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, NULL);
 
   prop = RNA_def_property(srna, "cineon_gamma", PROP_FLOAT, PROP_NONE);
   RNA_def_property_float_sdna(prop, NULL, "cineon_gamma");
   RNA_def_property_range(prop, 0.0f, 10.0f);
-  RNA_def_property_ui_text(prop, "G", "Log conversion gamma");
+  RNA_def_property_ui_text(prop, "Gamma", "Log conversion gamma");
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, NULL);
 
   /* multiview */

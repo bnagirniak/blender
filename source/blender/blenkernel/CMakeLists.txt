@@ -128,7 +128,7 @@ set(SRC
   intern/editmesh.c
   intern/editmesh_bvh.c
   intern/editmesh_cache.cc
-  intern/editmesh_tangent.c
+  intern/editmesh_tangent.cc
   intern/effect.c
   intern/fcurve.c
   intern/fcurve_cache.c
@@ -143,6 +143,7 @@ set(SRC
   intern/geometry_component_mesh.cc
   intern/geometry_component_pointcloud.cc
   intern/geometry_component_volume.cc
+  intern/geometry_fields.cc
   intern/geometry_set.cc
   intern/geometry_set_instances.cc
   intern/gpencil.c
@@ -210,7 +211,7 @@ set(SRC
   intern/mesh_remesh_voxel.cc
   intern/mesh_runtime.cc
   intern/mesh_sample.cc
-  intern/mesh_tangent.c
+  intern/mesh_tangent.cc
   intern/mesh_tessellate.cc
   intern/mesh_validate.cc
   intern/mesh_wrapper.cc
@@ -229,6 +230,7 @@ set(SRC
   intern/multires_versioning.c
   intern/nla.c
   intern/node.cc
+  intern/node_runtime.cc
   intern/node_tree_update.cc
   intern/object.cc
   intern/object_deform.c
@@ -398,6 +400,7 @@ set(SRC
   BKE_image_format.h
   BKE_image_partial_update.hh
   BKE_image_save.h
+  BKE_image_wrappers.hh
   BKE_ipo.h
   BKE_kelvinlet.h
   BKE_key.h
@@ -449,6 +452,7 @@ set(SRC
   BKE_paint.h
   BKE_particle.h
   BKE_pbvh.h
+  BKE_pbvh_pixels.hh
   BKE_pointcache.h
   BKE_pointcloud.h
   BKE_preferences.h

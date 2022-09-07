@@ -31,13 +31,16 @@
 
 namespace usdhydra {
 
+const vector<string> preview_allowed_prims = {"World", "Camera", "Floor", "_materials", "preview_", "CircularLight"};
+
 class BlenderSession {
 public:
   BlenderSession(BL::RenderEngine &b_engine);
   ~BlenderSession();
 
   void create();
-  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, blender::io::usd::materialx_data_type materialx_data, const char *render_delegate);
+  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId,
+             blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);

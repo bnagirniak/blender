@@ -40,7 +40,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
     bl_label = "USD Hydra Internal"
     bl_info = "USD Hydra rendering plugin"
 
-    bl_use_preview = False              # TODO: material and light previews are temporary disabled
+    bl_use_preview = True
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
     bl_use_gpu_context = True
@@ -82,7 +82,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
         materialx_data = self.get_materialx_data(data, depsgraph)
 
         session_reset(self.session, data, bpy.context, depsgraph, materialx_data, is_blender_scene,
-                      stage, depsgraph.scene.usdhydra.final.delegate)
+                      stage, depsgraph.scene.usdhydra.final.delegate, self.is_preview)
         session_final_update(self.session, depsgraph)
 
     def render(self, depsgraph):
@@ -119,7 +119,7 @@ class USDHydraEngine(bpy.types.RenderEngine):
         materialx_data = self.get_materialx_data(context, depsgraph)
 
         session_reset(self.session, data, context, depsgraph, materialx_data, is_blender_scene,
-                      stage, depsgraph.scene.usdhydra.viewport.delegate)
+                      stage, depsgraph.scene.usdhydra.viewport.delegate, self.is_preview)
         session_view_update(self.session, depsgraph, context, context.space_data, context.region_data)
 
     def view_draw(self, context, depsgraph):
@@ -166,9 +166,9 @@ def session_free(session):
     _usdhydra.session.free(session)
 
 
-def session_reset(session, data, context, depsgraph, materialx_data, is_blender_scene, stage, delegate):
-    _usdhydra.session.reset(session, data.as_pointer(), context.as_pointer(),
-                            depsgraph.as_pointer(), materialx_data, is_blender_scene, stage, delegate)
+def session_reset(session, data, context, depsgraph, materialx_data, is_blender_scene, stage, delegate, is_preview):
+    _usdhydra.session.reset(session, data.as_pointer(), context.as_pointer(), depsgraph.as_pointer(),
+                            materialx_data, is_blender_scene, stage, delegate, is_preview)
 
 
 def session_render(session, depsgraph):

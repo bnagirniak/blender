@@ -124,7 +124,13 @@ void create_materialx(const USDExporterContext &usd_export_context,
   }
 
   std::string mat_name =  material->id.name + 2;
-  std::pair<std::string, std::string> item = usd_export_context.materialx_data.find(mat_name)->second;
+
+  auto it = usd_export_context.materialx_data.find(mat_name);
+  if (it == usd_export_context.materialx_data.end()) {
+    return;
+  }
+
+  std::pair<std::string, std::string> item = it->second;
 
   std::string materialx_path(item.first);
   std::string surfacematerial(item.second);

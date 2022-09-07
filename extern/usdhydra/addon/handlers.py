@@ -4,13 +4,13 @@
 # <pep8 compliant>
 
 import bpy
+import _usdhydra
 
 
 @bpy.app.handlers.persistent
 def on_load_pre(*args):
     """Handler on loading a blend file (before)"""
     # log("on_load_pre", args)
-    # utils.clear_temp_dir()
     pass
 
 
@@ -91,6 +91,8 @@ def register():
 
 
 def unregister():
+    _usdhydra.utils.clear_temp_dir()
+
     bpy.app.handlers.load_pre.remove(on_load_pre)
     bpy.app.handlers.load_post.remove(on_load_post)
     # bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)

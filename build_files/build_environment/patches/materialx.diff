@@ -1,0 +1,14 @@
+diff --git a/source/PyMaterialX/PyBind11/tools/FindPythonLibsNew.cmake b/source/PyMaterialX/PyBind11/tools/FindPythonLibsNew.cmake
+index e660c5f..f691086 100644
+--- a/source/PyMaterialX/PyBind11/tools/FindPythonLibsNew.cmake
++++ b/source/PyMaterialX/PyBind11/tools/FindPythonLibsNew.cmake
+@@ -145,6 +145,9 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR})
+ string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES ${PYTHON_SITE_PACKAGES})
+ 
+ if(CMAKE_HOST_WIN32 AND NOT (MSYS OR MINGW))
++    if(PYTHON_EXECUTABLE MATCHES "_d.exe$")
++        set(PYTHON_LIBRARY_SUFFIX ${PYTHON_LIBRARY_SUFFIX}_d)
++    endif()
+     set(PYTHON_LIBRARY
+         "${PYTHON_PREFIX}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
+ 

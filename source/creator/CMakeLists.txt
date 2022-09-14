@@ -899,27 +899,11 @@ elseif(WIN32)
         CONFIGURATIONS Debug
       )
 
-      if(WITH_USD)
-        # USD python bindings
-        install(
-          DIRECTORY ${USD_PYTHON_DIR}/debug/pxr
-          DESTINATION ${TARGETDIR_VER}/python/lib/site-packages
-          CONFIGURATIONS Debug
-          PATTERN "__pycache__" EXCLUDE           # * any cache *
-          PATTERN "*.pyc" EXCLUDE
-        )
-        install(
-          DIRECTORY ${USD_PYTHON_DIR}/release/pxr
-          DESTINATION ${TARGETDIR_VER}/python/lib/site-packages
-          CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
-          PATTERN "__pycache__" EXCLUDE           # * any cache *
-          PATTERN "*.pyc" EXCLUDE
-        )
-
+      if(WITH_MATERIALX)
         # MaterialX python bindings
         install(
-          DIRECTORY ${MATERIALX_DIR}/python/debug/site-packages
-          DESTINATION ${TARGETDIR_VER}/python/lib
+          DIRECTORY ${LIBDIR}/materialx/python/debug/MaterialX
+          DESTINATION ${TARGETDIR_VER}/python/lib/site-packages
           CONFIGURATIONS Debug
           PATTERN "__pycache__" EXCLUDE           # * any cache *
           PATTERN "*.pyc" EXCLUDE
@@ -927,8 +911,8 @@ elseif(WIN32)
           PATTERN "*.pyo" EXCLUDE
         )
         install(
-          DIRECTORY ${MATERIALX_DIR}/python/release/site-packages
-          DESTINATION ${TARGETDIR_VER}/python/lib
+          DIRECTORY ${LIBDIR}/materialx/python/release/MaterialX
+          DESTINATION ${TARGETDIR_VER}/python/lib/site-packages
           CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
           PATTERN "__pycache__" EXCLUDE           # * any cache *
           PATTERN "*.pyc" EXCLUDE
@@ -1299,15 +1283,12 @@ if(WITH_USD)
     ${USD_PLUGIN_DIR}
     DESTINATION "${TARGETDIR_VER}/datafiles"
   )
+endif()
 
-  install(DIRECTORY
-    ${MATERIALX_DIR}/libraries
-    DESTINATION "${TARGETDIR_VER}/datafiles/MaterialX"
-  )
-
+if(WITH_MATERIALX)
   install(
-    PROGRAMS $<TARGET_FILE:extern_draco>
-    DESTINATION ${TARGETDIR_VER}/python/lib/python${PYTHON_VERSION}/site-packages
+    DIRECTORY ${LIBDIR}/materialx/libraries
+    DESTINATION "${TARGETDIR_VER}/datafiles/materialx"
   )
 endif()
 

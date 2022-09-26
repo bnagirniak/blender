@@ -96,12 +96,18 @@ void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_
   }
 }
 
-void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate)
+void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings)
 {
   std::unique_ptr<UsdImagingGLEngine> imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
 
   if (!imagingGLEngine->SetRendererPlugin(TfToken(render_delegate))) {
     return;
+  }
+
+  if (!delegate_settings.empty()){
+    for (auto const& pair : delegate_settings) {
+      imagingGLEngine->SetRendererSetting(pair.first, pair.second);
+    }
   }
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
@@ -162,12 +168,18 @@ void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_de
   b_engine.end_result(b_result, false, false, false);
 }
 
-void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_delegate)
+void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_delegate, HdRenderSettingsMap delegate_settings)
 {
   std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
 
   if (!imagingLiteEngine->SetRendererPlugin(TfToken(render_delegate))) {
     return;
+  }
+
+  if (!delegate_settings.empty()){
+    for (auto const& pair : delegate_settings) {
+      imagingLiteEngine->SetRendererSetting(pair.first, pair.second);
+    }
   }
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
@@ -277,13 +289,19 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   }
 }
 
-void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate)
+void BlenderSession::view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate, HdRenderSettingsMap delegate_settings)
 {
   if (!imagingGLEngine) {
     imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
   }
   
   imagingGLEngine->SetRendererPlugin(TfToken(render_delegate));
+
+  if (!delegate_settings.empty()){
+    for (auto const& pair : delegate_settings) {
+      imagingGLEngine->SetRendererSetting(pair.first, pair.second);
+    }
+  }
 
   if (imagingGLEngine->IsPauseRendererSupported()) {
     imagingGLEngine->PauseRenderer();
@@ -573,10 +591,10 @@ static PyObject* final_update_func(PyObject* /*self*/, PyObject* args)
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "render_func";
-  PyObject *pysession, *pydepsgraph;
+  PyObject *pysession, *pydepsgraph, *delegate_settings;
   const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOs", &pysession, &pydepsgraph, &render_delegate)) {
+  if (!PyArg_ParseTuple(args, "OOsO", &pysession, &pydepsgraph, &render_delegate, &delegate_settings)) {
     Py_RETURN_NONE;
   }
 
@@ -585,12 +603,56 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   BL::Depsgraph depsgraph(depsgraphptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  HdRenderSettingsMap settings;
 
-  if (strcmp(render_delegate, "HdStormRendererPlugin") == 0) {
-    session->render_gl(depsgraph, render_delegate);
+  if (delegate_settings != Py_None) {
+  PyObject *iter = PyObject_GetIter(delegate_settings);
+
+    if (iter) {
+
+      while (true) {
+      PyObject *next = PyIter_Next(iter);
+
+      char *key_dirty = nullptr;
+      char *value_dirty_s = nullptr;
+      float value_dirty_f = 0.0f;
+      int value_dirty_i = 0;
+
+      VtValue value;
+      TfToken key;
+
+      if (!next) {
+        break;
+      }
+      PyErr_Clear();
+      if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
+        TfToken key(key_dirty);
+        VtValue value(value_dirty_i);
+        settings.insert(pair (key, value));
+        continue;
+      }
+      else if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
+        TfToken key(key_dirty);
+        VtValue value(value_dirty_s);
+        settings.insert(pair (key, value));
+        continue;
+      }
+      else if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
+        TfToken key(key_dirty);
+        VtValue value(value_dirty_f);
+        settings.insert(pair (key, value));
+        continue;
+      }
+      }
+    PyErr_Clear();
+    }
+  }
+
+  if (strcmp(render_delegate, "HdRprPlugin") == 0) {
+    session->render(depsgraph, render_delegate, settings);
   }
   else {
-    session->render(depsgraph, render_delegate);
+    session->render_gl(depsgraph, render_delegate, settings);
   }
 
   Py_RETURN_NONE;
@@ -604,10 +666,10 @@ static PyObject *render_frame_finish_func(PyObject * /*self*/, PyObject *args)
 static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "view_update_func";
-  PyObject *pysession, *pydepsgraph, *pycontext, *pyspaceData, *pyregionData;
+  PyObject *pysession, *pydepsgraph, *pycontext, *pyspaceData, *pyregionData, *delegate_settings;
   const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOOOOs", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData, &render_delegate)) {
+  if (!PyArg_ParseTuple(args, "OOOOOsO", &pysession, &pydepsgraph, &pycontext, &pyspaceData, &pyregionData, &render_delegate, &delegate_settings)) {
     Py_RETURN_NONE;
   }
 
@@ -620,8 +682,51 @@ static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  HdRenderSettingsMap settings;
 
-  session->view_update(b_depsgraph, b_context, render_delegate);
+  if (delegate_settings != Py_None) {
+  PyObject *iter = PyObject_GetIter(delegate_settings);
+
+    if (iter) {
+
+      while (true) {
+      PyObject *next = PyIter_Next(iter);
+
+      char *key_dirty = nullptr;
+      char *value_dirty_s = nullptr;
+      float value_dirty_f = 0.0f;
+      int value_dirty_i = 0;
+
+      VtValue value;
+      TfToken key;
+
+      if (!next) {
+        break;
+      }
+      if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
+        TfToken key(key_dirty);
+        VtValue value(value_dirty_i);
+        settings.insert(pair (key, value));
+        continue;
+      }
+      else if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
+        TfToken key(key_dirty);
+        VtValue value(value_dirty_s);
+        settings.insert(pair (key, value));
+        continue;
+      }
+      else if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
+        TfToken key(key_dirty);
+        VtValue value(value_dirty_f);
+        settings.insert(pair (key, value));
+        continue;
+      }
+      }
+    PyErr_Clear();
+    }
+  }
+
+  session->view_update(b_depsgraph, b_context, render_delegate, settings);
 
   Py_RETURN_NONE;
 }

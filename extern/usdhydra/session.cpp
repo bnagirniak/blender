@@ -609,42 +609,41 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   PyObject *iter = PyObject_GetIter(delegate_settings);
 
     if (iter) {
-
       while (true) {
-      PyObject *next = PyIter_Next(iter);
+        PyObject *next = PyIter_Next(iter);
 
-      char *key_dirty = nullptr;
-      char *value_dirty_s = nullptr;
-      float value_dirty_f = 0.0f;
-      int value_dirty_i = 0;
+        char *key_dirty = nullptr;
+        char *value_dirty_s = nullptr;
+        float value_dirty_f = 0.0f;
+        int value_dirty_i = 0;
 
-      VtValue value;
-      TfToken key;
+        VtValue value;
+        TfToken key;
 
-      if (!next) {
-        break;
+        if (!next) {
+          break;
+        }
+        PyErr_Clear();
+        if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
+          TfToken key(key_dirty);
+          VtValue value(value_dirty_i);
+          settings.insert(pair (key, value));
+          continue;
+        }
+        if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
+          TfToken key(key_dirty);
+          VtValue value(value_dirty_s);
+          settings.insert(pair (key, value));
+          continue;
+        }
+        if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
+          TfToken key(key_dirty);
+          VtValue value(value_dirty_f);
+          settings.insert(pair (key, value));
+          continue;
+        }
       }
       PyErr_Clear();
-      if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
-        TfToken key(key_dirty);
-        VtValue value(value_dirty_i);
-        settings.insert(pair (key, value));
-        continue;
-      }
-      else if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
-        TfToken key(key_dirty);
-        VtValue value(value_dirty_s);
-        settings.insert(pair (key, value));
-        continue;
-      }
-      else if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
-        TfToken key(key_dirty);
-        VtValue value(value_dirty_f);
-        settings.insert(pair (key, value));
-        continue;
-      }
-      }
-    PyErr_Clear();
     }
   }
 
@@ -688,41 +687,40 @@ static PyObject *view_update_func(PyObject * /*self*/, PyObject *args)
   PyObject *iter = PyObject_GetIter(delegate_settings);
 
     if (iter) {
-
       while (true) {
-      PyObject *next = PyIter_Next(iter);
+        PyObject *next = PyIter_Next(iter);
 
-      char *key_dirty = nullptr;
-      char *value_dirty_s = nullptr;
-      float value_dirty_f = 0.0f;
-      int value_dirty_i = 0;
+        char *key_dirty = nullptr;
+        char *value_dirty_s = nullptr;
+        float value_dirty_f = 0.0f;
+        int value_dirty_i = 0;
 
-      VtValue value;
-      TfToken key;
+        VtValue value;
+        TfToken key;
 
-      if (!next) {
-        break;
+        if (!next) {
+          break;
+        }
+        if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
+          TfToken key(key_dirty);
+          VtValue value(value_dirty_i);
+          settings.insert(pair (key, value));
+          continue;
+        }
+        if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
+          TfToken key(key_dirty);
+          VtValue value(value_dirty_s);
+          settings.insert(pair (key, value));
+          continue;
+        }
+        if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
+          TfToken key(key_dirty);
+          VtValue value(value_dirty_f);
+          settings.insert(pair (key, value));
+          continue;
+        }
       }
-      if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
-        TfToken key(key_dirty);
-        VtValue value(value_dirty_i);
-        settings.insert(pair (key, value));
-        continue;
-      }
-      else if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
-        TfToken key(key_dirty);
-        VtValue value(value_dirty_s);
-        settings.insert(pair (key, value));
-        continue;
-      }
-      else if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
-        TfToken key(key_dirty);
-        VtValue value(value_dirty_f);
-        settings.insert(pair (key, value));
-        continue;
-      }
-      }
-    PyErr_Clear();
+      PyErr_Clear();
     }
   }
 

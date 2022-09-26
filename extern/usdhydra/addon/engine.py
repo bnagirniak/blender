@@ -3,33 +3,13 @@
 
 # <pep8 compliant>
 
-import sys
-import os
-from pathlib import Path
-
 import bpy
 import _usdhydra
 import MaterialX as mx
-from pxr import Vt
 
 from .usd_nodes import node_tree
 from .utils import stages, logging
 log = logging.Log('engine')
-
-# def init():
-#     # # internal scene index representation in hydra,
-#     # # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging
-#     # os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "0"
-#     from .properties.preferences import get_addon_pref
-#     delegates_dir = Path(get_addon_pref().delegates_dir)
-#
-#     sys.path.append(str(delegates_dir / 'lib' / 'python'))
-#
-#     paths = os.environ['PATH'].split(os.pathsep)
-#     paths.append(str(delegates_dir / 'lib'))
-#     os.environ["PATH"] += os.pathsep + os.pathsep.join(set(paths))
-#
-#     _usdhydra.init(str(delegates_dir / 'plugin'))
 
 
 def exit():

@@ -5,8 +5,6 @@
 
 import bpy
 
-from pxr import Vt
-
 from .logging import Log
 log = Log("utils")
 

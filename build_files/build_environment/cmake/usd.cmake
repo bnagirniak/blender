@@ -60,13 +60,8 @@ set(USD_EXTRA_ARGS
   -DBUILD_SHARED_LIBS=Off
   # USD is hellbound on making a shared lib, unless you point this variable to a valid cmake file
   # doesn't have to make sense, but as long as it points somewhere valid it will skip the shared lib.
-  # -DPXR_MONOLITHIC_IMPORT=${BUILD_DIR}/usd/src/external_usd/cmake/defaults/Version.cmake
-  -DTBB_INCLUDE_DIRS=${LIBDIR}/tbb/include
-  -DTBB_tbb_LIBRARY_RELEASE=${LIBDIR}/tbb/lib/${LIBPREFIX}${TBB_LIBRARY}${LIBEXT}
-  # -DTbb_TBB_LIBRARY=${LIBDIR}/tbb/lib/${LIBPREFIX}${TBB_LIBRARY}${LIBEXT}
-  # USD wants the tbb debug lib set even when you are doing a release build
-  # Otherwise it will error out during the cmake configure phase.
-  -DTBB_tbb_LIBRARY_DEBUG=${LIBDIR}/tbb/lib/${LIBPREFIX}${TBB_LIBRARY}${LIBEXT}
+  #-DPXR_MONOLITHIC_IMPORT=${BUILD_DIR}/usd/src/external_usd/cmake/defaults/Version.cmake
+  -DTBB_ROOT_DIR=${LIBDIR}/tbb
 
   -DPXR_ENABLE_MATERIALX_SUPPORT=ON
   -DMATERIALX_BASE_DIR=${LIBDIR}/materialx
@@ -104,14 +99,14 @@ if(WIN32)
   if(BUILD_MODE STREQUAL Release)
     ExternalProject_Add_Step(external_usd after_install
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBDIR}/usd/ ${HARVEST_TARGET}/usd
-      COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Release/usd_usd_m.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m.lib
+      # COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Release/usd_usd_m.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m.lib
       DEPENDEES install
     )
   endif()
   if(BUILD_MODE STREQUAL Debug)
     ExternalProject_Add_Step(external_usd after_install
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBDIR}/usd/lib ${HARVEST_TARGET}/usd/lib
-      COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Debug/usd_usd_m_d.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m_d.lib
+      # COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Debug/usd_usd_m_d.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m_d.lib
       DEPENDEES install
     )
   endif()

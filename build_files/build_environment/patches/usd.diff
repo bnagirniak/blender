@@ -1,7 +1,8 @@
-diff -x .git -ur usd.orig/cmake/defaults/Packages.cmake external_usd/cmake/defaults/Packages.cmake
---- usd.orig/cmake/defaults/Packages.cmake	2019-10-24 22:39:53.000000000 +0200
-+++ external_usd/cmake/defaults/Packages.cmake	2019-11-28 13:00:33.185957483 +0100
-@@ -64,7 +64,7 @@
+diff --git a/cmake/defaults/Packages.cmake b/cmake/defaults/Packages.cmake
+index abeccb76a..c50e439f9 100644
+--- a/cmake/defaults/Packages.cmake
++++ b/cmake/defaults/Packages.cmake
+@@ -132,7 +132,7 @@ if(PXR_BUILD_USD_TOOLS OR PXR_BUILD_TESTS)
  endif()
  
  # --TBB
@@ -10,11 +11,11 @@ diff -x .git -ur usd.orig/cmake/defaults/Packages.cmake external_usd/cmake/defau
  add_definitions(${TBB_DEFINITIONS})
  
  # --math
-
-diff -Naur usd_orig/cmake/defaults/msvcdefaults.cmake external_usd/cmake/defaults/msvcdefaults.cmake
---- usd_orig/cmake/defaults/msvcdefaults.cmake	2022-02-18 14:49:09 -0700
-+++ external_usd/cmake/defaults/msvcdefaults.cmake	2022-03-14 11:41:50 -0600
-@@ -120,9 +120,6 @@
+diff --git a/cmake/defaults/msvcdefaults.cmake b/cmake/defaults/msvcdefaults.cmake
+index fd41f7aae..6fb2e9cb4 100644
+--- a/cmake/defaults/msvcdefaults.cmake
++++ b/cmake/defaults/msvcdefaults.cmake
+@@ -120,9 +120,6 @@ _add_define("WIN32_LEAN_AND_MEAN")
  # for all translation units.
  set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /bigobj")
  
@@ -24,38 +25,11 @@ diff -Naur usd_orig/cmake/defaults/msvcdefaults.cmake external_usd/cmake/default
  # Enable multiprocessor builds.
  set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /MP")
  set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Gm-")
-
-diff --git a/pxr/base/work/singularTask.h b/pxr/base/work/singularTask.h
---- a/pxr/base/work/singularTask.h
-+++ b/pxr/base/work/singularTask.h
-@@ -120,7 +120,7 @@
-                     // case we go again to ensure the task can do whatever it
-                     // was awakened to do.  Once we successfully take the count
-                     // to zero, we stop.
--                    size_t old = count;
-+                    std::size_t old = count;
-                     do { _fn(); } while (
-                         !count.compare_exchange_strong(old, 0));
-                 });
-
-diff --git a/pxr/usd/sdr/shaderMetadataHelpers.h b/pxr/usd/sdr/shaderMetadataHelpers.h
---- a/pxr/usd/sdr/shaderMetadataHelpers.h
-+++ b/pxr/usd/sdr/shaderMetadataHelpers.h
-@@ -32,6 +32,8 @@
- #include "pxr/base/tf/token.h"
- #include "pxr/usd/sdr/declare.h"
- 
-+#include <limits>
-+
- PXR_NAMESPACE_OPEN_SCOPE
- 
- /// \namespace ShaderMetadataHelpers
-
 diff --git a/pxr/base/arch/timing.h b/pxr/base/arch/timing.h
-index 517561f..fda5a1f 100644
+index d78598a84..289ec08d2 100644
 --- a/pxr/base/arch/timing.h
 +++ b/pxr/base/arch/timing.h
-@@ -91,6 +91,10 @@ ArchGetTickTime()
+@@ -84,6 +84,10 @@ ArchGetTickTime()
  inline uint64_t
  ArchGetStartTickTime()
  {
@@ -66,7 +40,7 @@ index 517561f..fda5a1f 100644
      uint64_t t;
  #if defined (ARCH_OS_DARWIN)
      return ArchGetTickTime();
-@@ -123,6 +127,7 @@ ArchGetStartTickTime()
+@@ -116,6 +120,7 @@ ArchGetStartTickTime()
  #error "Unsupported architecture."
  #endif
    return t;
@@ -74,7 +48,7 @@ index 517561f..fda5a1f 100644
  }
  
  /// Get a "stop" tick time for measuring an interval of time.  See
-@@ -132,6 +137,10 @@ ArchGetStartTickTime()
+@@ -125,6 +130,10 @@ ArchGetStartTickTime()
  inline uint64_t
  ArchGetStopTickTime()
  {
@@ -85,7 +59,7 @@ index 517561f..fda5a1f 100644
      uint64_t t;
  #if defined (ARCH_OS_DARWIN)
      return ArchGetTickTime();
-@@ -162,11 +171,11 @@ ArchGetStopTickTime()
+@@ -155,11 +164,11 @@ ArchGetStopTickTime()
  #error "Unsupported architecture."
  #endif
    return t;
@@ -100,3 +74,17 @@ index 517561f..fda5a1f 100644
  
  /// A simple timer class for measuring an interval of time using the
  /// ArchTickTimer facilities.
+diff --git a/pxr/imaging/hioOpenVDB/vdbTextureData.cpp b/pxr/imaging/hioOpenVDB/vdbTextureData.cpp
+index 641cdd218..9e9de2c6e 100644
+--- a/pxr/imaging/hioOpenVDB/vdbTextureData.cpp
++++ b/pxr/imaging/hioOpenVDB/vdbTextureData.cpp
+@@ -22,6 +22,9 @@
+ // language governing permissions and limitations under the Apache License.
+ //
+ 
++#define _USE_MATH_DEFINES
++#include <math.h>
++
+ #include "pxr/imaging/hioOpenVDB/vdbTextureData.h"
+ #include "pxr/imaging/hioOpenVDB/debugCodes.h"
+ #include "pxr/imaging/hioOpenVDB/utils.h"

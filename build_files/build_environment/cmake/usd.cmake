@@ -56,6 +56,7 @@ set(USD_EXTRA_ARGS
   -DPXR_BUILD_OPENCOLORIO_PLUGIN=OFF
   -DPXR_ENABLE_PTEX_SUPPORT=OFF
   -DPXR_BUILD_USD_TOOLS=OFF
+  -DPXR_BUILD_ALEMBIC_PLUGIN=OFF
   -DCMAKE_DEBUG_POSTFIX=_d
   -DBUILD_SHARED_LIBS=Off
   # USD is hellbound on making a shared lib, unless you point this variable to a valid cmake file
@@ -64,7 +65,8 @@ set(USD_EXTRA_ARGS
   -DTBB_ROOT_DIR=${LIBDIR}/tbb
 
   -DPXR_ENABLE_MATERIALX_SUPPORT=ON
-  -DMATERIALX_BASE_DIR=${LIBDIR}/materialx
+  -DMaterialX_DIR=${LIBDIR}/materialx
+
 )
 
 ExternalProject_Add(external_usd

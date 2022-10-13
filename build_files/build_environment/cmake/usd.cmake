@@ -65,7 +65,7 @@ set(USD_EXTRA_ARGS
   -DTBB_ROOT_DIR=${LIBDIR}/tbb
 
   -DPXR_ENABLE_MATERIALX_SUPPORT=ON
-  -DMaterialX_DIR=${LIBDIR}/materialx
+  -DMATERIALX_BASE_DIR=${LIBDIR}/materialx
 
 )
 

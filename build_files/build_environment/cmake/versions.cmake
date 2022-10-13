@@ -416,9 +416,9 @@ set(EMBREE_HASH 52d0be294d6c88ba7a6c9e046796e7be)
 set(EMBREE_HASH_TYPE MD5)
 set(EMBREE_FILE embree-v${EMBREE_VERSION}.zip)
 
-set(USD_VERSION 22.08)
+set(USD_VERSION 22.05b)
 set(USD_URI https://github.com/PixarAnimationStudios/USD/archive/v${USD_VERSION}.tar.gz)
-set(USD_HASH e017cc77977691ab6374bde7304060ec)
+set(USD_HASH 701256f0ce487d71b7b465a6e1908a27)
 set(USD_HASH_TYPE MD5)
 set(USD_FILE usd-v${USD_VERSION}.tar.gz)
 

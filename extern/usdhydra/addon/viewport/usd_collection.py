@@ -6,8 +6,6 @@
 import bpy
 import _usdhydra
 
-from pxr import Sdf
-
 from .. import handlers
 from ..properties.object import GEOM_TYPES
 from ..utils import stages
@@ -27,8 +25,6 @@ def ignore_prim(prim: dict):
             return True
 
         return False
-
-    
 
     return not (prim_type in GEOM_TYPES or prim_type in ('Mesh', 'Camera') or prim_type.endswith('Light'))
 
@@ -90,14 +86,14 @@ def update(context):
 
         log(f"Adding {len(paths_to_add)} objects")
         for path in sorted(paths_to_add):
-            parent_path = str(Sdf.Path(path).GetParentPath())
+            parent_path = "/" if path.count('/') == 1 else path[:path.rfind('/')]
             parent_obj = None if parent_path == '/' else objects[parent_path]
-        
+
             obj = bpy.data.objects.new('/', None)
 
             obj.usdhydra.sync_from_prim(parent_obj, stage, path)
             collection.objects.link(obj)
-        
+
             objects[path] = obj
 
     handlers.no_depsgraph_update_call(update_)

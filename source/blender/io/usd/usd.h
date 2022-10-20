@@ -37,6 +37,7 @@ struct USDExportParams {
   bool export_textures;
   bool overwrite_textures;
   bool relative_paths;
+  bool specified_objects_only;
 };
 
 struct USDImportParams {

@@ -37,8 +37,7 @@ BlenderSession::~BlenderSession()
 
 void BlenderSession::create()
 {
-  string filepath = usdhydra::get_temp_file(".usda");
-  stage = UsdStage::CreateNew(filepath);
+  stage = UsdStage::CreateInMemory();
 }
 
 void add_reference_to_prim(int is_preview, UsdStageRefPtr stage, UsdStageRefPtr new_stage, UsdPrim prim) {
@@ -61,38 +60,58 @@ void add_reference_to_prim(int is_preview, UsdStageRefPtr stage, UsdStageRefPtr 
   }
 }
 
-void BlenderSession::reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId, 
+void BlenderSession::reset(BL::Context b_context, PointerRNA depsgraphptr, bool is_blender_scene, int stageId, 
                            blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview)
 {
-  UsdStageRefPtr new_stage;
+  BL::Depsgraph b_depsgraph(depsgraphptr);
+  Depsgraph *depsgraph = (::Depsgraph *)depsgraphptr.data;
 
-  if (is_blender_scene) {
-    new_stage = export_scene_to_usd(b_context, depsgraph, materialx_data, render_delegate);
-  }
-  else {
-    new_stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
-  }
+  set<SdfPath> existing_paths, new_paths, paths_to_remove, paths_to_add;
 
-  set<SdfPath> existing_paths, new_paths, paths_to_remove;
+  set<string> objects_to_update;
 
-  for (auto prim : stage->GetPseudoRoot().GetAllChildren()) {
-    existing_paths.insert(prim.GetPath());
-  }
+  for (BL::DepsgraphUpdate &b_update : b_depsgraph.updates) {
+    BL::ID b_id(b_update.id());
 
-  for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
-    new_paths.insert(prim.GetPath());
+    objects_to_update.insert(b_id.name_full());
+
+    if (b_id.is_a(&RNA_Scene) || b_id.is_a(&RNA_Collection)) {
+      ;
+    }
+    else if (b_id.is_a(&RNA_Material)) {
+      BL::Material b_mat(b_id);
+    }
+    else if (b_id.is_a(&RNA_Light)) {
+      BL::Light b_light(b_id);
+    }
+    else if (b_id.is_a(&RNA_Object)) {
+      // update_collection = true;
+      BL::Object b_ob(b_id);
+    }
+    else if (b_id.is_a(&RNA_Mesh)) {
+      BL::Mesh b_mesh(b_id);
+    }
+    else if (b_id.is_a(&RNA_World)) {
+      BL::World b_world(b_id);
+    }
+    else if (b_id.is_a(&RNA_Volume)) {
+      BL::Volume b_volume(b_id);
+    }
   }
 
   set_difference(existing_paths.begin(), existing_paths.end(),
-                 new_paths.begin(), new_paths.end(),
-                 inserter(paths_to_remove, paths_to_remove.end()));
+                new_paths.begin(), new_paths.end(),
+                inserter(paths_to_remove, paths_to_remove.end()));
 
-  for (auto obj : paths_to_remove) {
-    stage->GetPrimAtPath(obj).SetActive(false);
+  set_difference(new_paths.begin(), new_paths.end(),
+                 existing_paths.begin(), existing_paths.end(),
+                 inserter(paths_to_add, paths_to_add.end()));
+
+  if (is_blender_scene) {
+    export_scene_to_usd(b_context, depsgraph, materialx_data, render_delegate, existing_paths, objects_to_update);
   }
-
-  for (auto prim : new_stage->GetPseudoRoot().GetAllChildren()) {
-    add_reference_to_prim(is_preview, stage, new_stage, prim);
+  else {
+    stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
   }
 }
 
@@ -344,7 +363,8 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data, const char *render_delegate)
+void BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data,
+                                                   const char *render_delegate, set<pxr::SdfPath> existing_paths, set<string> objects_to_update)
 {
   LOG(INFO) << "export_scene_to_usd";
 
@@ -360,28 +380,28 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
   usd_export_params.export_materialx = !materialx_data.empty();
+  usd_export_params.specified_objects_only = false;
 
-  string filepath = usdhydra::get_temp_file(".usda");
-  UsdStageRefPtr usd_stage = UsdStage::CreateNew(filepath);
+  stage->Reload();
 
-  usd_stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
-  usd_stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
-  usd_stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
+  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
+  stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
+  stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
 
-  blender::io::usd::create_world(usd_stage, world);
+  blender::io::usd::create_world(stage, world);
 
   /* Set up the stage for animated data. */
-  /*if (data->params.export_animation) {
-    usd_stage->SetTimeCodesPerSecond(FPS);
-    usd_stage->SetStartTimeCode(scene->r.sfra);
-    usd_stage->SetEndTimeCode(scene->r.efra);
-  }*/
+  //if (data->params.export_animation) {
+  //  stage->SetTimeCodesPerSecond(FPS);
+  //  stage->SetStartTimeCode(scene->r.sfra);
+  //  stage->SetEndTimeCode(scene->r.efra);
+  //}
 
-  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, usd_stage, usd_export_params, materialx_data);
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, stage, usd_export_params, materialx_data, existing_paths, objects_to_update);
   iter.iterate_and_write();
   iter.release_writers();
 
-  UsdLuxDomeLight world_light = UsdLuxDomeLight::Get(usd_stage, SdfPath("/World/World"));
+  UsdLuxDomeLight world_light = UsdLuxDomeLight::Get(stage, SdfPath("/World/World"));
   if (world_light){
     pxr::UsdGeomXformOp xOp = world_light.AddRotateXOp();
     pxr::UsdGeomXformOp yOp = world_light.AddRotateYOp();
@@ -420,8 +440,6 @@ UsdStageRefPtr BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgr
   //  /* If we're not animating, a single iteration over all objects is enough. */
   //  iter.iterate_and_write();
   //}
-
-  return usd_stage;
 }
 
 void BlenderSession::update_render_result(map<string, vector<float>> &render_images, string b_render_layer_name, int width, int height, int channels)
@@ -522,7 +540,6 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  Depsgraph *depsgraph = (::Depsgraph *)depsgraphptr.data;
 
   PointerRNA contextptr;
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pycontext), &contextptr);
@@ -563,7 +580,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, depsgraph, is_blender_scene, stageId, materialx_data, render_delegate, is_preview);
+  session->reset(b_context, depsgraphptr, is_blender_scene, stageId, materialx_data, render_delegate, is_preview);
 
   Py_RETURN_NONE;
 }

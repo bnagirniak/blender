@@ -33,11 +33,15 @@ USDHierarchyIterator::USDHierarchyIterator(Main *bmain,
                                            Depsgraph *depsgraph,
                                            pxr::UsdStageRefPtr stage,
                                            const USDExportParams &params,
-                                           materialx_data_type materialx_data)
+                                           materialx_data_type materialx_data,
+                                           std::set<pxr::SdfPath> existing_paths,
+                                           std::set<std::string> objects_to_update)
     : AbstractHierarchyIterator(bmain, depsgraph),
       stage_(stage),
       params_(params),
-      materialx_data_(materialx_data)
+      materialx_data_(materialx_data),
+      existing_paths_(existing_paths),
+      objects_to_update_(objects_to_update)
 {
 }
 
@@ -95,6 +99,18 @@ AbstractHierarchyWriter *USDHierarchyIterator::create_data_writer(const Hierarch
 {
   USDExporterContext usd_export_context = create_usd_export_context(context);
   USDAbstractWriter *data_writer = nullptr;
+
+  //if (params_.specified_objects_only) {
+  //  //if (objects_to_update_.count(context->object->id.name + 2) > 0) {
+  //  //  pxr::UsdPrim prim = stage_->GetPrimAtPath(pxr::SdfPath(context->higher_up_export_path));
+  //  //  prim.GetReferences().ClearReferences();
+  //  //  prim.SetActive(false);
+  //  //}
+  //  if (existing_paths_.count(usd_export_context.usd_path) > 0 && objects_to_update_.count(context->object->id.name + 2) == 0) {
+  //    delete data_writer;
+  //    return nullptr;
+  //  }
+  //}
 
   switch (context->object->type) {
     case OB_MESH:

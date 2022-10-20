@@ -3,7 +3,6 @@
 #pragma once
 
 #include "usd.h"
-
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/common.h>
 

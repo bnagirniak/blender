@@ -15,6 +15,8 @@ endif()
 # USD headers use deprecated TBB headers, silence warning.
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 
+add_definitions(-DBOOST_PYTHON_STATIC_LIB)
+
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_DEBUG_PYTHON")
 
 # Check if USD has the imaging headers available, if they are
@@ -148,18 +150,8 @@ endif()
 
 # Source: https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
 if(WIN32)
-  file(GLOB MaterialX_libs_release "${LIBDIR}/MaterialX/*_r.lib")
-  file(GLOB MaterialX_libs_debug "${LIBDIR}/MaterialX/*_d.lib")
-
-  foreach(library ${MaterialX_libs_release})
-    target_link_libraries(bf_usd INTERFACE optimized ${library})
-  endforeach()
-
-  foreach(library ${MaterialX_libs_debug})
-    target_link_libraries(bf_usd INTERFACE debug ${library})
-  endforeach()
-
   target_link_libraries(bf_usd INTERFACE ${USD_LIBRARIES})
+  target_link_libraries(bf_usd INTERFACE ${BOOST_PYTHON_LIBRARIES})
 elseif(APPLE)
   target_link_libraries(bf_usd INTERFACE -Wl,-force_load ${USD_LIBRARIES})
 elseif(UNIX)

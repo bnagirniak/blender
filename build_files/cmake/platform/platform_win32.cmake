@@ -570,8 +570,8 @@ if(WITH_BOOST)
       debug ${BOOST_LIBPATH}/libboost_chrono-${BOOST_DEBUG_POSTFIX}
     )
     set(BOOST_PYTHON_LIBRARIES
-      optimized ${BOOST_LIBPATH}/libboost_python310-${BOOST_POSTFIX}
-      debug ${BOOST_LIBPATH}/libboost_python310-${BOOST_DEBUG_POSTFIX}
+      optimized ${BOOST_LIBPATH}/boost_python310-${BOOST_POSTFIX}
+      debug ${BOOST_LIBPATH}/boost_python310-${BOOST_DEBUG_POSTFIX}
     )
     if(WITH_CYCLES AND WITH_CYCLES_OSL)
       set(BOOST_LIBRARIES ${BOOST_LIBRARIES}

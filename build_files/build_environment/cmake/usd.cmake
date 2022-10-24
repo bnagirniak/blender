@@ -67,8 +67,8 @@ set(USD_EXTRA_ARGS
   -DPXR_ENABLE_MATERIALX_SUPPORT=ON
   -DMATERIALX_BASE_DIR=${LIBDIR}/materialx
 
-  -DBoost_PYTHON310_LIBRARY_RELEASE=${LIBDIR}/boost/lib/libboost_python310-vc142-mt-x64-1_78.lib
-  -DBoost_PYTHON310_LIBRARY_DEBUG=${LIBDIR}/boost/lib/libboost_python310-vc142-mt-gd-x64-1_78.lib
+  -DBoost_PYTHON310_LIBRARY_RELEASE=${LIBDIR}/boost/lib/boost_python310-vc142-mt-x64-1_78.lib
+  -DBoost_PYTHON310_LIBRARY_DEBUG=${LIBDIR}/boost/lib/boost_python310-vc142-mt-gd-x64-1_78.lib
 )
 
 ExternalProject_Add(external_usd

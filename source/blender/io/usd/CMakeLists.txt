@@ -15,8 +15,6 @@ endif()
 # USD headers use deprecated TBB headers, silence warning.
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 
-add_definitions(-DBOOST_PYTHON_STATIC_LIB)
-
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_DEBUG_PYTHON")
 
 # Check if USD has the imaging headers available, if they are

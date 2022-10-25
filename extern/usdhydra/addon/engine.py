@@ -5,10 +5,8 @@
 
 import bpy
 import _usdhydra
-import MaterialX as mx
 
 from .usd_nodes import node_tree
-from .mx_nodes.node_tree import MxNodeTree
 from .utils import stages, logging
 log = logging.Log('engine')
 
@@ -121,34 +119,34 @@ class USDHydraEngine(bpy.types.RenderEngine):
     def sync_viewport_delegate_settings(self):
         return tuple()
 
+    # def get_materialx_data(self, context, depsgraph):
+    #     data = []
+    #     for obj in bpy.context.scene.objects:
+    #         if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
+    #             continue
+    #
+    #         for mat_slot in obj.material_slots:
+    #             if not mat_slot:
+    #                 continue
+    #
+    #             mat = mat_slot.material
+    #
+    #             if not hasattr(mat, 'materialx'):
+    #                 continue
+    #
+    #             mx_file, doc = mat.materialx.get_materialx_data(obj)
+    #
+    #             if not mx_file:
+    #                 log.warn("MX export failed", mat)
+    #                 continue
+    #
+    #             surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
+    #
+    #             data.append((mat.name, str(mx_file), surfacematerial.getName()))
+    #
+    #     return tuple(data)
+
     def get_materialx_data(self, context, depsgraph):
-
-        def update_materialx_data():
-            if not depsgraph.updates:
-                return
-
-            for mx_node_tree in (upd.id for upd in depsgraph.updates if isinstance(upd.id, MxNodeTree)):
-                for material in bpy.data.materials:
-                    if material.usdhydra.mx_node_tree and material.usdhydra.mx_node_tree.name == mx_node_tree.name:
-                        doc = material.usdhydra.export(None)
-                        if not doc:
-                            # log.warn("MX export failed", mat)
-                            continue
-
-                        matx_data = next((mat for mat in self.materialx_data if mat[0] == material.name), None)
-
-                        if not matx_data:
-                            mx_file = _usdhydra.utils.get_temp_file(".mtlx",
-                                                             f'{material.name}{material.usdhydra.mx_node_tree.name if material.usdhydra.mx_node_tree else ""}',
-                                                             False)
-
-                            mx.writeToXmlFile(doc, str(mx_file))
-                            surfacematerial = next((node for node in doc.getNodes()
-                                                    if node.getCategory() == 'surfacematerial'))
-                            self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
-                        else:
-                            mx.writeToXmlFile(doc, str(matx_data[1]))
-
         for obj in bpy.context.scene.objects:
             if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
                 continue
@@ -161,19 +159,38 @@ class USDHydraEngine(bpy.types.RenderEngine):
                 matx_data = next((mat for mat in self.materialx_data if mat[0] == material.name), None)
 
                 if not matx_data:
-                    doc = material.usdhydra.export(obj)
-                    if not doc:
-                        # log.warn("MX export failed", mat)
-                        return None
-                    mx_file = _usdhydra.utils.get_temp_file(".mtlx",
-                                                            f'{material.name}{material.usdhydra.mx_node_tree.name if material.usdhydra.mx_node_tree else ""}',
-                                                            False)
-                    mx.writeToXmlFile(doc, str(mx_file))
+                    if not hasattr(material, 'materialx'):
+                        continue
+
+                    mx_file, doc = material.materialx.get_materialx_data(obj)
                     surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
 
                     self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
 
-        update_materialx_data()
+        # if not depsgraph.updates:
+        #     return
+        #
+        # for mx_node_tree in (upd.id for upd in depsgraph.updates if isinstance(upd.id, MxNodeTree)):
+        #     for material in bpy.data.materials:
+        #         if material.usdhydra.mx_node_tree and material.usdhydra.mx_node_tree.name == mx_node_tree.name:
+        #             doc = material.usdhydra.export(None)
+        #             if not doc:
+        #                 # log.warn("MX export failed", mat)
+        #                 continue
+        #
+        #             matx_data = next((mat for mat in self.materialx_data if mat[0] == material.name), None)
+        #
+        #             if not matx_data:
+        #                 mx_file = _usdhydra.utils.get_temp_file(".mtlx",
+        #                                                  f'{material.name}{material.usdhydra.mx_node_tree.name if material.usdhydra.mx_node_tree else ""}',
+        #                                                  False)
+        #
+        #                 mx.writeToXmlFile(doc, str(mx_file))
+        #                 surfacematerial = next((node for node in doc.getNodes()
+        #                                         if node.getCategory() == 'surfacematerial'))
+        #                 self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
+        #             else:
+        #                 mx.writeToXmlFile(doc, str(matx_data[1]))
 
 
 class USDHydraHdStormEngine(USDHydraEngine):

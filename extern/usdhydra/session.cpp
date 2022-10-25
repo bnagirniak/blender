@@ -60,11 +60,10 @@ void add_reference_to_prim(int is_preview, UsdStageRefPtr stage, UsdStageRefPtr 
   }
 }
 
-void BlenderSession::reset(BL::Context b_context, PointerRNA depsgraphptr, bool is_blender_scene, int stageId, 
+void BlenderSession::reset(BL::Context &b_context, BL::Depsgraph &b_depsgraph, bool is_blender_scene, int stageId, 
                            blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview)
 {
-  BL::Depsgraph b_depsgraph(depsgraphptr);
-  Depsgraph *depsgraph = (::Depsgraph *)depsgraphptr.data;
+  Depsgraph *depsgraph = (Depsgraph *)b_depsgraph.ptr.data;
 
   set<SdfPath> existing_paths, new_paths, paths_to_remove, paths_to_add;
 
@@ -108,7 +107,7 @@ void BlenderSession::reset(BL::Context b_context, PointerRNA depsgraphptr, bool 
                  inserter(paths_to_add, paths_to_add.end()));
 
   if (is_blender_scene) {
-    export_scene_to_usd(b_context, depsgraph, materialx_data, render_delegate, existing_paths, objects_to_update);
+    export_scene_to_usd(b_context, b_depsgraph, materialx_data, render_delegate, existing_paths, objects_to_update);
   }
   else {
     stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
@@ -363,10 +362,11 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-void BlenderSession::export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data,
+void BlenderSession::export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &b_depsgraph, blender::io::usd::materialx_data_type materialx_data,
                                                    const char *render_delegate, set<pxr::SdfPath> existing_paths, set<string> objects_to_update)
 {
   LOG(INFO) << "export_scene_to_usd";
+  Depsgraph *depsgraph = (Depsgraph *)b_depsgraph.ptr.data;
 
   Scene *scene = DEG_get_input_scene(depsgraph);
   World *world = scene->world;
@@ -540,6 +540,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  BL::Depsgraph b_depsgraph(depsgraphptr);
 
   PointerRNA contextptr;
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pycontext), &contextptr);
@@ -580,7 +581,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, depsgraphptr, is_blender_scene, stageId, materialx_data, render_delegate, is_preview);
+  session->reset(b_context, b_depsgraph, is_blender_scene, stageId, materialx_data, render_delegate, is_preview);
 
   Py_RETURN_NONE;
 }

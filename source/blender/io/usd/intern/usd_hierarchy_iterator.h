@@ -27,6 +27,8 @@ class USDHierarchyIterator : public AbstractHierarchyIterator {
   pxr::UsdTimeCode export_time_;
   const USDExportParams &params_;
   materialx_data_type materialx_data_;
+  std::set<pxr::SdfPath> existing_paths_;
+  std::set<std::string> objects_to_update_;
 
 
  public:
@@ -34,7 +36,9 @@ class USDHierarchyIterator : public AbstractHierarchyIterator {
                        Depsgraph *depsgraph,
                        pxr::UsdStageRefPtr stage,
                        const USDExportParams &params,
-                       materialx_data_type = materialx_data_type());
+                       materialx_data_type = materialx_data_type(),
+                       std::set<pxr::SdfPath> existing_paths = {},
+                       std::set<std::string> objects_to_update = {});
 
   void set_export_frame(float frame_nr);
   std::string get_export_file_path() const;

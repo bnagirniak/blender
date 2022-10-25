@@ -39,7 +39,7 @@ public:
   ~BlenderSession();
 
   void create();
-  void reset(BL::Context b_context, Depsgraph *depsgraph, bool is_blender_scene, int stageId,
+  void reset(BL::Context b_context, PointerRNA depsgraphptr, bool is_blender_scene, int stageId,
              blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
@@ -47,7 +47,8 @@ public:
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void sync_final_render(BL::Depsgraph &b_depsgraph);
-  UsdStageRefPtr export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data, const char *render_delegate);
+  void export_scene_to_usd(BL::Context b_context, Depsgraph *depsgraph, blender::io::usd::materialx_data_type materialx_data,
+                           const char *render_delegate, set<SdfPath> existing_paths = {}, set<string> objects_to_update = {});
 
   template <typename T>
   float get_renderer_percent_done(T *renderer)

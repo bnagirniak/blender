@@ -12,15 +12,6 @@ from .usd_nodes import node_tree
 from .utils import stages, logging
 log = logging.Log('engine')
 
-IS_MATERIALX_ADDON_LOADED = False
-
-try:
-    import materialx
-    IS_MATERIALX_ADDON_LOADED = True
-
-except Exception as e:
-    log.warn("MaterialX Addon isn't loaded")
-
 
 def exit():
     _usdhydra.exit()
@@ -131,7 +122,11 @@ class USDHydraEngine(bpy.types.RenderEngine):
         return tuple()
 
     def get_materialx_data(self, context, depsgraph):
-        if not IS_MATERIALX_ADDON_LOADED:
+        try:
+            import materialx
+
+        except Exception as e:
+            log.warn("MaterialX Addon isn't loaded")
             return
 
         for obj in bpy.context.scene.objects:

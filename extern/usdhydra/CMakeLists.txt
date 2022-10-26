@@ -106,6 +106,7 @@ set(ADDON_UI_FILES
   addon/ui/__init__.py
   addon/ui/render.py
   addon/ui/object.py
+  addon/ui/material.py
   addon/ui/world.py
   addon/ui/light.py
   addon/ui/panels.py

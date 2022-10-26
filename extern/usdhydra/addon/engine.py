@@ -131,6 +131,9 @@ class USDHydraEngine(bpy.types.RenderEngine):
         return tuple()
 
     def get_materialx_data(self, context, depsgraph):
+        if not IS_MATERIALX_ADDON_LOADED:
+            return
+
         for obj in bpy.context.scene.objects:
             if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
                 continue
@@ -143,16 +146,12 @@ class USDHydraEngine(bpy.types.RenderEngine):
                 matx_data = next((mat for mat in self.materialx_data if mat[0] == material.name), None)
 
                 if not matx_data:
-                    if not hasattr(material, 'materialx'):
-                        continue
-
                     mx_file, doc = material.materialx.get_materialx_data(obj)
                     surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
 
                     self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
 
-        if IS_MATERIALX_ADDON_LOADED:
-            materialx.utils.update_materialx_data(depsgraph, self.materialx_data)
+        materialx.utils.update_materialx_data(depsgraph, self.materialx_data)
 
 
 class USDHydraHdStormEngine(USDHydraEngine):

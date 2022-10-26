@@ -3,12 +3,23 @@
 
 # <pep8 compliant>
 
+import sys
+
 import bpy
 import _usdhydra
 
 from .usd_nodes import node_tree
 from .utils import stages, logging
 log = logging.Log('engine')
+
+IS_MATERIALX_ADDON_LOADED = False
+
+try:
+    import materialx
+    IS_MATERIALX_ADDON_LOADED = True
+
+except Exception as e:
+    log.warn("MaterialX Addon isn't loaded")
 
 
 def exit():
@@ -119,34 +130,10 @@ class USDHydraEngine(bpy.types.RenderEngine):
     def sync_viewport_delegate_settings(self):
         return tuple()
 
-    # def get_materialx_data(self, context, depsgraph):
-    #     data = []
-    #     for obj in bpy.context.scene.objects:
-    #         if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
-    #             continue
-    #
-    #         for mat_slot in obj.material_slots:
-    #             if not mat_slot:
-    #                 continue
-    #
-    #             mat = mat_slot.material
-    #
-    #             if not hasattr(mat, 'materialx'):
-    #                 continue
-    #
-    #             mx_file, doc = mat.materialx.get_materialx_data(obj)
-    #
-    #             if not mx_file:
-    #                 log.warn("MX export failed", mat)
-    #                 continue
-    #
-    #             surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
-    #
-    #             data.append((mat.name, str(mx_file), surfacematerial.getName()))
-    #
-    #     return tuple(data)
-
     def get_materialx_data(self, context, depsgraph):
+        if not IS_MATERIALX_ADDON_LOADED:
+            return
+
         for obj in bpy.context.scene.objects:
             if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
                 continue
@@ -159,38 +146,12 @@ class USDHydraEngine(bpy.types.RenderEngine):
                 matx_data = next((mat for mat in self.materialx_data if mat[0] == material.name), None)
 
                 if not matx_data:
-                    if not hasattr(material, 'materialx'):
-                        continue
-
                     mx_file, doc = material.materialx.get_materialx_data(obj)
                     surfacematerial = next((node for node in doc.getNodes() if node.getCategory() == 'surfacematerial'))
 
                     self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
 
-        # if not depsgraph.updates:
-        #     return
-        #
-        # for mx_node_tree in (upd.id for upd in depsgraph.updates if isinstance(upd.id, MxNodeTree)):
-        #     for material in bpy.data.materials:
-        #         if material.usdhydra.mx_node_tree and material.usdhydra.mx_node_tree.name == mx_node_tree.name:
-        #             doc = material.usdhydra.export(None)
-        #             if not doc:
-        #                 # log.warn("MX export failed", mat)
-        #                 continue
-        #
-        #             matx_data = next((mat for mat in self.materialx_data if mat[0] == material.name), None)
-        #
-        #             if not matx_data:
-        #                 mx_file = _usdhydra.utils.get_temp_file(".mtlx",
-        #                                                  f'{material.name}{material.usdhydra.mx_node_tree.name if material.usdhydra.mx_node_tree else ""}',
-        #                                                  False)
-        #
-        #                 mx.writeToXmlFile(doc, str(mx_file))
-        #                 surfacematerial = next((node for node in doc.getNodes()
-        #                                         if node.getCategory() == 'surfacematerial'))
-        #                 self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
-        #             else:
-        #                 mx.writeToXmlFile(doc, str(matx_data[1]))
+        materialx.utils.update_materialx_data(depsgraph, self.materialx_data)
 
 
 class USDHydraHdStormEngine(USDHydraEngine):
@@ -198,7 +159,7 @@ class USDHydraHdStormEngine(USDHydraEngine):
     bl_label = "USD Hydra: GL"
     bl_info = "USD Hydra HdStormRendererPlugin rendering plugin"
 
-    bl_use_preview = True
+    bl_use_preview = False
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
     bl_use_gpu_context = True

@@ -40,7 +40,8 @@ class PlanarFieldInput final : public bke::MeshFieldInput {
     const Span<MVert> verts = mesh.verts();
     const Span<MPoly> polys = mesh.polys();
     const Span<MLoop> loops = mesh.loops();
-    const Span<float3> poly_normals{(float3 *)BKE_mesh_poly_normals_ensure(&mesh), mesh.totpoly};
+    const Span<float3> poly_normals{
+        reinterpret_cast<const float3 *>(BKE_mesh_poly_normals_ensure(&mesh)), mesh.totpoly};
 
     bke::MeshFieldContext context{mesh, ATTR_DOMAIN_FACE};
     fn::FieldEvaluator evaluator{context, polys.size()};
@@ -72,7 +73,7 @@ class PlanarFieldInput final : public bke::MeshFieldInput {
       return max - min < thresholds[i] / 2.0f;
     };
 
-    return bke::mesh_attributes(mesh).adapt_domain<bool>(
+    return mesh.attributes().adapt_domain<bool>(
         VArray<bool>::ForFunc(polys.size(), planar_fn), ATTR_DOMAIN_FACE, domain);
   }
 
@@ -85,6 +86,11 @@ class PlanarFieldInput final : public bke::MeshFieldInput {
   bool is_equal_to(const fn::FieldNode &other) const override
   {
     return dynamic_cast<const PlanarFieldInput *>(&other) != nullptr;
+  }
+
+  std::optional<eAttrDomain> preferred_domain(const Mesh & /*mesh*/) const override
+  {
+    return ATTR_DOMAIN_FACE;
   }
 };
 

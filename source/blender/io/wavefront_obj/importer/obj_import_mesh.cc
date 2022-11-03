@@ -69,11 +69,7 @@ Object *MeshFromGeometry::create_mesh(Main *bmain,
   }
   transform_object(obj, import_params);
 
-  /* FIXME: after 2.80; `mesh->flag` isn't copied by #BKE_mesh_nomain_to_mesh() */
-  const uint16_t autosmooth = (mesh->flag & ME_AUTOSMOOTH);
-  Mesh *dst = static_cast<Mesh *>(obj->data);
-  BKE_mesh_nomain_to_mesh(mesh, dst, obj, &CD_MASK_EVERYTHING, true);
-  dst->flag |= autosmooth;
+  BKE_mesh_nomain_to_mesh(mesh, static_cast<Mesh *>(obj->data), obj);
 
   /* NOTE: vertex groups have to be created after final mesh is assigned to the object. */
   create_vertex_groups(obj);
@@ -170,7 +166,7 @@ void MeshFromGeometry::create_vertices(Mesh *mesh)
     if (!mesh_geometry_.vertices_.contains(vi)) {
       continue;
     }
-    int local_vi = (int)mesh_geometry_.global_to_local_vertices_.size();
+    int local_vi = int(mesh_geometry_.global_to_local_vertices_.size());
     BLI_assert(local_vi >= 0 && local_vi < mesh->totvert);
     copy_v3_v3(verts[local_vi].co, global_vertices_.vertices[vi]);
     mesh_geometry_.global_to_local_vertices_.add_new(vi, local_vi);
@@ -188,8 +184,8 @@ void MeshFromGeometry::create_polys_loops(Mesh *mesh, bool use_vertex_groups)
   MutableSpan<MPoly> polys = mesh->polys_for_write();
   MutableSpan<MLoop> loops = mesh->loops_for_write();
   bke::SpanAttributeWriter<int> material_indices =
-      bke::mesh_attributes_for_write(*mesh).lookup_or_add_for_write_only_span<int>(
-          "material_index", ATTR_DOMAIN_FACE);
+      mesh->attributes_for_write().lookup_or_add_for_write_only_span<int>("material_index",
+                                                                          ATTR_DOMAIN_FACE);
 
   const int64_t tot_face_elems{mesh->totpoly};
   int tot_loop_idx = 0;
@@ -279,12 +275,13 @@ void MeshFromGeometry::create_uv_verts(Mesh *mesh)
   for (const PolyElem &curr_face : mesh_geometry_.face_elements_) {
     for (int idx = 0; idx < curr_face.corner_count_; ++idx) {
       const PolyCorner &curr_corner = mesh_geometry_.face_corners_[curr_face.start_index_ + idx];
-      if (curr_corner.uv_vert_index >= 0 &&
-          curr_corner.uv_vert_index < global_vertices_.uv_vertices.size()) {
-        const float2 &mluv_src = global_vertices_.uv_vertices[curr_corner.uv_vert_index];
-        copy_v2_v2(mluv_dst[tot_loop_idx].uv, mluv_src);
-        tot_loop_idx++;
+      const int uv_index = curr_corner.uv_vert_index;
+      float2 uv(0, 0);
+      if (uv_index >= 0 && uv_index < global_vertices_.uv_vertices.size()) {
+        uv = global_vertices_.uv_vertices[uv_index];
       }
+      copy_v2_v2(mluv_dst[tot_loop_idx].uv, uv);
+      tot_loop_idx++;
     }
   }
 }

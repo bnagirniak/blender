@@ -87,7 +87,7 @@ static VArray<float3> construct_uv_gvarray(const Mesh &mesh,
   GEO_uv_parametrizer_flush(handle);
   GEO_uv_parametrizer_delete(handle);
 
-  return bke::mesh_attributes(mesh).adapt_domain<float3>(
+  return mesh.attributes().adapt_domain<float3>(
       VArray<float3>::ForContainer(std::move(uv)), ATTR_DOMAIN_CORNER, domain);
 }
 
@@ -114,9 +114,14 @@ class PackIslandsFieldInput final : public bke::MeshFieldInput {
 
   GVArray get_varray_for_context(const Mesh &mesh,
                                  const eAttrDomain domain,
-                                 IndexMask UNUSED(mask)) const final
+                                 const IndexMask /*mask*/) const final
   {
     return construct_uv_gvarray(mesh, selection_field, uv_field, rotate, margin, domain);
+  }
+
+  std::optional<eAttrDomain> preferred_domain(const Mesh & /*mesh*/) const override
+  {
+    return ATTR_DOMAIN_CORNER;
   }
 };
 

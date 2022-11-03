@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
+#include "BLI_array_utils.hh"
 #include "BLI_task.hh"
 
 #include "DNA_mesh_types.h"
@@ -105,18 +106,6 @@ static void copy_data_based_on_pairs(Span<T> data,
   }
 }
 
-/* Copy using the map. */
-template<typename T>
-static void copy_data_based_on_new_to_old_map(Span<T> data,
-                                              MutableSpan<T> r_data,
-                                              const Span<int> new_to_old_map)
-{
-  for (const int i : r_data.index_range()) {
-    const int old_i = new_to_old_map[i];
-    r_data[i] = data[old_i];
-  }
-}
-
 /**
  * Transfers the attributes from the original mesh to the new mesh using the following logic:
  * - If the attribute was on the face domain it is now on the point domain, and this is true
@@ -168,7 +157,6 @@ static void transfer_attributes(
         src_attribute.varray.type());
     GSpanAttributeWriter dst_attribute = dst_attributes.lookup_or_add_for_write_only_span(
         attribute_id, out_domain, data_type);
-
     if (!dst_attribute) {
       continue;
     }
@@ -177,20 +165,24 @@ static void transfer_attributes(
       using T = decltype(dummy);
       VArraySpan<T> span{src_attribute.varray.typed<T>()};
       MutableSpan<T> dst_span = dst_attribute.span.typed<T>();
-      if (src_attribute.domain == ATTR_DOMAIN_FACE) {
-        dst_span.take_front(span.size()).copy_from(span);
-        if (keep_boundaries) {
-          copy_data_based_on_pairs(span, dst_span, boundary_vertex_to_relevant_face_map);
-        }
-      }
-      else if (src_attribute.domain == ATTR_DOMAIN_POINT) {
-        copy_data_based_on_vertex_types(span, dst_span, vertex_types, keep_boundaries);
-      }
-      else if (src_attribute.domain == ATTR_DOMAIN_EDGE) {
-        copy_data_based_on_new_to_old_map(span, dst_span, new_to_old_edges_map);
-      }
-      else {
-        copy_data_based_on_new_to_old_map(span, dst_span, new_to_old_face_corners_map);
+      switch (src_attribute.domain) {
+        case ATTR_DOMAIN_POINT:
+          copy_data_based_on_vertex_types(span, dst_span, vertex_types, keep_boundaries);
+          break;
+        case ATTR_DOMAIN_EDGE:
+          array_utils::gather(span, new_to_old_edges_map, dst_span);
+          break;
+        case ATTR_DOMAIN_FACE:
+          dst_span.take_front(span.size()).copy_from(span);
+          if (keep_boundaries) {
+            copy_data_based_on_pairs(span, dst_span, boundary_vertex_to_relevant_face_map);
+          }
+          break;
+        case ATTR_DOMAIN_CORNER:
+          array_utils::gather(span, new_to_old_face_corners_map, dst_span);
+          break;
+        default:
+          BLI_assert_unreachable();
       }
     });
     dst_attribute.finish();
@@ -263,10 +255,10 @@ static void calc_boundaries(const Mesh &mesh,
 static void create_vertex_poly_map(const Mesh &mesh,
                                    MutableSpan<Vector<int>> r_vertex_poly_indices)
 {
-  const Span<MPoly> polygons = mesh.polys();
+  const Span<MPoly> polys = mesh.polys();
   const Span<MLoop> loops = mesh.loops();
-  for (const int i : polygons.index_range()) {
-    const MPoly &poly = polygons[i];
+  for (const int i : polys.index_range()) {
+    const MPoly &poly = polys[i];
     const Span<MLoop> poly_loops = loops.slice(poly.loopstart, poly.totloop);
     for (const MLoop &loop : poly_loops) {
       r_vertex_poly_indices[loop.v].append(i);
@@ -335,18 +327,18 @@ static bool sort_vertex_polys(const Span<MEdge> edges,
                               const int vertex_index,
                               const bool boundary_vertex,
                               const Span<EdgeType> edge_types,
-                              MutableSpan<int> connected_polygons,
+                              MutableSpan<int> connected_polys,
                               MutableSpan<int> r_shared_edges,
                               MutableSpan<int> r_sorted_corners)
 {
-  if (connected_polygons.size() <= 2 && (!boundary_vertex || connected_polygons.size() == 0)) {
+  if (connected_polys.size() <= 2 && (!boundary_vertex || connected_polys.size() == 0)) {
     return true;
   }
 
   /* For each polygon store the two corners whose edge contains the vertex. */
-  Array<std::pair<int, int>> poly_vertex_corners(connected_polygons.size());
-  for (const int i : connected_polygons.index_range()) {
-    const MPoly &poly = polys[connected_polygons[i]];
+  Array<std::pair<int, int>> poly_vertex_corners(connected_polys.size());
+  for (const int i : connected_polys.index_range()) {
+    const MPoly &poly = polys[connected_polys[i]];
     bool first_edge_done = false;
     for (const int loop_index : IndexRange(poly.loopstart, poly.totloop)) {
       const MLoop &loop = loops[loop_index];
@@ -369,20 +361,20 @@ static bool sort_vertex_polys(const Span<MEdge> edges,
    * the loop to determine the 'average' orientation. */
   if (boundary_vertex) {
     /* Our first polygon needs to be one which has a boundary edge. */
-    for (const int i : connected_polygons.index_range()) {
+    for (const int i : connected_polys.index_range()) {
       const MLoop &first_loop = loops[poly_vertex_corners[i].first];
       const MLoop &second_loop = loops[poly_vertex_corners[i].second];
       if (edge_types[first_loop.e] == EdgeType::Boundary && first_loop.v == vertex_index) {
         shared_edge_i = second_loop.e;
         r_sorted_corners[0] = poly_vertex_corners[i].first;
-        std::swap(connected_polygons[i], connected_polygons[0]);
+        std::swap(connected_polys[i], connected_polys[0]);
         std::swap(poly_vertex_corners[i], poly_vertex_corners[0]);
         break;
       }
       if (edge_types[second_loop.e] == EdgeType::Boundary && second_loop.v == vertex_index) {
         shared_edge_i = first_loop.e;
         r_sorted_corners[0] = poly_vertex_corners[i].second;
-        std::swap(connected_polygons[i], connected_polygons[0]);
+        std::swap(connected_polys[i], connected_polys[0]);
         std::swap(poly_vertex_corners[i], poly_vertex_corners[0]);
         break;
       }
@@ -390,20 +382,20 @@ static bool sort_vertex_polys(const Span<MEdge> edges,
     if (shared_edge_i == -1) {
       /* The rotation is inconsistent between the two polygons on the boundary. Just choose one
        * of the polygon's orientation. */
-      for (const int i : connected_polygons.index_range()) {
+      for (const int i : connected_polys.index_range()) {
         const MLoop &first_loop = loops[poly_vertex_corners[i].first];
         const MLoop &second_loop = loops[poly_vertex_corners[i].second];
         if (edge_types[first_loop.e] == EdgeType::Boundary) {
           shared_edge_i = second_loop.e;
           r_sorted_corners[0] = poly_vertex_corners[i].first;
-          std::swap(connected_polygons[i], connected_polygons[0]);
+          std::swap(connected_polys[i], connected_polys[0]);
           std::swap(poly_vertex_corners[i], poly_vertex_corners[0]);
           break;
         }
         if (edge_types[second_loop.e] == EdgeType::Boundary) {
           shared_edge_i = first_loop.e;
           r_sorted_corners[0] = poly_vertex_corners[i].second;
-          std::swap(connected_polygons[i], connected_polygons[0]);
+          std::swap(connected_polys[i], connected_polys[0]);
           std::swap(poly_vertex_corners[i], poly_vertex_corners[0]);
           break;
         }
@@ -425,12 +417,12 @@ static bool sort_vertex_polys(const Span<MEdge> edges,
   }
   BLI_assert(shared_edge_i != -1);
 
-  for (const int i : IndexRange(connected_polygons.size() - 1)) {
+  for (const int i : IndexRange(connected_polys.size() - 1)) {
     r_shared_edges[i] = shared_edge_i;
 
     /* Look at the other polys to see if it has this shared edge. */
     int j = i + 1;
-    for (; j < connected_polygons.size(); ++j) {
+    for (; j < connected_polys.size(); ++j) {
       const MLoop &first_loop = loops[poly_vertex_corners[j].first];
       const MLoop &second_loop = loops[poly_vertex_corners[j].second];
       if (first_loop.e == shared_edge_i) {
@@ -444,13 +436,13 @@ static bool sort_vertex_polys(const Span<MEdge> edges,
         break;
       }
     }
-    if (j == connected_polygons.size()) {
+    if (j == connected_polys.size()) {
       /* The vertex is not manifold because the polygons around the vertex don't form a loop, and
        * hence can't be sorted. */
       return false;
     }
 
-    std::swap(connected_polygons[i + 1], connected_polygons[j]);
+    std::swap(connected_polys[i + 1], connected_polys[j]);
     std::swap(poly_vertex_corners[i + 1], poly_vertex_corners[j]);
   }
 
@@ -918,8 +910,8 @@ static void calc_dual_mesh(GeometrySet &geometry_set,
                       new_to_old_edges_map,
                       new_to_old_face_corners_map,
                       boundary_vertex_to_relevant_face_map,
-                      bke::mesh_attributes(mesh_in),
-                      bke::mesh_attributes_for_write(*mesh_out));
+                      mesh_in.attributes(),
+                      mesh_out->attributes_for_write());
 
   MutableSpan<MVert> dst_verts = mesh_out->verts_for_write();
   MutableSpan<MEdge> dst_edges = mesh_out->edges_for_write();

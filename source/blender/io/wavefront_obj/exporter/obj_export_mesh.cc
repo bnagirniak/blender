@@ -124,10 +124,11 @@ void OBJMesh::set_world_axes_transform(const eIOAxis forward, const eIOAxis up)
   unit_m3(axes_transform);
   /* +Y-forward and +Z-up are the default Blender axis settings. */
   mat3_from_axis_conversion(forward, up, IO_AXIS_Y, IO_AXIS_Z, axes_transform);
-  mul_m4_m3m4(world_and_axes_transform_, axes_transform, export_object_eval_.obmat);
+  mul_m4_m3m4(world_and_axes_transform_, axes_transform, export_object_eval_.object_to_world);
   /* mul_m4_m3m4 does not transform last row of obmat, i.e. location data. */
-  mul_v3_m3v3(world_and_axes_transform_[3], axes_transform, export_object_eval_.obmat[3]);
-  world_and_axes_transform_[3][3] = export_object_eval_.obmat[3][3];
+  mul_v3_m3v3(
+      world_and_axes_transform_[3], axes_transform, export_object_eval_.object_to_world[3]);
+  world_and_axes_transform_[3][3] = export_object_eval_.object_to_world[3][3];
 
   /* Normals need inverse transpose of the regular matrix to handle non-uniform scale. */
   float normal_matrix[3][3];
@@ -203,7 +204,7 @@ void OBJMesh::calc_smooth_groups(const bool use_bitflags)
 
 void OBJMesh::calc_poly_order()
 {
-  const bke::AttributeAccessor attributes = bke::mesh_attributes(*export_mesh_eval_);
+  const bke::AttributeAccessor attributes = export_mesh_eval_->attributes();
   const VArray<int> material_indices = attributes.lookup_or_default<int>(
       "material_index", ATTR_DOMAIN_FACE, 0);
   if (material_indices.is_single() && material_indices.get_internal_single() == 0) {
@@ -242,8 +243,8 @@ const Material *OBJMesh::get_object_material(const int16_t mat_nr) const
 
 bool OBJMesh::is_ith_poly_smooth(const int poly_index) const
 {
-  const Span<MPoly> polygons = export_mesh_eval_->polys();
-  return polygons[poly_index].flag & ME_SMOOTH;
+  const Span<MPoly> polys = export_mesh_eval_->polys();
+  return polys[poly_index].flag & ME_SMOOTH;
 }
 
 const char *OBJMesh::get_object_name() const
@@ -265,13 +266,13 @@ const char *OBJMesh::get_object_material_name(const int16_t mat_nr) const
   return mat->id.name + 2;
 }
 
-float3 OBJMesh::calc_vertex_coords(const int vert_index, const float scaling_factor) const
+float3 OBJMesh::calc_vertex_coords(const int vert_index, const float global_scale) const
 {
   float3 r_coords;
   const Span<MVert> verts = export_mesh_eval_->verts();
   copy_v3_v3(r_coords, verts[vert_index].co);
   mul_m4_v3(world_and_axes_transform_, r_coords);
-  mul_v3_fl(r_coords, scaling_factor);
+  mul_v3_fl(r_coords, global_scale);
   return r_coords;
 }
 
@@ -302,8 +303,16 @@ void OBJMesh::store_uv_coords_and_indices()
   }
   const float limit[2] = {STD_UV_CONNECT_LIMIT, STD_UV_CONNECT_LIMIT};
 
-  UvVertMap *uv_vert_map = BKE_mesh_uv_vert_map_create(
-      polys.data(), nullptr, loops.data(), mloopuv, polys.size(), totvert, limit, false, false);
+  UvVertMap *uv_vert_map = BKE_mesh_uv_vert_map_create(polys.data(),
+                                                       nullptr,
+                                                       nullptr,
+                                                       loops.data(),
+                                                       mloopuv,
+                                                       polys.size(),
+                                                       totvert,
+                                                       limit,
+                                                       false,
+                                                       false);
 
   uv_indices_.resize(polys.size());
   /* At least total vertices of a mesh will be present in its texture map. So
@@ -317,7 +326,7 @@ void OBJMesh::store_uv_coords_and_indices()
       if (uv_vert->separate) {
         tot_uv_vertices_ += 1;
       }
-      const int vertices_in_poly = polys[uv_vert->poly_index].totloop;
+      const int verts_in_poly = polys[uv_vert->poly_index].totloop;
 
       /* Store UV vertex coordinates. */
       uv_coords_.resize(tot_uv_vertices_);
@@ -326,7 +335,7 @@ void OBJMesh::store_uv_coords_and_indices()
       uv_coords_[tot_uv_vertices_ - 1] = float2(vert_uv_coords[0], vert_uv_coords[1]);
 
       /* Store UV vertex indices. */
-      uv_indices_[uv_vert->poly_index].resize(vertices_in_poly);
+      uv_indices_[uv_vert->poly_index].resize(verts_in_poly);
       /* Keep indices zero-based and let the writer handle the "+ 1" as per OBJ spec. */
       uv_indices_[uv_vert->poly_index][uv_vert->loop_of_poly_index] = tot_uv_vertices_ - 1;
     }
@@ -361,7 +370,7 @@ float3 OBJMesh::calc_poly_normal(const int poly_index) const
 static float round_float_to_n_digits(const float f, int round_digits)
 {
   float scale = powf(10.0, round_digits);
-  return ceilf((scale * f - 0.49999999f)) / scale;
+  return ceilf(scale * f - 0.49999999f) / scale;
 }
 
 static float3 round_float3_to_n_digits(const float3 &v, int round_digits)
@@ -503,7 +512,7 @@ std::optional<std::array<int, 2>> OBJMesh::calc_loose_edge_vert_indices(const in
   const Span<MEdge> edges = export_mesh_eval_->edges();
   const MEdge &edge = edges[edge_index];
   if (edge.flag & ME_LOOSEEDGE) {
-    return std::array<int, 2>{static_cast<int>(edge.v1), static_cast<int>(edge.v2)};
+    return std::array<int, 2>{int(edge.v1), int(edge.v2)};
   }
   return std::nullopt;
 }

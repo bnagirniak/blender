@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include "BKE_pointcloud.h"
+#include "DNA_pointcloud_types.h"
 
 #include "BLI_task.hh"
 
@@ -19,9 +20,10 @@ static void node_declare(NodeDeclarationBuilder &b)
       .default_value(float3(0.0f))
       .description(N_("The positions of the new points"));
   b.add_input<decl::Float>(N_("Radius"))
+      .min(0.0f)
+      .default_value(0.1f)
       .supports_field()
       .subtype(PROP_DISTANCE)
-      .default_value(float(0.1f))
       .description(N_("The radii of the new points"));
   b.add_output<decl::Geometry>(N_("Geometry"));
 }
@@ -42,7 +44,7 @@ class PointsFieldContext : public FieldContext {
 
   GVArray get_varray_for_input(const FieldInput &field_input,
                                const IndexMask mask,
-                               ResourceScope &UNUSED(scope)) const
+                               ResourceScope & /*scope*/) const
   {
     const bke::IDAttributeFieldInput *id_field_input =
         dynamic_cast<const bke::IDAttributeFieldInput *>(&field_input);
@@ -70,7 +72,7 @@ static void node_geo_exec(GeoNodeExecParams params)
   Field<float> radius_field = params.extract_input<Field<float>>("Radius");
 
   PointCloud *points = BKE_pointcloud_new_nomain(count);
-  MutableAttributeAccessor attributes = bke::pointcloud_attributes_for_write(*points);
+  MutableAttributeAccessor attributes = points->attributes_for_write();
   AttributeWriter<float3> output_position = attributes.lookup_or_add_for_write<float3>(
       "position", ATTR_DOMAIN_POINT);
   AttributeWriter<float> output_radii = attributes.lookup_or_add_for_write<float>(

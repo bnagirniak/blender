@@ -54,6 +54,7 @@
 #include "RNA_prototypes.h"
 
 /* For menu, popup, icons, etc. */
+#include "ED_fileselect.h"
 #include "ED_keyframing.h"
 #include "ED_numinput.h"
 #include "ED_outliner.h"
@@ -119,7 +120,7 @@ bool ED_space_sequencer_maskedit_poll(bContext *C)
 bool ED_space_sequencer_check_show_imbuf(SpaceSeq *sseq)
 {
   return (sseq->mainb == SEQ_DRAW_IMG_IMBUF) &&
-         (ELEM(sseq->view, SEQ_VIEW_PREVIEW, SEQ_VIEW_SEQUENCE_PREVIEW));
+         ELEM(sseq->view, SEQ_VIEW_PREVIEW, SEQ_VIEW_SEQUENCE_PREVIEW);
 }
 
 bool ED_space_sequencer_check_show_strip(SpaceSeq *sseq)
@@ -193,7 +194,7 @@ bool sequencer_strip_has_path_poll(bContext *C)
   Editing *ed;
   Sequence *seq;
   return (((ed = SEQ_editing_get(CTX_data_scene(C))) != NULL) && ((seq = ed->act_seq) != NULL) &&
-          (SEQ_HAS_PATH(seq)));
+          SEQ_HAS_PATH(seq));
 }
 
 bool sequencer_view_has_preview_poll(bContext *C)
@@ -2938,7 +2939,7 @@ static int sequencer_change_path_invoke(bContext *C, wmOperator *op, const wmEve
   Sequence *seq = SEQ_select_active_get(scene);
   char filepath[FILE_MAX];
 
-  BLI_join_dirfile(filepath, sizeof(filepath), seq->strip->dir, seq->strip->stripdata->name);
+  BLI_path_join(filepath, sizeof(filepath), seq->strip->dir, seq->strip->stripdata->name);
 
   RNA_string_set(op->ptr, "directory", seq->strip->dir);
   RNA_string_set(op->ptr, "filepath", filepath);
@@ -3088,20 +3089,7 @@ static int sequencer_export_subtitles_invoke(bContext *C,
                                              wmOperator *op,
                                              const wmEvent *UNUSED(event))
 {
-  Main *bmain = CTX_data_main(C);
-  if (!RNA_struct_property_is_set(op->ptr, "filepath")) {
-    char filepath[FILE_MAX];
-
-    if (BKE_main_blendfile_path(bmain)[0] == '\0') {
-      BLI_strncpy(filepath, DATA_("untitled"), sizeof(filepath));
-    }
-    else {
-      BLI_strncpy(filepath, BKE_main_blendfile_path(bmain), sizeof(filepath));
-    }
-
-    BLI_path_extension_replace(filepath, sizeof(filepath), ".srt");
-    RNA_string_set(op->ptr, "filepath", filepath);
-  }
+  ED_fileselect_ensure_default_filepath(C, op, ".srt");
 
   WM_event_add_fileselect(C, op);
 
@@ -3136,7 +3124,7 @@ static int sequencer_export_subtitles_exec(bContext *C, wmOperator *op)
   FILE *file;
   char filepath[FILE_MAX];
 
-  if (!RNA_struct_property_is_set(op->ptr, "filepath")) {
+  if (!RNA_struct_property_is_set_ex(op->ptr, "filepath", false)) {
     BKE_report(op->reports, RPT_ERROR, "No filename given");
     return OPERATOR_CANCELLED;
   }

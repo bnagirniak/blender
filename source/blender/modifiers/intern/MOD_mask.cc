@@ -64,9 +64,7 @@ static void initData(ModifierData *md)
   MEMCPY_STRUCT_AFTER(mmd, DNA_struct_default_get(MaskModifierData), modifier);
 }
 
-static void requiredDataMask(Object *UNUSED(ob),
-                             ModifierData *UNUSED(md),
-                             CustomData_MeshMasks *r_cddata_masks)
+static void requiredDataMask(ModifierData * /*md*/, CustomData_MeshMasks *r_cddata_masks)
 {
   r_cddata_masks->vmask |= CD_MASK_MDEFORMVERT;
 }
@@ -143,9 +141,9 @@ static void invert_boolean_array(MutableSpan<bool> array)
   }
 }
 
-static void compute_masked_vertices(Span<bool> vertex_mask,
-                                    MutableSpan<int> r_vertex_map,
-                                    uint *r_verts_masked_num)
+static void compute_masked_verts(Span<bool> vertex_mask,
+                                 MutableSpan<int> r_vertex_map,
+                                 uint *r_verts_masked_num)
 {
   BLI_assert(vertex_mask.size() == r_vertex_map.size());
 
@@ -223,12 +221,12 @@ static void computed_masked_edges_smooth(const Mesh *mesh,
   *r_verts_add_num = verts_add_num;
 }
 
-static void computed_masked_polygons(const Mesh *mesh,
-                                     Span<bool> vertex_mask,
-                                     Vector<int> &r_masked_poly_indices,
-                                     Vector<int> &r_loop_starts,
-                                     uint *r_polys_masked_num,
-                                     uint *r_loops_masked_num)
+static void computed_masked_polys(const Mesh *mesh,
+                                  Span<bool> vertex_mask,
+                                  Vector<int> &r_masked_poly_indices,
+                                  Vector<int> &r_loop_starts,
+                                  uint *r_polys_masked_num,
+                                  uint *r_loops_masked_num)
 {
   BLI_assert(mesh->totvert == vertex_mask.size());
   const Span<MPoly> polys = mesh->polys();
@@ -261,15 +259,15 @@ static void computed_masked_polygons(const Mesh *mesh,
   *r_loops_masked_num = loops_masked_num;
 }
 
-static void compute_interpolated_polygons(const Mesh *mesh,
-                                          Span<bool> vertex_mask,
-                                          uint verts_add_num,
-                                          uint loops_masked_num,
-                                          Vector<int> &r_masked_poly_indices,
-                                          Vector<int> &r_loop_starts,
-                                          uint *r_edges_add_num,
-                                          uint *r_polys_add_num,
-                                          uint *r_loops_add_num)
+static void compute_interpolated_polys(const Mesh *mesh,
+                                       Span<bool> vertex_mask,
+                                       uint verts_add_num,
+                                       uint loops_masked_num,
+                                       Vector<int> &r_masked_poly_indices,
+                                       Vector<int> &r_loop_starts,
+                                       uint *r_edges_add_num,
+                                       uint *r_polys_add_num,
+                                       uint *r_loops_add_num)
 {
   BLI_assert(mesh->totvert == vertex_mask.size());
 
@@ -333,9 +331,9 @@ static void compute_interpolated_polygons(const Mesh *mesh,
   *r_loops_add_num = loops_add_num;
 }
 
-static void copy_masked_vertices_to_new_mesh(const Mesh &src_mesh,
-                                             Mesh &dst_mesh,
-                                             Span<int> vertex_map)
+static void copy_masked_verts_to_new_mesh(const Mesh &src_mesh,
+                                          Mesh &dst_mesh,
+                                          Span<int> vertex_map)
 {
   BLI_assert(src_mesh.totvert == vertex_map.size());
   const Span<MVert> src_verts = src_mesh.verts();
@@ -638,7 +636,7 @@ static void add_interpolated_polys_to_new_mesh(const Mesh &src_mesh,
  * 2. Find edges and polygons only using those vertices.
  * 3. Create a new mesh that only uses the found vertices, edges and polygons.
  */
-static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *UNUSED(ctx), Mesh *mesh)
+static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext * /*ctx*/, Mesh *mesh)
 {
   MaskModifierData *mmd = reinterpret_cast<MaskModifierData *>(md);
   const bool invert_mask = mmd->flag & MOD_MASK_INV;
@@ -652,7 +650,7 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *UNUSED(ctx)
   }
 
   /* Quick test to see if we can return early. */
-  if (!(ELEM(mmd->mode, MOD_MASK_MODE_ARM, MOD_MASK_MODE_VGROUP)) || (mesh->totvert == 0) ||
+  if (!ELEM(mmd->mode, MOD_MASK_MODE_ARM, MOD_MASK_MODE_VGROUP) || (mesh->totvert == 0) ||
       BLI_listbase_is_empty(&mesh->vertex_group_names)) {
     return mesh;
   }
@@ -692,7 +690,7 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *UNUSED(ctx)
 
   Array<int> vertex_map(mesh->totvert);
   uint verts_masked_num;
-  compute_masked_vertices(vertex_mask, vertex_map, &verts_masked_num);
+  compute_masked_verts(vertex_mask, vertex_map, &verts_masked_num);
 
   Array<int> edge_map(mesh->totedge);
   uint edges_masked_num;
@@ -709,26 +707,26 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *UNUSED(ctx)
   Vector<int> new_loop_starts;
   uint polys_masked_num;
   uint loops_masked_num;
-  computed_masked_polygons(mesh,
-                           vertex_mask,
-                           masked_poly_indices,
-                           new_loop_starts,
-                           &polys_masked_num,
-                           &loops_masked_num);
+  computed_masked_polys(mesh,
+                        vertex_mask,
+                        masked_poly_indices,
+                        new_loop_starts,
+                        &polys_masked_num,
+                        &loops_masked_num);
 
   uint edges_add_num = 0;
   uint polys_add_num = 0;
   uint loops_add_num = 0;
   if (use_interpolation) {
-    compute_interpolated_polygons(mesh,
-                                  vertex_mask,
-                                  verts_add_num,
-                                  loops_masked_num,
-                                  masked_poly_indices,
-                                  new_loop_starts,
-                                  &edges_add_num,
-                                  &polys_add_num,
-                                  &loops_add_num);
+    compute_interpolated_polys(mesh,
+                               vertex_mask,
+                               verts_add_num,
+                               loops_masked_num,
+                               masked_poly_indices,
+                               new_loop_starts,
+                               &edges_add_num,
+                               &polys_add_num,
+                               &loops_add_num);
   }
 
   Mesh *result = BKE_mesh_new_nomain_from_template(mesh,
@@ -738,7 +736,7 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *UNUSED(ctx)
                                                    loops_masked_num + loops_add_num,
                                                    polys_masked_num + polys_add_num);
 
-  copy_masked_vertices_to_new_mesh(*mesh, *result, vertex_map);
+  copy_masked_verts_to_new_mesh(*mesh, *result, vertex_map);
   if (use_interpolation) {
     add_interp_verts_copy_edges_to_new_mesh(*mesh,
                                             *result,
@@ -781,9 +779,7 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *UNUSED(ctx)
   return result;
 }
 
-static bool isDisabled(const struct Scene *UNUSED(scene),
-                       ModifierData *md,
-                       bool UNUSED(useRenderParams))
+static bool isDisabled(const struct Scene * /*scene*/, ModifierData *md, bool /*useRenderParams*/)
 {
   MaskModifierData *mmd = reinterpret_cast<MaskModifierData *>(md);
 
@@ -795,7 +791,7 @@ static bool isDisabled(const struct Scene *UNUSED(scene),
   return mmd->ob_arm && mmd->ob_arm->type != OB_ARMATURE;
 }
 
-static void panel_draw(const bContext *UNUSED(C), Panel *panel)
+static void panel_draw(const bContext * /*C*/, Panel *panel)
 {
   uiLayout *sub, *row;
   uiLayout *layout = panel->layout;

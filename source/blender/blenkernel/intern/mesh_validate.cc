@@ -243,7 +243,7 @@ bool BKE_mesh_validate_arrays(Mesh *mesh,
   (void)0
 
   blender::bke::AttributeWriter<int> material_indices =
-      blender::bke::mesh_attributes_for_write(*mesh).lookup_for_write<int>("material_index");
+      mesh->attributes_for_write().lookup_for_write<int>("material_index");
   blender::MutableVArraySpan<int> material_indices_span(material_indices.varray);
 
   MVert *mv = mverts;
@@ -987,7 +987,7 @@ static bool mesh_validate_customdata(CustomData *data,
     }
   }
 
-  PRINT_MSG("%s: Finished (is_valid=%d)\n\n", __func__, (int)!has_fixes);
+  PRINT_MSG("%s: Finished (is_valid=%d)\n\n", __func__, int(!has_fixes));
 
   *r_change = has_fixes;
 
@@ -1152,7 +1152,7 @@ bool BKE_mesh_validate_material_indices(Mesh *me)
   bool is_valid = true;
 
   blender::bke::AttributeWriter<int> material_indices =
-      blender::bke::mesh_attributes_for_write(*me).lookup_for_write<int>("material_index");
+      me->attributes_for_write().lookup_for_write<int>("material_index");
   blender::MutableVArraySpan<int> material_indices_span(material_indices.varray);
   for (const int i : material_indices_span.index_range()) {
     if (material_indices_span[i] < 0 || material_indices_span[i] > mat_nr_max) {
@@ -1361,13 +1361,13 @@ static int vergedgesort(const void *v1, const void *v2)
 /* Create edges based on known verts and faces,
  * this function is only used when loading very old blend files */
 
-static void mesh_calc_edges_mdata(const MVert *UNUSED(allvert),
+static void mesh_calc_edges_mdata(const MVert * /*allvert*/,
                                   const MFace *allface,
                                   MLoop *allloop,
                                   const MPoly *allpoly,
-                                  int UNUSED(totvert),
+                                  int /*totvert*/,
                                   int totface,
-                                  int UNUSED(totloop),
+                                  int /*totloop*/,
                                   int totpoly,
                                   const bool use_old,
                                   MEdge **r_medge,

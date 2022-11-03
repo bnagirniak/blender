@@ -477,7 +477,7 @@ struct bNodeTree *ntreeAddTreeEmbedded(struct Main *bmain,
                                        const char *name,
                                        const char *idname);
 
-/* copy/free funcs, need to manage ID users */
+/* Copy/free functions, need to manage ID users. */
 
 /**
  * Free (or release) any data used by this node-tree.
@@ -572,6 +572,11 @@ struct bNodeSocket *ntreeInsertSocketInterface(struct bNodeTree *ntree,
 struct bNodeSocket *ntreeAddSocketInterfaceFromSocket(struct bNodeTree *ntree,
                                                       struct bNode *from_node,
                                                       struct bNodeSocket *from_sock);
+struct bNodeSocket *ntreeAddSocketInterfaceFromSocketWithName(struct bNodeTree *ntree,
+                                                              struct bNode *from_node,
+                                                              struct bNodeSocket *from_sock,
+                                                              const char *idname,
+                                                              const char *name);
 struct bNodeSocket *ntreeInsertSocketInterfaceFromSocket(struct bNodeTree *ntree,
                                                          struct bNodeSocket *next_sock,
                                                          struct bNode *from_node,
@@ -792,6 +797,12 @@ void nodeChainIterBackwards(const bNodeTree *ntree,
  */
 void nodeParentsIter(bNode *node, bool (*callback)(bNode *, void *), void *userdata);
 
+/**
+ * A dangling reroute node is a reroute node that does *not* have a "data source", i.e. no
+ * non-reroute node is connected to its input.
+ */
+bool nodeIsDanglingReroute(const struct bNodeTree *ntree, const struct bNode *node);
+
 struct bNodeLink *nodeFindLink(struct bNodeTree *ntree,
                                const struct bNodeSocket *from,
                                const struct bNodeSocket *to);
@@ -960,8 +971,8 @@ void nodeLabel(const struct bNodeTree *ntree, const struct bNode *node, char *la
  */
 const char *nodeSocketLabel(const struct bNodeSocket *sock);
 
-bool nodeGroupPoll(struct bNodeTree *nodetree,
-                   struct bNodeTree *grouptree,
+bool nodeGroupPoll(const struct bNodeTree *nodetree,
+                   const struct bNodeTree *grouptree,
                    const char **r_disabled_hint);
 
 /**
@@ -1337,15 +1348,6 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 #define CMP_CHAN_RGB 1
 #define CMP_CHAN_A 2
 
-/* scale node type, in custom1 */
-#define CMP_SCALE_RELATIVE 0
-#define CMP_SCALE_ABSOLUTE 1
-#define CMP_SCALE_SCENEPERCENT 2
-#define CMP_SCALE_RENDERPERCENT 3
-/* custom2 */
-#define CMP_SCALE_RENDERSIZE_FRAME_ASPECT (1 << 0)
-#define CMP_SCALE_RENDERSIZE_FRAME_CROP (1 << 1)
-
 /* track position node, in custom1 */
 #define CMP_TRACKPOS_ABSOLUTE 0
 #define CMP_TRACKPOS_RELATIVE_START 1
@@ -1489,7 +1491,7 @@ struct TexResult;
 #define GEO_NODE_ROTATE_INSTANCES 1122
 #define GEO_NODE_SPLIT_EDGES 1123
 #define GEO_NODE_MESH_TO_CURVE 1124
-#define GEO_NODE_TRANSFER_ATTRIBUTE 1125
+#define GEO_NODE_TRANSFER_ATTRIBUTE_DEPRECATED 1125
 #define GEO_NODE_SUBDIVISION_SURFACE 1126
 #define GEO_NODE_CURVE_ENDPOINT_SELECTION 1127
 #define GEO_NODE_RAYCAST 1128
@@ -1534,6 +1536,24 @@ struct TexResult;
 #define GEO_NODE_INPUT_SHORTEST_EDGE_PATHS 1168
 #define GEO_NODE_EDGE_PATHS_TO_CURVES 1169
 #define GEO_NODE_EDGE_PATHS_TO_SELECTION 1170
+#define GEO_NODE_MESH_FACE_SET_BOUNDARIES 1171
+#define GEO_NODE_DISTRIBUTE_POINTS_IN_VOLUME 1172
+#define GEO_NODE_SELF_OBJECT 1173
+#define GEO_NODE_SAMPLE_INDEX 1174
+#define GEO_NODE_SAMPLE_NEAREST 1175
+#define GEO_NODE_SAMPLE_NEAREST_SURFACE 1176
+#define GEO_NODE_OFFSET_POINT_IN_CURVE 1177
+#define GEO_NODE_CURVE_TOPOLOGY_CURVE_OF_POINT 1178
+#define GEO_NODE_CURVE_TOPOLOGY_POINTS_OF_CURVE 1179
+#define GEO_NODE_MESH_TOPOLOGY_OFFSET_CORNER_IN_FACE 1180
+#define GEO_NODE_MESH_TOPOLOGY_CORNERS_OF_FACE 1181
+#define GEO_NODE_MESH_TOPOLOGY_CORNERS_OF_VERTEX 1182
+#define GEO_NODE_MESH_TOPOLOGY_EDGES_OF_CORNER 1183
+#define GEO_NODE_MESH_TOPOLOGY_EDGES_OF_VERTEX 1184
+#define GEO_NODE_MESH_TOPOLOGY_FACE_OF_CORNER 1185
+#define GEO_NODE_MESH_TOPOLOGY_VERTEX_OF_CORNER 1186
+#define GEO_NODE_SAMPLE_UV_SURFACE 1187
+#define GEO_NODE_SET_CURVE_NORMAL 1188
 
 /** \} */
 

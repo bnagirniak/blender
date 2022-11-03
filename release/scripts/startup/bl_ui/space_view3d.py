@@ -838,12 +838,18 @@ class VIEW3D_HT_header(Header):
                         text="Guides",
                     )
 
-            layout.separator_spacer()
+        elif object_mode == 'SCULPT':
+            layout.popover(
+                panel="VIEW3D_PT_sculpt_automasking",
+                text="",
+                icon="MOD_MASK"
+            )
+
         else:
             # Transform settings depending on tool header visibility
             VIEW3D_HT_header.draw_xform_template(layout, context)
 
-            layout.separator_spacer()
+        layout.separator_spacer()
 
         # Viewport Settings
         layout.popover(
@@ -1216,6 +1222,7 @@ class VIEW3D_MT_view(Menu):
         layout.operator("view3d.view_all").center = False
         layout.operator("view3d.view_persportho", text="Perspective/Orthographic")
         layout.menu("VIEW3D_MT_view_local")
+        layout.prop(view, "show_viewer", text="Viewer Node")
 
         layout.separator()
 
@@ -3011,6 +3018,7 @@ class VIEW3D_MT_brush_paint_modes(Menu):
         layout.prop(brush, "use_paint_vertex", text="Vertex Paint")
         layout.prop(brush, "use_paint_weight", text="Weight Paint")
         layout.prop(brush, "use_paint_image", text="Texture Paint")
+        layout.prop(brush, "use_paint_sculpt_curves", text="Sculpt Curves")
 
 
 class VIEW3D_MT_paint_vertex(Menu):
@@ -3297,7 +3305,8 @@ class VIEW3D_MT_mask(Menu):
 
         layout.separator()
 
-        props = layout.operator("sculpt.dirty_mask", text='Dirty Mask')
+        props = layout.operator("sculpt.mask_from_cavity", text="Mask From Cavity")
+        props.use_automask_settings = False
 
         layout.separator()
 
@@ -3354,8 +3363,7 @@ class VIEW3D_MT_face_sets(Menu):
         op = layout.operator("sculpt.face_set_change_visibility", text='Invert Visible Face Sets')
         op.mode = 'INVERT'
 
-        op = layout.operator("sculpt.face_set_change_visibility", text='Show All Face Sets')
-        op.mode = 'SHOW_ALL'
+        op = layout.operator("sculpt.reveal_all", text='Show All Face Sets')
 
         layout.separator()
 
@@ -5175,6 +5183,7 @@ class VIEW3D_MT_edit_gpencil_stroke(Menu):
         layout.operator("gpencil.stroke_cyclical_set", text="Toggle Cyclic").type = 'TOGGLE'
         layout.operator_menu_enum("gpencil.stroke_caps_set", text="Toggle Caps", property="type")
         layout.operator("gpencil.stroke_flip", text="Switch Direction")
+        layout.operator("gpencil.stroke_start_set", text="Set Start Point")
 
         layout.separator()
         layout.operator("gpencil.stroke_normalize", text="Normalize Thickness").mode = 'THICKNESS'
@@ -5492,6 +5501,10 @@ class VIEW3D_MT_sculpt_automasking_pie(Menu):
         pie.prop(sculpt, "use_automasking_face_sets", text="Face Sets")
         pie.prop(sculpt, "use_automasking_boundary_edges", text="Mesh Boundary")
         pie.prop(sculpt, "use_automasking_boundary_face_sets", text="Face Sets Boundary")
+        pie.prop(sculpt, "use_automasking_cavity", text="Cavity")
+        pie.prop(sculpt, "use_automasking_cavity_inverted", text="Cavity (Inverted)")
+        pie.prop(sculpt, "use_automasking_start_normal", text="Area Normal")
+        pie.prop(sculpt, "use_automasking_view_normal", text="View Normal")
 
 
 class VIEW3D_MT_sculpt_face_sets_edit_pie(Menu):
@@ -5511,8 +5524,7 @@ class VIEW3D_MT_sculpt_face_sets_edit_pie(Menu):
         op = pie.operator("sculpt.face_set_change_visibility", text='Invert Visible')
         op.mode = 'INVERT'
 
-        op = pie.operator("sculpt.face_set_change_visibility", text='Show All')
-        op.mode = 'SHOW_ALL'
+        op = pie.operator("sculpt.reveal_all", text='Show All')
 
 
 class VIEW3D_MT_wpaint_vgroup_lock_pie(Menu):
@@ -6344,6 +6356,13 @@ class VIEW3D_PT_overlay_geometry(Panel):
         sub.active = overlay.show_wireframes or is_wireframes
         sub.prop(overlay, "wireframe_threshold", text="Wireframe")
         sub.prop(overlay, "wireframe_opacity", text="Opacity")
+
+        row = col.row(align=True)
+        row.active = view.show_viewer
+        row.prop(overlay, "show_viewer_attribute", text="")
+        subrow = row.row(align=True)
+        subrow.active = overlay.show_viewer_attribute
+        subrow.prop(overlay, "viewer_attribute_opacity", text="Viewer Node")
 
         row = col.row(align=True)
 
@@ -7329,6 +7348,7 @@ class VIEW3D_MT_gpencil_edit_context_menu(Menu):
             col.operator("transform.shear", text="Shear")
             col.operator("transform.tosphere", text="To Sphere")
             col.operator("transform.transform", text="Shrink/Fatten").mode = 'GPENCIL_SHRINKFATTEN'
+            col.operator("gpencil.stroke_start_set", text="Set Start Point")
 
             col.separator()
 
@@ -7665,6 +7685,77 @@ class VIEW3D_PT_paint_weight_context_menu(Panel):
             pressure_name="use_pressure_strength",
             slider=True,
         )
+
+
+class VIEW3D_PT_sculpt_automasking(Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'HEADER'
+    bl_label = "Auto-Masking"
+    bl_ui_units_x = 10
+
+    def draw(self, context):
+        layout = self.layout
+
+        tool_settings = context.tool_settings
+        sculpt = tool_settings.sculpt
+        layout.label(text="Auto-Masking")
+
+        col = layout.column(align=True)
+        col.prop(sculpt, "use_automasking_topology", text="Topology")
+        col.prop(sculpt, "use_automasking_face_sets", text="Face Sets")
+
+        col.separator()
+
+        col = layout.column(align=True)
+        col.prop(sculpt, "use_automasking_boundary_edges", text="Mesh Boundary")
+        col.prop(sculpt, "use_automasking_boundary_face_sets", text="Face Sets Boundary")
+
+        if sculpt.use_automasking_boundary_edges or sculpt.use_automasking_boundary_face_sets:
+            col.prop(sculpt.brush, "automasking_boundary_edges_propagation_steps")
+
+        col.separator()
+
+        col = layout.column(align=True)
+        row = col.row()
+        row.prop(sculpt, "use_automasking_cavity", text="Cavity")
+
+        is_cavity_active = sculpt.use_automasking_cavity or sculpt.use_automasking_cavity_inverted
+
+        if is_cavity_active:
+            row.operator("sculpt.mask_from_cavity", text="Create Mask")
+
+        col.prop(sculpt, "use_automasking_cavity_inverted", text="Cavity (inverted)")
+
+        if is_cavity_active:
+            col = layout.column(align=True)
+            col.prop(sculpt, "automasking_cavity_factor", text="Factor")
+            col.prop(sculpt, "automasking_cavity_blur_steps", text="Blur")
+
+            col = layout.column()
+            col.prop(sculpt, "use_automasking_custom_cavity_curve", text="Custom Curve")
+
+            if sculpt.use_automasking_custom_cavity_curve:
+                col.template_curve_mapping(sculpt, "automasking_cavity_curve")
+
+        col.separator()
+
+        col = layout.column(align=True)
+        col.prop(sculpt, "use_automasking_view_normal", text="View Normal")
+
+        if sculpt.use_automasking_view_normal:
+            col.prop(sculpt, "use_automasking_view_occlusion", text="Occlusion")
+            subcol = col.column(align=True)
+            subcol.active = not sculpt.use_automasking_view_occlusion
+            subcol.prop(sculpt, "automasking_view_normal_limit", text="Limit")
+            subcol.prop(sculpt, "automasking_view_normal_falloff", text="Falloff")
+
+        col = layout.column()
+        col.prop(sculpt, "use_automasking_start_normal", text="Area Normal")
+
+        if sculpt.use_automasking_start_normal:
+            col = layout.column(align=True)
+            col.prop(sculpt, "automasking_start_normal_limit", text="Limit")
+            col.prop(sculpt, "automasking_start_normal_falloff", text="Falloff")
 
 
 class VIEW3D_PT_sculpt_context_menu(Panel):
@@ -8057,6 +8148,7 @@ classes = (
     VIEW3D_PT_gpencil_sculpt_context_menu,
     VIEW3D_PT_gpencil_weight_context_menu,
     VIEW3D_PT_gpencil_draw_context_menu,
+    VIEW3D_PT_sculpt_automasking,
     VIEW3D_PT_sculpt_context_menu,
     TOPBAR_PT_gpencil_materials,
     TOPBAR_PT_gpencil_vertexcolor,

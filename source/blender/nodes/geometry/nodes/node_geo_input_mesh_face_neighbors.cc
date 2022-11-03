@@ -37,7 +37,7 @@ static VArray<int> construct_neighbor_count_varray(const Mesh &mesh, const eAttr
     }
   }
 
-  return bke::mesh_attributes(mesh).adapt_domain<int>(
+  return mesh.attributes().adapt_domain<int>(
       VArray<int>::ForContainer(std::move(poly_count)), ATTR_DOMAIN_FACE, domain);
 }
 
@@ -51,7 +51,7 @@ class FaceNeighborCountFieldInput final : public bke::MeshFieldInput {
 
   GVArray get_varray_for_context(const Mesh &mesh,
                                  const eAttrDomain domain,
-                                 IndexMask UNUSED(mask)) const final
+                                 const IndexMask /*mask*/) const final
   {
     return construct_neighbor_count_varray(mesh, domain);
   }
@@ -66,12 +66,17 @@ class FaceNeighborCountFieldInput final : public bke::MeshFieldInput {
   {
     return dynamic_cast<const FaceNeighborCountFieldInput *>(&other) != nullptr;
   }
+
+  std::optional<eAttrDomain> preferred_domain(const Mesh & /*mesh*/) const override
+  {
+    return ATTR_DOMAIN_FACE;
+  }
 };
 
 static VArray<int> construct_vertex_count_varray(const Mesh &mesh, const eAttrDomain domain)
 {
   const Span<MPoly> polys = mesh.polys();
-  return bke::mesh_attributes(mesh).adapt_domain<int>(
+  return mesh.attributes().adapt_domain<int>(
       VArray<int>::ForFunc(polys.size(),
                            [polys](const int i) -> float { return polys[i].totloop; }),
       ATTR_DOMAIN_FACE,
@@ -87,7 +92,7 @@ class FaceVertexCountFieldInput final : public bke::MeshFieldInput {
 
   GVArray get_varray_for_context(const Mesh &mesh,
                                  const eAttrDomain domain,
-                                 IndexMask UNUSED(mask)) const final
+                                 const IndexMask /*mask*/) const final
   {
     return construct_vertex_count_varray(mesh, domain);
   }
@@ -101,6 +106,11 @@ class FaceVertexCountFieldInput final : public bke::MeshFieldInput {
   bool is_equal_to(const fn::FieldNode &other) const override
   {
     return dynamic_cast<const FaceVertexCountFieldInput *>(&other) != nullptr;
+  }
+
+  std::optional<eAttrDomain> preferred_domain(const Mesh & /*mesh*/) const override
+  {
+    return ATTR_DOMAIN_FACE;
   }
 };
 

@@ -26,6 +26,7 @@
 #include "MEM_guardedalloc.h"
 #include "eigen_capi.h"
 
+using blender::Array;
 using blender::Map;
 using blender::MutableSpan;
 using blender::Span;
@@ -76,13 +77,13 @@ class FairingContext {
 
   virtual ~FairingContext() = default;
 
-  void fair_vertices(bool *affected,
-                     const eMeshFairingDepth depth,
-                     VertexWeight *vertex_weight,
-                     LoopWeight *loop_weight)
+  void fair_verts(bool *affected,
+                  const eMeshFairingDepth depth,
+                  VertexWeight *vertex_weight,
+                  LoopWeight *loop_weight)
   {
 
-    fair_vertices_ex(affected, (int)depth, vertex_weight, loop_weight);
+    fair_verts_ex(affected, int(depth), vertex_weight, loop_weight);
   }
 
  protected:
@@ -143,28 +144,28 @@ class FairingContext {
                        loop_weight);
   }
 
-  void fair_vertices_ex(const bool *affected,
-                        const int order,
-                        VertexWeight *vertex_weight,
-                        LoopWeight *loop_weight)
+  void fair_verts_ex(const bool *affected,
+                     const int order,
+                     VertexWeight *vertex_weight,
+                     LoopWeight *loop_weight)
   {
     Map<int, int> vert_col_map;
-    int num_affected_vertices = 0;
+    int affected_verts_num = 0;
     for (int i = 0; i < totvert_; i++) {
       if (!affected[i]) {
         continue;
       }
-      vert_col_map.add(i, num_affected_vertices);
-      num_affected_vertices++;
+      vert_col_map.add(i, affected_verts_num);
+      affected_verts_num++;
     }
 
     /* Early return, nothing to do. */
-    if (ELEM(num_affected_vertices, 0, totvert_)) {
+    if (ELEM(affected_verts_num, 0, totvert_)) {
       return;
     }
 
     /* Setup fairing matrices */
-    LinearSolver *solver = EIG_linear_solver_new(num_affected_vertices, num_affected_vertices, 3);
+    LinearSolver *solver = EIG_linear_solver_new(affected_verts_num, affected_verts_num, 3);
     for (auto item : vert_col_map.items()) {
       const int v = item.key;
       const int col = item.value;
@@ -220,12 +221,7 @@ class MeshFairingContext : public FairingContext {
       }
     }
 
-    loop_to_poly_map_.reserve(mesh->totloop);
-    for (int i = 0; i < mesh->totpoly; i++) {
-      for (int l = 0; l < mpoly_[i].totloop; l++) {
-        loop_to_poly_map_[l + mpoly_[i].loopstart] = i;
-      }
-    }
+    loop_to_poly_map_ = blender::bke::mesh_topology::build_loop_to_poly_map(mpoly_, mloop_.size());
   }
 
   ~MeshFairingContext() override
@@ -259,7 +255,7 @@ class MeshFairingContext : public FairingContext {
   Span<MLoop> mloop_;
   Span<MPoly> mpoly_;
   Span<MEdge> medge_;
-  Vector<int> loop_to_poly_map_;
+  Array<int> loop_to_poly_map_;
 };
 
 class BMeshFairingContext : public FairingContext {
@@ -444,48 +440,46 @@ class VoronoiVertexWeight : public VertexWeight {
 
 class UniformLoopWeight : public LoopWeight {
  public:
-  float weight_at_index(const int UNUSED(index)) override
+  float weight_at_index(const int /*index*/) override
   {
     return 1.0f;
   }
 };
 
-static void prefair_and_fair_vertices(FairingContext *fairing_context,
-                                      bool *affected_vertices,
-                                      const eMeshFairingDepth depth)
+static void prefair_and_fair_verts(FairingContext *fairing_context,
+                                   bool *affected_verts,
+                                   const eMeshFairingDepth depth)
 {
   /* Prefair. */
   UniformVertexWeight *uniform_vertex_weights = new UniformVertexWeight(fairing_context);
   UniformLoopWeight *uniform_loop_weights = new UniformLoopWeight();
-  fairing_context->fair_vertices(
-      affected_vertices, depth, uniform_vertex_weights, uniform_loop_weights);
+  fairing_context->fair_verts(affected_verts, depth, uniform_vertex_weights, uniform_loop_weights);
   delete uniform_vertex_weights;
 
   /* Fair. */
   VoronoiVertexWeight *voronoi_vertex_weights = new VoronoiVertexWeight(fairing_context);
   /* TODO: Implement cotangent loop weights. */
-  fairing_context->fair_vertices(
-      affected_vertices, depth, voronoi_vertex_weights, uniform_loop_weights);
+  fairing_context->fair_verts(affected_verts, depth, voronoi_vertex_weights, uniform_loop_weights);
 
   delete uniform_loop_weights;
   delete voronoi_vertex_weights;
 }
 
-void BKE_mesh_prefair_and_fair_vertices(struct Mesh *mesh,
-                                        struct MVert *deform_mverts,
-                                        bool *affect_vertices,
-                                        const eMeshFairingDepth depth)
+void BKE_mesh_prefair_and_fair_verts(struct Mesh *mesh,
+                                     struct MVert *deform_mverts,
+                                     bool *affect_verts,
+                                     const eMeshFairingDepth depth)
 {
   MeshFairingContext *fairing_context = new MeshFairingContext(mesh, deform_mverts);
-  prefair_and_fair_vertices(fairing_context, affect_vertices, depth);
+  prefair_and_fair_verts(fairing_context, affect_verts, depth);
   delete fairing_context;
 }
 
-void BKE_bmesh_prefair_and_fair_vertices(struct BMesh *bm,
-                                         bool *affect_vertices,
-                                         const eMeshFairingDepth depth)
+void BKE_bmesh_prefair_and_fair_verts(struct BMesh *bm,
+                                      bool *affect_verts,
+                                      const eMeshFairingDepth depth)
 {
   BMeshFairingContext *fairing_context = new BMeshFairingContext(bm);
-  prefair_and_fair_vertices(fairing_context, affect_vertices, depth);
+  prefair_and_fair_verts(fairing_context, affect_verts, depth);
   delete fairing_context;
 }

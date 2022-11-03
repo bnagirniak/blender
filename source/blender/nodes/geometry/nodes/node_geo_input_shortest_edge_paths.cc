@@ -125,7 +125,7 @@ class ShortestEdgePathsNextVertFieldInput final : public bke::MeshFieldInput {
         }
       }
     });
-    return bke::mesh_attributes(mesh).adapt_domain<int>(
+    return mesh.attributes().adapt_domain<int>(
         VArray<int>::ForContainer(std::move(next_index)), ATTR_DOMAIN_POINT, domain);
   }
 
@@ -142,6 +142,11 @@ class ShortestEdgePathsNextVertFieldInput final : public bke::MeshFieldInput {
       return other_field->end_selection_ == end_selection_ && other_field->cost_ == cost_;
     }
     return false;
+  }
+
+  std::optional<eAttrDomain> preferred_domain(const Mesh & /*mesh*/) const override
+  {
+    return ATTR_DOMAIN_POINT;
   }
 };
 
@@ -189,7 +194,7 @@ class ShortestEdgePathsCostFieldInput final : public bke::MeshFieldInput {
         }
       }
     });
-    return bke::mesh_attributes(mesh).adapt_domain<float>(
+    return mesh.attributes().adapt_domain<float>(
         VArray<float>::ForContainer(std::move(cost)), ATTR_DOMAIN_POINT, domain);
   }
 
@@ -205,6 +210,11 @@ class ShortestEdgePathsCostFieldInput final : public bke::MeshFieldInput {
       return other_field->end_selection_ == end_selection_ && other_field->cost_ == cost_;
     }
     return false;
+  }
+
+  std::optional<eAttrDomain> preferred_domain(const Mesh & /*mesh*/) const override
+  {
+    return ATTR_DOMAIN_POINT;
   }
 };
 

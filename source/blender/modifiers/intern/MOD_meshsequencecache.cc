@@ -98,9 +98,7 @@ static void freeData(ModifierData *md)
   }
 }
 
-static bool isDisabled(const struct Scene *UNUSED(scene),
-                       ModifierData *md,
-                       bool UNUSED(useRenderParams))
+static bool isDisabled(const struct Scene * /*scene*/, ModifierData *md, bool /*useRenderParams*/)
 {
   MeshSeqCacheModifierData *mcmd = reinterpret_cast<MeshSeqCacheModifierData *>(md);
 
@@ -135,7 +133,7 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *ctx, Mesh *
   Scene *scene = DEG_get_evaluated_scene(ctx->depsgraph);
   CacheFile *cache_file = mcmd->cache_file;
   const float frame = DEG_get_ctime(ctx->depsgraph);
-  const double time = BKE_cachefile_time_offset(cache_file, (double)frame, FPS);
+  const double time = BKE_cachefile_time_offset(cache_file, double(frame), FPS);
   const char *err_str = nullptr;
 
   if (!mcmd->reader || !STREQ(mcmd->reader_object_path, mcmd->object_path)) {
@@ -181,15 +179,15 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *ctx, Mesh *
     const Span<MVert> mesh_verts = mesh->verts();
     const Span<MEdge> mesh_edges = mesh->edges();
     const Span<MPoly> mesh_polys = mesh->polys();
-    const Span<MVert> me_vertices = me->verts();
+    const Span<MVert> me_verts = me->verts();
     const Span<MEdge> me_edges = me->edges();
-    const Span<MPoly> me_polygons = me->polys();
+    const Span<MPoly> me_polys = me->polys();
 
     /* TODO(sybren+bastien): possibly check relevant custom data layers (UV/color depending on
      * flags) and duplicate those too.
      * XXX(Hans): This probably isn't true anymore with various CoW improvements, etc. */
-    if ((me_vertices.data() == mesh_verts.data()) || (me_edges.data() == mesh_edges.data()) ||
-        (me_polygons.data() == mesh_polys.data())) {
+    if ((me_verts.data() == mesh_verts.data()) || (me_edges.data() == mesh_edges.data()) ||
+        (me_polys.data() == mesh_polys.data())) {
       /* We need to duplicate data here, otherwise we'll modify org mesh, see T51701. */
       mesh = reinterpret_cast<Mesh *>(
           BKE_id_copy_ex(nullptr,
@@ -305,7 +303,7 @@ static void panel_draw(const bContext *C, Panel *panel)
   modifier_panel_end(layout, ptr);
 }
 
-static void velocity_panel_draw(const bContext *UNUSED(C), Panel *panel)
+static void velocity_panel_draw(const bContext * /*C*/, Panel *panel)
 {
   uiLayout *layout = panel->layout;
 
@@ -322,7 +320,7 @@ static void velocity_panel_draw(const bContext *UNUSED(C), Panel *panel)
   uiItemR(layout, ptr, "velocity_scale", 0, nullptr, ICON_NONE);
 }
 
-static void time_panel_draw(const bContext *UNUSED(C), Panel *panel)
+static void time_panel_draw(const bContext * /*C*/, Panel *panel)
 {
   uiLayout *layout = panel->layout;
 
@@ -391,7 +389,7 @@ static void panelRegister(ARegionType *region_type)
                              panel_type);
 }
 
-static void blendRead(BlendDataReader *UNUSED(reader), ModifierData *md)
+static void blendRead(BlendDataReader * /*reader*/, ModifierData *md)
 {
   MeshSeqCacheModifierData *msmcd = reinterpret_cast<MeshSeqCacheModifierData *>(md);
   msmcd->reader = nullptr;

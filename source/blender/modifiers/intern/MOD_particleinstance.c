@@ -52,9 +52,7 @@ static void initData(ModifierData *md)
   MEMCPY_STRUCT_AFTER(pimd, DNA_struct_default_get(ParticleInstanceModifierData), modifier);
 }
 
-static void requiredDataMask(Object *UNUSED(ob),
-                             ModifierData *md,
-                             CustomData_MeshMasks *r_cddata_masks)
+static void requiredDataMask(ModifierData *md, CustomData_MeshMasks *r_cddata_masks)
 {
   ParticleInstanceModifierData *pimd = (ParticleInstanceModifierData *)md;
 
@@ -275,7 +273,7 @@ static Mesh *modifyMesh(ModifierData *md, const ModifierEvalContext *ctx, Mesh *
       break;
     case eParticleInstanceSpace_Local:
       /* get particle states in the particle object's local space */
-      invert_m4_m4(spacemat, pimd->ob->obmat);
+      invert_m4_m4(spacemat, pimd->ob->object_to_world);
       break;
     default:
       /* should not happen */

@@ -21,13 +21,14 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_DEBUG_PYTHON")
 # add a USD_HAS_IMAGING define so code can dynamically detect this.
 # Cleanup of this variable is done at the end of the file since
 # test code further down uses it to add imaging tests.
-FIND_FILE(USD_IMAGING_HEADERS
+find_file(
+  USD_IMAGING_HEADERS
   NAMES
     capsuleAdapter.h
   PATHS
-     ${USD_INCLUDE_DIRS}
+    ${USD_INCLUDE_DIRS}
   PATH_SUFFIXES
-      pxr/usdImaging/usdImaging/
+    pxr/usdImaging/usdImaging/
   NO_DEFAULT_PATH
 )
 
@@ -146,7 +147,8 @@ if(WIN32)
   set_property(TARGET bf_usd APPEND_STRING PROPERTY INTERFACE_LINK_OPTIONS "$<$<CONFIG:MinSizeRel>:/WHOLEARCHIVE:${USD_RELEASE_LIB}>")
 endif()
 
-# Source: https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
+# Source:
+# https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
 if(WIN32)
   target_link_libraries(bf_usd INTERFACE ${USD_LIBRARIES})
   target_link_libraries(bf_usd INTERFACE ${BOOST_PYTHON_LIBRARIES})
@@ -167,7 +169,7 @@ if(WITH_GTESTS)
     tests/usd_tests_common.h
   )
   if(USD_IMAGING_HEADERS)
-    LIST(APPEND TEST_SRC tests/usd_imaging_test.cc)
+    list(APPEND TEST_SRC tests/usd_imaging_test.cc)
   endif()
 
   set(TEST_INC
@@ -178,6 +180,6 @@ if(WITH_GTESTS)
   blender_add_test_lib(bf_io_usd_tests "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
 endif()
 
-# In cmake version 3.21 and up, we can instead use the NO_CACHE option for
-# find_file so we don't need to clear it from the cache here.
+# In CMAKE version 3.21 and up, we can instead use the `NO_CACHE` option for
+# `find_file` so we don't need to clear it from the cache here.
 unset(USD_IMAGING_HEADERS CACHE)

@@ -128,7 +128,8 @@ BlenderStrokeRenderer::BlenderStrokeRenderer(Render *re, int render_count)
   view_layer->layflag = SCE_LAY_SOLID;
 
   // Camera
-  Object *object_camera = BKE_object_add(freestyle_bmain, view_layer, OB_CAMERA, nullptr);
+  Object *object_camera = BKE_object_add(
+      freestyle_bmain, freestyle_scene, view_layer, OB_CAMERA, nullptr);
 
   Camera *camera = (Camera *)object_camera->data;
   camera->type = CAM_ORTHO;
@@ -186,9 +187,9 @@ float BlenderStrokeRenderer::get_stroke_vertex_z() const
   return -z;
 }
 
-unsigned int BlenderStrokeRenderer::get_stroke_mesh_id() const
+uint BlenderStrokeRenderer::get_stroke_mesh_id() const
 {
-  unsigned mesh_id = _mesh_id;
+  uint mesh_id = _mesh_id;
   BlenderStrokeRenderer *self = const_cast<BlenderStrokeRenderer *>(this);
   self->_mesh_id--;
   return mesh_id;
@@ -576,7 +577,7 @@ void BlenderStrokeRenderer::GenerateStrokeMesh(StrokeGroup *group, bool hasTex)
   mesh->totloop = group->totloop;
   mesh->totcol = group->materials.size();
 
-  MVert *vertices = (MVert *)CustomData_add_layer(
+  MVert *verts = (MVert *)CustomData_add_layer(
       &mesh->vdata, CD_MVERT, CD_SET_DEFAULT, nullptr, mesh->totvert);
   MEdge *edges = (MEdge *)CustomData_add_layer(
       &mesh->edata, CD_MEDGE, CD_SET_DEFAULT, nullptr, mesh->totedge);
@@ -663,19 +664,19 @@ void BlenderStrokeRenderer::GenerateStrokeMesh(StrokeGroup *group, bool hasTex)
         else {
           if (!visible) {
             // first vertex
-            vertices->co[0] = svRep[0]->point2d()[0];
-            vertices->co[1] = svRep[0]->point2d()[1];
-            vertices->co[2] = get_stroke_vertex_z();
+            verts->co[0] = svRep[0]->point2d()[0];
+            verts->co[1] = svRep[0]->point2d()[1];
+            verts->co[2] = get_stroke_vertex_z();
 
-            ++vertices;
+            ++verts;
             ++vertex_index;
 
             // second vertex
-            vertices->co[0] = svRep[1]->point2d()[0];
-            vertices->co[1] = svRep[1]->point2d()[1];
-            vertices->co[2] = get_stroke_vertex_z();
+            verts->co[0] = svRep[1]->point2d()[0];
+            verts->co[1] = svRep[1]->point2d()[1];
+            verts->co[2] = get_stroke_vertex_z();
 
-            ++vertices;
+            ++verts;
             ++vertex_index;
 
             // first edge
@@ -687,10 +688,10 @@ void BlenderStrokeRenderer::GenerateStrokeMesh(StrokeGroup *group, bool hasTex)
           visible = true;
 
           // vertex
-          vertices->co[0] = svRep[2]->point2d()[0];
-          vertices->co[1] = svRep[2]->point2d()[1];
-          vertices->co[2] = get_stroke_vertex_z();
-          ++vertices;
+          verts->co[0] = svRep[2]->point2d()[0];
+          verts->co[1] = svRep[2]->point2d()[1];
+          verts->co[2] = get_stroke_vertex_z();
+          ++verts;
           ++vertex_index;
 
           // edges
@@ -811,7 +812,7 @@ Object *BlenderStrokeRenderer::NewMesh() const
 {
   Object *ob;
   char name[MAX_ID_NAME];
-  unsigned int mesh_id = get_stroke_mesh_id();
+  uint mesh_id = get_stroke_mesh_id();
 
   BLI_snprintf(name, MAX_ID_NAME, "0%08xOB", mesh_id);
   ob = BKE_object_add_only_object(freestyle_bmain, OB_MESH, name);

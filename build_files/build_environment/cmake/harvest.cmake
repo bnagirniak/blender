@@ -189,7 +189,6 @@ else()
   harvest(materialx/lib materialx/lib "*")
   harvest(materialx/libraries materialx/libraries "*")
   harvest(materialx/python materialx/python "*")
-
   harvest(potrace/include potrace/include "*.h")
   harvest(potrace/lib potrace/lib "*.a")
   harvest(haru/include haru/include "*.h")

@@ -41,8 +41,6 @@ def update_ui(area_type='PROPERTIES', region_type='WINDOW'):
                         region.tag_redraw()
 
 
-
-
 def register_delegate(delegate_dir, engine_bl_idname):
     import _usdhydra
     from ..ui import USDHydra_Panel, USDHydra_Operator

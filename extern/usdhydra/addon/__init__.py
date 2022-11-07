@@ -23,6 +23,7 @@ import atexit
 
 import bpy
 from bpy.utils import register_class, unregister_class
+import _usdhydra
 
 from .utils import logging
 log = logging.Log('init')
@@ -56,6 +57,8 @@ def register():
 
     from .utils import enable_delegates
     enable_delegates()
+
+    _usdhydra.init()
 
 
 def unregister():

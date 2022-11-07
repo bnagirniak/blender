@@ -15,28 +15,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     def init(self):
         self.update_log_level(None)
-        self._init(None)
-
-    def save(self):
-        if hasattr(bpy.context, 'scene'):
-            bpy.ops.wm.save_userpref()
-
-    # def update_temp_dir(self, value):
-    #     if not Path(self.tmp_dir).exists() or tempfile.gettempdir() == str(Path(self.tmp_dir)):
-    #         log.info(f"Current temp directory is {tempfile.gettempdir()}")
-    #         return
-    #
-    #     tempfile.tempdir = Path(self.tmp_dir)
-    #     bpy.context.preferences.addons['usdhydra'].preferences['tmp_dir'] = str(_usdhydra.utils.get_temp_dir())
-    #     log.info(f"Current temp directory is changed to {bpy.context.preferences.addons['usdhydra'].preferences.tmp_dir}")
 
     def update_log_level(self, context):
         logging.logger.setLevel(self.log_level)
-        self.save()
-
-    def _init(self, context):
-        _usdhydra.init()
-        self.save()
 
     dev_tools: bpy.props.BoolProperty(
         name="Developer Tools",
@@ -54,6 +35,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default='INFO',
         update=update_log_level,
     )
+    storm_delegate: bpy.props.BoolProperty(
+        name="Storm Render Delegate",
+        description="Enable Hydra Storm (OpenGL) render delegate",
+        default=True,
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -63,10 +49,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "log_level")
         layout.separator()
 
+
+
         # row = col.row()
         #row.operator("wm.url_open", text="Main Site", icon='URL').url = bl_info["main_web"]
         #row.operator("wm.url_open", text="Community", icon='COMMUNITY').url = bl_info["community"]
 
 
-def get_addon_pref():
+def addon_preferences():
     return bpy.context.preferences.addons['usdhydra'].preferences

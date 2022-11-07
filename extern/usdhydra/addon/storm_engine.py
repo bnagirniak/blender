@@ -4,6 +4,7 @@
 # <pep8 compliant>
 
 from .engine import USDHydraEngine
+from .preferences import addon_preferences
 
 
 class USDHydraHdStormEngine(USDHydraEngine):
@@ -15,3 +16,11 @@ class USDHydraHdStormEngine(USDHydraEngine):
     bl_use_gpu_context = True
 
     delegate_name = "HdStormRendererPlugin"
+
+
+def register():
+    pass
+
+
+def unregister():
+    pass

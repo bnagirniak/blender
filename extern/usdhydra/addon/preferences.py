@@ -4,16 +4,13 @@
 # <pep8 compliant>
 
 import bpy
-from bpy.types import AddonPreferences, Operator
-from bpy.props import StringProperty, BoolProperty, EnumProperty
-
 import _usdhydra
 
-from ..utils import logging
+from .utils import logging
 log = logging.Log('preferences')
 
 
-class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
+class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = "usdhydra"
 
     def init(self):
@@ -41,21 +38,12 @@ class USDHYDRA_ADDON_PT_preferences(AddonPreferences):
         _usdhydra.init()
         self.save()
 
-    # tmp_dir: StringProperty(
-    #     name="Temp Directory",
-    #     description="Set temp directory",
-    #     maxlen=1024,
-    #     subtype='DIR_PATH',
-    #     default=_usdhydra.utils.get_temp_dir(),
-    #     update=update_temp_dir,
-    # )
-
-    dev_tools: BoolProperty(
+    dev_tools: bpy.props.BoolProperty(
         name="Developer Tools",
         description="Enable developer tools",
         default=False,
     )
-    log_level: EnumProperty(
+    log_level: bpy.props.EnumProperty(
         name="Log Level",
         description="Select logging level",
         items=(('DEBUG', "Debug", "Log level DEBUG"),

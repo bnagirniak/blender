@@ -23,15 +23,13 @@ class USDHydraProperties(bpy.types.PropertyGroup):
 
 
 from . import (
-    preferences,
     scene,
     object,
     usd_stage,
     window_manager,
 )
-register_classes, unregister_classes = bpy.utils.register_classes_factory((
-    preferences.USDHYDRA_ADDON_PT_preferences,
 
+register_classes, unregister_classes = bpy.utils.register_classes_factory((
     scene.FinalRenderSettings,
     scene.ViewportRenderSettings,
     scene.SceneProperties,
@@ -47,9 +45,6 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory((
 
 def register():
     register_classes()
-
-    pref = preferences.get_addon_pref()
-    pref.init()
 
 
 def unregister():

@@ -110,7 +110,7 @@ class USDHYDRA_NODE_PT_usd_nodetree_dev(USDHydra_ChildPanel):
 
     @classmethod
     def poll(cls, context):
-        from ..properties.preferences import get_addon_pref
+        from preferences import get_addon_pref
         return get_addon_pref().dev_tools
 
     def draw(self, context):

@@ -3,8 +3,6 @@
 
 # <pep8 compliant>
 
-import sys
-
 import bpy
 import _usdhydra
 
@@ -18,21 +16,19 @@ def exit():
 
 
 class USDHydraEngine(bpy.types.RenderEngine):
-    bl_idname = 'USDHydra'
-    bl_label = "USD Hydra Internal"
-    bl_info = "USD Hydra rendering plugin"
+    bl_idname = ''
+    bl_label = ""
+    bl_info = ""
 
     bl_use_preview = True
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
-    bl_use_gpu_context = True
 
-    session = None
-    delegate_name = "HdStormRendererPlugin"
-    materialx_data = []
+    delegate_name = ""
 
     def __init__(self):
         self.session = None
+        self.materialx_data = []
 
     def __del__(self):
         if not self.session:
@@ -147,19 +143,6 @@ class USDHydraEngine(bpy.types.RenderEngine):
                     self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
 
         materialx.utils.update_materialx_data(depsgraph, self.materialx_data)
-
-
-class USDHydraHdStormEngine(USDHydraEngine):
-    bl_idname = 'USDHydraHdStormRendererPlugin'
-    bl_label = "USD Hydra: GL"
-    bl_info = "USD Hydra HdStormRendererPlugin rendering plugin"
-
-    bl_use_preview = False
-    bl_use_shading_nodes = True
-    bl_use_shading_nodes_custom = False
-    bl_use_gpu_context = True
-
-    delegate_name = "HdStormRendererPlugin"
 
 
 def session_create(engine: USDHydraEngine):

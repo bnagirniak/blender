@@ -4,6 +4,7 @@
 # <pep8 compliant>
 
 import bpy
+from bpy.utils import register_class, unregister_class
 import _usdhydra
 
 from .utils import logging
@@ -18,6 +19,14 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     def update_log_level(self, context):
         logging.logger.setLevel(self.log_level)
+
+    def update_storm_delegate(self, context):
+        from .storm_engine import USDHydraHdStormEngine
+
+        if self.storm_delegate:
+            register_class(USDHydraHdStormEngine)
+        else:
+            unregister_class(USDHydraHdStormEngine)
 
     dev_tools: bpy.props.BoolProperty(
         name="Developer Tools",
@@ -39,21 +48,16 @@ class AddonPreferences(bpy.types.AddonPreferences):
         name="Storm Render Delegate",
         description="Enable Hydra Storm (OpenGL) render delegate",
         default=True,
+        update=update_storm_delegate,
     )
 
     def draw(self, context):
         layout = self.layout
-        layout.separator()
-        # layout.prop(self, "tmp_dir", icon='NONE' if Path(self.tmp_dir).exists() else 'ERROR')
-        layout.prop(self, "dev_tools")
-        layout.prop(self, "log_level")
-        layout.separator()
-
-
-
-        # row = col.row()
-        #row.operator("wm.url_open", text="Main Site", icon='URL').url = bl_info["main_web"]
-        #row.operator("wm.url_open", text="Community", icon='COMMUNITY').url = bl_info["community"]
+        box = layout.box()
+        box.prop(self, 'storm_delegate')
+        box = layout.box()
+        box.prop(self, 'dev_tools')
+        box.prop(self, 'log_level')
 
 
 def addon_preferences():

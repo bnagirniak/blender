@@ -35,6 +35,7 @@ from . import (
     ui,
     handlers,
     preferences,
+    storm_engine,
 )
 
 
@@ -47,13 +48,13 @@ def register():
     atexit.unregister(exit)
     atexit.register(exit)
 
-    properties.register()
+    register_class(preferences.AddonPreferences)
 
+    properties.register()
     ui.register()
     usd_nodes.register()
     handlers.register()
-
-    register_class(preferences.AddonPreferences)
+    storm_engine.register()
 
     from .utils import enable_delegates
     enable_delegates()
@@ -64,9 +65,11 @@ def register():
 def unregister():
     from .utils import disable_delegates
     disable_delegates()
+
     ui.unregister()
     properties.unregister()
     usd_nodes.unregister()
     handlers.unregister()
+    storm_engine.unregister()
 
     unregister_class(preferences.AddonPreferences)

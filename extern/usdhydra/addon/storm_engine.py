@@ -3,6 +3,8 @@
 
 # <pep8 compliant>
 
+from bpy.utils import register_class, unregister_class
+
 from .engine import USDHydraEngine
 from .preferences import addon_preferences
 
@@ -19,8 +21,10 @@ class USDHydraHdStormEngine(USDHydraEngine):
 
 
 def register():
-    pass
+    if addon_preferences().storm_delegate:
+        register_class(USDHydraHdStormEngine)
 
 
 def unregister():
-    pass
+    if addon_preferences().storm_delegate:
+        unregister_class(USDHydraHdStormEngine)

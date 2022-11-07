@@ -25,9 +25,9 @@ class USDHydraEngine(bpy.types.RenderEngine):
     bl_use_shading_nodes_custom = False
 
     delegate_name = ""
+    session = None
 
     def __init__(self):
-        self.session = None
         self.materialx_data = []
 
     def __del__(self):

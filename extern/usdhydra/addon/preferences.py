@@ -5,7 +5,6 @@
 
 import bpy
 from bpy.utils import register_class, unregister_class
-import _usdhydra
 
 from .utils import logging
 log = logging.Log('preferences')
@@ -18,11 +17,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
         self.update_log_level(None)
 
     def update_log_level(self, context):
+        log("update_log_level", self.log_level)
         logging.logger.setLevel(self.log_level)
 
     def update_storm_delegate(self, context):
         from .storm_engine import USDHydraHdStormEngine
 
+        log("update_storm_delegate", self.storm_delegate)
         if self.storm_delegate:
             register_class(USDHydraHdStormEngine)
         else:

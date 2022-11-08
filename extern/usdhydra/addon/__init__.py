@@ -49,6 +49,7 @@ def register():
     atexit.register(exit)
 
     register_class(preferences.AddonPreferences)
+    preferences.addon_preferences().init()
 
     properties.register()
     ui.register()

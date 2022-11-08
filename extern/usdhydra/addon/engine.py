@@ -4,6 +4,7 @@
 # <pep8 compliant>
 
 import bpy
+import addon_utils
 import _usdhydra
 
 from .usd_nodes import node_tree
@@ -121,12 +122,12 @@ class USDHydraEngine(bpy.types.RenderEngine):
         return tuple()
 
     def get_materialx_data(self, context, depsgraph):
-        try:
-            import materialx
-
-        except Exception as e:
+        _, matx_enabled = addon_utils.check('materialx')
+        if not matx_enabled:
             log.warn("MaterialX Addon isn't loaded")
             return
+
+        import materialx
 
         for obj in bpy.context.scene.objects:
             if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):

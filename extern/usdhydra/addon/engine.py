@@ -7,7 +7,10 @@ import bpy
 import _usdhydra
 
 from .usd_nodes import node_tree
-from .utils import stages, logging
+from .utils import stages
+from .ui import panels
+
+from .utils import logging
 log = logging.Log('engine')
 
 
@@ -143,6 +146,16 @@ class USDHydraEngine(bpy.types.RenderEngine):
                     self.materialx_data.append((material.name, str(mx_file), surfacematerial.getName()))
 
         materialx.utils.update_materialx_data(depsgraph, self.materialx_data)
+
+    @classmethod
+    def register(cls):
+        log("Register", cls)
+        panels.register_engine(cls.bl_idname)
+
+    @classmethod
+    def unregister(cls):
+        log("Unregister", cls)
+        panels.unregister_engine(cls.bl_idname)
 
 
 def session_create(engine: USDHydraEngine):

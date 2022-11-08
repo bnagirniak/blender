@@ -21,7 +21,6 @@ bl_info = {
 
 import atexit
 
-import bpy
 from bpy.utils import register_class, unregister_class
 import _usdhydra
 
@@ -57,14 +56,14 @@ def register():
     handlers.register()
     storm_engine.register()
 
-    from .utils import enable_delegates
+    from .engine import enable_delegates
     enable_delegates()
 
     _usdhydra.init()
 
 
 def unregister():
-    from .utils import disable_delegates
+    from .engine import disable_delegates
     disable_delegates()
 
     ui.unregister()

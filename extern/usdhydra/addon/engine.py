@@ -2,6 +2,8 @@
 # Copyright 2011-2022 Blender Foundation
 
 # <pep8 compliant>
+import sys
+import importlib
 
 import bpy
 import addon_utils
@@ -193,3 +195,62 @@ def session_view_update(session, depsgraph, context, space_data, region_data, de
 
 def session_get_render_plugins():
     return _usdhydra.session.get_render_plugins()
+
+
+RENDER_DELEGATE_ADDONS = set()
+
+
+def register_delegate(delegate_dir, engine_bl_idname):
+    import _usdhydra
+    from ..ui import USDHydra_Panel, USDHydra_Operator
+    from ..ui.panels import get_panels
+    from ..usd_nodes.node_tree import USDTree
+
+    global RENDER_DELEGATE_ADDONS
+
+    _usdhydra.init_delegate(str(delegate_dir))
+
+    for panel in get_panels():
+        panel.COMPAT_ENGINES.add(engine_bl_idname)
+
+    USDHydra_Panel.COMPAT_ENGINES.add(engine_bl_idname)
+    USDHydra_Operator.COMPAT_ENGINES.add(engine_bl_idname)
+    USDTree.COMPAT_ENGINES.add(engine_bl_idname)
+    RENDER_DELEGATE_ADDONS.add(engine_bl_idname)
+
+
+def unregister_delegate(engine_bl_idname):
+    from ..ui import USDHydra_Panel, USDHydra_Operator
+    from ..ui.panels import get_panels
+    from ..usd_nodes.node_tree import USDTree
+
+    try:
+        USDHydra_Panel.COMPAT_ENGINES.remove(engine_bl_idname)
+        USDHydra_Operator.COMPAT_ENGINES.remove(engine_bl_idname)
+
+        for panel in get_panels():
+            if 'USDHydraHdStormRendererPlugin' in panel.COMPAT_ENGINES:
+                panel.COMPAT_ENGINES.remove(engine_bl_idname)
+
+        USDTree.COMPAT_ENGINES.remove(engine_bl_idname)
+
+    except:
+        pass
+
+
+def disable_delegates():
+    for delegate in RENDER_DELEGATE_ADDONS:
+        enabled, loaded = addon_utils.check(delegate)
+        if enabled:
+            log.warn("Disable Delegate ", delegate)
+            addon_utils.disable(delegate)
+            bpy.ops.preferences.addon_disable(module=delegate)
+
+
+def enable_delegates():
+    for delegate in RENDER_DELEGATE_ADDONS:
+        enabled, loaded = addon_utils.check(delegate)
+        if not loaded or not loaded:
+            mod = sys.modules.get(delegate)
+            importlib.reload(mod)
+            addon_utils.enable(delegate)

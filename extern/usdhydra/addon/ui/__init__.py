@@ -11,7 +11,8 @@ class USDHydra_Operator(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.engine in cls.COMPAT_ENGINES
+        return True
+        # return context.engine in cls.COMPAT_ENGINES
 
 
 class USDHydra_Panel(bpy.types.Panel):

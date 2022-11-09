@@ -25,7 +25,7 @@ set(USD_EXTRA_ARGS
   -DOpenImageIO_ROOT=${LIBDIR}/openimageio
   -DOPENEXR_LIBRARIES=${LIBDIR}/imath/lib/imath${OPENEXR_VERSION_POSTFIX}${LIBEXT}
   -DOPENEXR_INCLUDE_DIR=${LIBDIR}/imath/include
-  -DPXR_ENABLE_PYTHON_SUPPORT=OFF
+  -DPXR_ENABLE_PYTHON_SUPPORT=ON
   -DPXR_BUILD_IMAGING=ON
   -DPXR_BUILD_TESTS=OFF
   -DPXR_BUILD_EXAMPLES=OFF
@@ -45,7 +45,7 @@ set(USD_EXTRA_ARGS
   # wants to work on a Hydra viewport in Blender; when that's actually being
   # worked on, we could patch in a new PXR_ENABLE_X11_SUPPORT option (to
   # separate OpenGL from X11) and contribute it upstream.
-  -DPXR_ENABLE_GL_SUPPORT=OFF
+  -DPXR_ENABLE_GL_SUPPORT=ON
   # Disable Metal since USD fails to build this when OpenGL is disabled.
   -DPXR_ENABLE_METAL_SUPPORT=OFF
   # OIIO is used for loading image textures in Hydra Storm / Embree renderers,
@@ -56,18 +56,20 @@ set(USD_EXTRA_ARGS
   -DPXR_BUILD_OPENCOLORIO_PLUGIN=OFF
   -DPXR_ENABLE_PTEX_SUPPORT=OFF
   -DPXR_BUILD_USD_TOOLS=OFF
+  -DPXR_BUILD_ALEMBIC_PLUGIN=OFF
   -DCMAKE_DEBUG_POSTFIX=_d
-  -DBUILD_SHARED_LIBS=Off
+  -DBUILD_SHARED_LIBS=ON
   # USD is hellbound on making a shared library,
   # unless you point this variable to a valid CMAKE file doesn't have to make sense,
   # but as long as it points somewhere valid it will skip the shared library.
-  -DPXR_MONOLITHIC_IMPORT=${BUILD_DIR}/usd/src/external_usd/cmake/defaults/Version.cmake
-  -DTBB_INCLUDE_DIRS=${LIBDIR}/tbb/include
-  -DTBB_LIBRARIES=${LIBDIR}/tbb/lib/${LIBPREFIX}${TBB_LIBRARY}${LIBEXT}
-  -DTbb_TBB_LIBRARY=${LIBDIR}/tbb/lib/${LIBPREFIX}${TBB_LIBRARY}${LIBEXT}
-  # USD wants the tbb debug lib set even when you are doing a release build
-  # Otherwise it will error out during the cmake configure phase.
-  -DTBB_LIBRARIES_DEBUG=${LIBDIR}/tbb/lib/${LIBPREFIX}${TBB_LIBRARY}${LIBEXT}
+  #-DPXR_MONOLITHIC_IMPORT=${BUILD_DIR}/usd/src/external_usd/cmake/defaults/Version.cmake
+  -DTBB_ROOT_DIR=${LIBDIR}/tbb
+
+  -DPXR_ENABLE_MATERIALX_SUPPORT=ON
+  -DMATERIALX_BASE_DIR=${LIBDIR}/materialx
+
+  -DBoost_PYTHON310_LIBRARY_RELEASE=${LIBDIR}/boost/lib/boost_python310-vc142-mt-x64-1_78.lib
+  -DBoost_PYTHON310_LIBRARY_DEBUG=${LIBDIR}/boost/lib/boost_python310-vc142-mt-gd-x64-1_78.lib
 )
 
 ExternalProject_Add(external_usd
@@ -85,6 +87,7 @@ add_dependencies(
   external_tbb
   external_boost
   external_opensubdiv
+  external_materialx
 )
 
 # Since USD 21.11 the libraries are prefixed with "usd_", i.e.
@@ -102,14 +105,14 @@ if(WIN32)
   if(BUILD_MODE STREQUAL Release)
     ExternalProject_Add_Step(external_usd after_install
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBDIR}/usd/ ${HARVEST_TARGET}/usd
-      COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Release/usd_usd_m.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m.lib
+      # COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Release/usd_usd_m.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m.lib
       DEPENDEES install
     )
   endif()
   if(BUILD_MODE STREQUAL Debug)
     ExternalProject_Add_Step(external_usd after_install
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBDIR}/usd/lib ${HARVEST_TARGET}/usd/lib
-      COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Debug/usd_usd_m_d.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m_d.lib
+      # COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/usd/src/external_usd-build/pxr/Debug/usd_usd_m_d.lib ${HARVEST_TARGET}/usd/lib/usd_usd_m_d.lib
       DEPENDEES install
     )
   endif()

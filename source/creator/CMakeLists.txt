@@ -1308,8 +1308,23 @@ blender_target_include_dirs(blender ${INC})
 # These files are required at runtime.
 if(WITH_USD)
   add_definitions(-DWITH_USD)
+
   install(
-    DIRECTORY ${USD_LIBRARY_DIR}/usd
+    FILES ${USD_LIBRARY_DIR}/usd_usd_ms.dll
+          ${LIBDIR}/boost/lib/boost_python310-vc142-mt-x64-1_78.dll
+    DESTINATION "."
+    CONFIGURATIONS Release;RelWithDebInfo;MinSizeRel
+  )
+  install(
+    FILES ${USD_LIBRARY_DIR}/usd_usd_ms_d.dll
+          ${LIBDIR}/boost/lib/boost_python310-vc142-mt-gd-x64-1_78.dll
+    DESTINATION "."
+    CONFIGURATIONS Debug
+  )
+
+  install(DIRECTORY
+    ${USD_LIBRARY_DIR}/usd
+    ${USD_PLUGIN_DIR}
     DESTINATION "${TARGETDIR_VER}/datafiles"
   )
 endif()

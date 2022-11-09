@@ -19,29 +19,23 @@ bl_info = {
     "category": "Render"
 }
 
-# Support 'reload' case.
-if "bpy" in locals():
-    import importlib
-    importlib.reload(properties)
-    importlib.reload(engine)
-    importlib.reload(ui)
-    # importlib.reload(operators)
-
-else:
-    from . import (
-        properties,
-        engine,
-        usd_nodes,
-        ui,
-        handlers,
-    )
-
 import atexit
-import bpy
-from bpy.utils import register_class, unregister_class
-from .utils import logging
 
+from bpy.utils import register_class, unregister_class
+import _usdhydra
+
+from .utils import logging
 log = logging.Log('init')
+
+from . import (
+    properties,
+    engine,
+    usd_nodes,
+    ui,
+    handlers,
+    preferences,
+    storm_engine,
+)
 
 
 def exit():
@@ -53,24 +47,29 @@ def register():
     atexit.unregister(exit)
     atexit.register(exit)
 
-    properties.register()
+    register_class(preferences.AddonPreferences)
+    preferences.addon_preferences().init()
 
+    properties.register()
     ui.register()
     usd_nodes.register()
     handlers.register()
+    storm_engine.register()
 
-    register_class(engine.USDHydraHdStormEngine)
-
-    from .utils import enable_delegates
+    from .engine import enable_delegates
     enable_delegates()
+
+    _usdhydra.init()
 
 
 def unregister():
-    from .utils import disable_delegates
+    from .engine import disable_delegates
     disable_delegates()
+
     ui.unregister()
     properties.unregister()
     usd_nodes.unregister()
     handlers.unregister()
+    storm_engine.unregister()
 
-    unregister_class(engine.USDHydraHdStormEngine)
+    unregister_class(preferences.AddonPreferences)

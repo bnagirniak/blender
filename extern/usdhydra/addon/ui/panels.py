@@ -4,12 +4,10 @@
 # <pep8 compliant>
 
 import bpy
-#from .material import update_material_ui
 
 
 def get_panels():
     # follow the Cycles model of excluding panels we don't want
-
     exclude_panels = {
         'DATA_PT_area',
         'DATA_PT_context_light',
@@ -68,21 +66,20 @@ def get_panels():
         'EEVEE_MATERIAL_PT_settings',
     }
 
-    for panel in bpy.types.Panel.__subclasses__():
-        if hasattr(panel, 'COMPAT_ENGINES'):
-            if ('BLENDER_RENDER' in panel.COMPAT_ENGINES and panel.__name__ not in exclude_panels) \
-            or ('BLENDER_EEVEE' in panel.COMPAT_ENGINES and panel.__name__ in include_panels):
-                yield panel
+    for panel_cls in bpy.types.Panel.__subclasses__():
+        if hasattr(panel_cls, 'COMPAT_ENGINES') and (
+            ('BLENDER_RENDER' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ not in exclude_panels) or
+            ('BLENDER_EEVEE' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ in include_panels)
+        ):
+            yield panel_cls
 
 
-def register():
-    # set USDHydra panels filter
-    for panel in get_panels():
-        panel.COMPAT_ENGINES.add('USDHydraHdStormRendererPlugin')
+def register_engine(engine_id):
+    for panel_cls in get_panels():
+        panel_cls.COMPAT_ENGINES.add(engine_id)
 
 
-def unregister():
-    # remove USDHydra panels filter
-    for panel in get_panels():
-        if 'USDHydraHdStormRendererPlugin' in panel.COMPAT_ENGINES:
-            panel.COMPAT_ENGINES.remove('USDHydraHdStormRendererPlugin')
+def unregister_engine(engine_id):
+    for panel_cls in get_panels():
+        if engine_id in panel_cls.COMPAT_ENGINES:
+            panel_cls.COMPAT_ENGINES.remove(engine_id)

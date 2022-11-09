@@ -77,6 +77,7 @@ set(ADDON_FILES
   addon/__init__.py
   addon/engine.py
   addon/handlers.py
+  addon/storm_engine.py
 )
 
 set(ADDON_USD_NODES_FILES

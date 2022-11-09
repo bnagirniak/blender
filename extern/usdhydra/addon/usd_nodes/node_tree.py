@@ -28,9 +28,9 @@ class USDTree(bpy.types.ShaderNodeTree):
     _is_resetting = False
     _do_update = True
 
-    @classmethod
-    def poll(cls, context):
-        return context.engine in cls.COMPAT_ENGINES
+    # @classmethod
+    # def poll(cls, context):
+    #     return context.engine in cls.COMPAT_ENGINES
 
     @property
     def output_node(self):

@@ -11,18 +11,20 @@ class USDHydra_Operator(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.engine in cls.COMPAT_ENGINES
+        return True
+        # return context.engine in cls.COMPAT_ENGINES
 
 
 class USDHydra_Panel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'render'
-    COMPAT_ENGINES = {'USDHydraHdStormRendererPlugin'}
+    # COMPAT_ENGINES = {'USDHydraHdStormEngine'}
 
     @classmethod
     def poll(cls, context):
-        return context.engine in cls.COMPAT_ENGINES
+        return True
+        # return context.engine in cls.COMPAT_ENGINES
 
 
 class USDHydra_ChildPanel(bpy.types.Panel):
@@ -98,10 +100,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
 
 def register():
-    panels.register()
     register_classes()
 
 
 def unregister():
-    panels.unregister()
     unregister_classes()

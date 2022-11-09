@@ -2,14 +2,18 @@
 # Copyright 2011-2022 Blender Foundation
 
 # <pep8 compliant>
-
 import sys
+import importlib
 
 import bpy
+import addon_utils
 import _usdhydra
 
 from .usd_nodes import node_tree
-from .utils import stages, logging
+from .utils import stages
+from .ui import panels
+
+from .utils import logging
 log = logging.Log('engine')
 
 
@@ -18,21 +22,19 @@ def exit():
 
 
 class USDHydraEngine(bpy.types.RenderEngine):
-    bl_idname = 'USDHydra'
-    bl_label = "USD Hydra Internal"
-    bl_info = "USD Hydra rendering plugin"
+    bl_idname = ''
+    bl_label = ""
+    bl_info = ""
 
     bl_use_preview = True
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
-    bl_use_gpu_context = True
 
+    delegate_name = ""
     session = None
-    delegate_name = "HdStormRendererPlugin"
-    materialx_data = []
 
     def __init__(self):
-        self.session = None
+        self.materialx_data = []
 
     def __del__(self):
         if not self.session:
@@ -122,12 +124,12 @@ class USDHydraEngine(bpy.types.RenderEngine):
         return tuple()
 
     def get_materialx_data(self, context, depsgraph):
-        try:
-            import materialx
-
-        except Exception as e:
+        _, matx_enabled = addon_utils.check('materialx')
+        if not matx_enabled:
             log.warn("MaterialX Addon isn't loaded")
             return
+
+        import materialx
 
         for obj in bpy.context.scene.objects:
             if obj.type in ('EMPTY', 'ARMATURE', 'LIGHT', 'CAMERA'):
@@ -148,18 +150,15 @@ class USDHydraEngine(bpy.types.RenderEngine):
 
         materialx.utils.update_materialx_data(depsgraph, self.materialx_data)
 
+    @classmethod
+    def register(cls):
+        log("Register", cls)
+        panels.register_engine(cls.bl_idname)
 
-class USDHydraHdStormEngine(USDHydraEngine):
-    bl_idname = 'USDHydraHdStormRendererPlugin'
-    bl_label = "USD Hydra: GL"
-    bl_info = "USD Hydra HdStormRendererPlugin rendering plugin"
-
-    bl_use_preview = False
-    bl_use_shading_nodes = True
-    bl_use_shading_nodes_custom = False
-    bl_use_gpu_context = True
-
-    delegate_name = "HdStormRendererPlugin"
+    @classmethod
+    def unregister(cls):
+        log("Unregister", cls)
+        panels.unregister_engine(cls.bl_idname)
 
 
 def session_create(engine: USDHydraEngine):
@@ -196,3 +195,62 @@ def session_view_update(session, depsgraph, context, space_data, region_data, de
 
 def session_get_render_plugins():
     return _usdhydra.session.get_render_plugins()
+
+
+RENDER_DELEGATE_ADDONS = set()
+
+
+def register_delegate(delegate_dir, engine_bl_idname):
+    import _usdhydra
+    from ..ui import USDHydra_Panel, USDHydra_Operator
+    from ..ui.panels import get_panels
+    from ..usd_nodes.node_tree import USDTree
+
+    global RENDER_DELEGATE_ADDONS
+
+    _usdhydra.init_delegate(str(delegate_dir))
+
+    for panel in get_panels():
+        panel.COMPAT_ENGINES.add(engine_bl_idname)
+
+    USDHydra_Panel.COMPAT_ENGINES.add(engine_bl_idname)
+    USDHydra_Operator.COMPAT_ENGINES.add(engine_bl_idname)
+    USDTree.COMPAT_ENGINES.add(engine_bl_idname)
+    RENDER_DELEGATE_ADDONS.add(engine_bl_idname)
+
+
+def unregister_delegate(engine_bl_idname):
+    from ..ui import USDHydra_Panel, USDHydra_Operator
+    from ..ui.panels import get_panels
+    from ..usd_nodes.node_tree import USDTree
+
+    try:
+        USDHydra_Panel.COMPAT_ENGINES.remove(engine_bl_idname)
+        USDHydra_Operator.COMPAT_ENGINES.remove(engine_bl_idname)
+
+        for panel in get_panels():
+            if 'USDHydraHdStormRendererPlugin' in panel.COMPAT_ENGINES:
+                panel.COMPAT_ENGINES.remove(engine_bl_idname)
+
+        USDTree.COMPAT_ENGINES.remove(engine_bl_idname)
+
+    except:
+        pass
+
+
+def disable_delegates():
+    for delegate in RENDER_DELEGATE_ADDONS:
+        enabled, loaded = addon_utils.check(delegate)
+        if enabled:
+            log.warn("Disable Delegate ", delegate)
+            addon_utils.disable(delegate)
+            bpy.ops.preferences.addon_disable(module=delegate)
+
+
+def enable_delegates():
+    for delegate in RENDER_DELEGATE_ADDONS:
+        enabled, loaded = addon_utils.check(delegate)
+        if not loaded or not loaded:
+            mod = sys.modules.get(delegate)
+            importlib.reload(mod)
+            addon_utils.enable(delegate)

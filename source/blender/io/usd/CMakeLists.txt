@@ -11,10 +11,11 @@ endif()
 if(WIN32)
   add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 endif()
-add_definitions(-DPXR_STATIC)
 
 # USD headers use deprecated TBB headers, silence warning.
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_DEBUG_PYTHON")
 
 # Check if USD has the imaging headers available, if they are
 # add a USD_HAS_IMAGING define so code can dynamically detect this.
@@ -56,6 +57,7 @@ set(INC_SYS
   ${USD_INCLUDE_DIRS}
   ${BOOST_INCLUDE_DIR}
   ${TBB_INCLUDE_DIR}
+  ${PYTHON_INCLUDE_DIRS}
 )
 
 set(SRC
@@ -72,6 +74,7 @@ set(SRC
   intern/usd_writer_metaball.cc
   intern/usd_writer_transform.cc
   intern/usd_writer_volume.cc
+  intern/usd_writer_world.cc
 
   intern/usd_reader_camera.cc
   intern/usd_reader_curve.cc
@@ -99,6 +102,7 @@ set(SRC
   intern/usd_writer_metaball.h
   intern/usd_writer_transform.h
   intern/usd_writer_volume.h
+  intern/usd_writer_world.h
 
   intern/usd_reader_camera.h
   intern/usd_reader_curve.h
@@ -147,6 +151,7 @@ endif()
 # https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
 if(WIN32)
   target_link_libraries(bf_usd INTERFACE ${USD_LIBRARIES})
+  target_link_libraries(bf_usd INTERFACE ${BOOST_PYTHON_LIBRARIES})
 elseif(APPLE)
   target_link_libraries(bf_usd INTERFACE -Wl,-force_load ${USD_LIBRARIES})
 elseif(UNIX)

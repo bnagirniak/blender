@@ -12,7 +12,7 @@ class USDHydraProperties(bpy.types.PropertyGroup):
     @classmethod
     def register(cls):
         cls.bl_type.usdhydra = bpy.props.PointerProperty(
-            name="USDHydra properties",
+            name="USDHydra",
             description="USDHydra properties",
             type=cls,
         )
@@ -22,14 +22,7 @@ class USDHydraProperties(bpy.types.PropertyGroup):
         del cls.bl_type.usdhydra
 
 
-from . import (
-    scene,
-    object,
-    usd_stage,
-    window_manager,
-)
-
-register_classes, unregister_classes = bpy.utils.register_classes_factory((
+register, unregister = bpy.utils.register_classes_factory((
     scene.FinalRenderSettings,
     scene.ViewportRenderSettings,
     scene.SceneProperties,
@@ -41,11 +34,3 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory((
 
     window_manager.WindowManagerProperties,
 ))
-
-
-def register():
-    register_classes()
-
-
-def unregister():
-    unregister_classes()

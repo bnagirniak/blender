@@ -13,15 +13,8 @@ FORMAT_STR = "%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s"
 logger = logging.getLogger('usdhydra')
 logger.setLevel('DEBUG')
 
-# file_handler = logging.handlers.RotatingFileHandler(PLUGIN_ROOT_DIR / 'usdhydra.log',
-#                                                     mode='w', encoding='utf-8', delay=True,
-#                                                     backupCount=config.logging_backups)
-# file_handler.doRollover()
-# file_handler.setFormatter(logging.Formatter(FORMAT_STR))
-# logger.addHandler(file_handler)
-
-console_handler = logging.StreamHandler(stream=sys.stdout)
-console_handler.setFormatter(logging.Formatter(FORMAT_STR))
+console_handler = logger.StreamHandler(stream=sys.stdout)
+console_handler.setFormatter(logger.Formatter(FORMAT_STR))
 logger.addHandler(console_handler)
 
 
@@ -56,12 +49,9 @@ class Log:
         arg_names = func.__code__.co_varnames[:func.__code__.co_argcount]
 
         def echo_func(*args, **kwargs):
-            self.debug("<{}>: {}{}".format(
-                func.__name__,
-                tuple("{}={}".format(name, arg) for name, arg in zip(arg_names, args)),
-                # args if args else "",
-                " {}".format(kwargs.items()) if kwargs else "",
-            ))
+            self.debug(f"<{func.__name__}>: "
+                       f"{tuple(f'{name}={arg}' for name, arg in zip(arg_names, args))}"
+                       f"{f' {kwargs.items()}' if kwargs else ''}")
             return func(*args, **kwargs)
 
         return echo_func

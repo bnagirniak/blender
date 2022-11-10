@@ -7,7 +7,7 @@ bl_info = {
     "name": "USD Hydra render engine",
     "author": "AMD",
     "version": (1, 0, 0),
-    "blender": (3, 2, 0),
+    "blender": (3, 5, 0),
     "location": "Info header > Render engine menu",
     "description": "USD Hydra renderer integration",
     "tracker_url": "",
@@ -21,21 +21,19 @@ bl_info = {
 
 import atexit
 
-from bpy.utils import register_class, unregister_class
+import bpy
 import _usdhydra
 
-from .utils import logging
-log = logging.Log('init')
+import logger
+log = logger.Log('init')
 
 from . import (
     properties,
     engine,
-    usd_nodes,
     ui,
-    handlers,
     preferences,
-    storm_engine,
 )
+from storm import engine
 
 
 def exit():
@@ -47,29 +45,19 @@ def register():
     atexit.unregister(exit)
     atexit.register(exit)
 
-    register_class(preferences.AddonPreferences)
+    bpy.utils.register_class(preferences.AddonPreferences)
     preferences.addon_preferences().init()
 
     properties.register()
     ui.register()
-    usd_nodes.register()
-    handlers.register()
-    storm_engine.register()
-
-    from .engine import enable_delegates
-    enable_delegates()
+    engine.register()
 
     _usdhydra.init()
 
 
 def unregister():
-    from .engine import disable_delegates
-    disable_delegates()
-
     ui.unregister()
     properties.unregister()
-    usd_nodes.unregister()
-    handlers.unregister()
-    storm_engine.unregister()
+    engine.unregister()
 
-    unregister_class(preferences.AddonPreferences)
+    bpy.utils.unregister_class(preferences.AddonPreferences)

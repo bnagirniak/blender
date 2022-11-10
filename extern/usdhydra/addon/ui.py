@@ -59,7 +59,6 @@ def get_panels():
         'WORLD_PT_preview',
         'WORLD_PT_world',
     }
-
     include_panels = {
         'EEVEE_MATERIAL_PT_surface',
         'EEVEE_MATERIAL_PT_volume',

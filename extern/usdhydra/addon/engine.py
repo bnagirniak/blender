@@ -9,19 +9,17 @@ import bpy
 import addon_utils
 import _usdhydra
 
-from .usd_nodes import node_tree
-from .utils import stages
-from .ui import panels
+import ui
 
-from .utils import logging
-log = logging.Log('engine')
+import logger
+log = logger.Log('engine')
 
 
 def exit():
     _usdhydra.exit()
 
 
-class USDHydraEngine(bpy.types.RenderEngine):
+class HydraRenderEngine(bpy.types.RenderEngine):
     bl_idname = ''
     bl_label = ""
     bl_info = ""
@@ -32,9 +30,6 @@ class USDHydraEngine(bpy.types.RenderEngine):
 
     delegate_name = ""
     session = None
-
-    def __init__(self):
-        self.materialx_data = []
 
     def __del__(self):
         if not self.session:
@@ -153,12 +148,12 @@ class USDHydraEngine(bpy.types.RenderEngine):
     @classmethod
     def register(cls):
         log("Register", cls)
-        panels.register_engine(cls.bl_idname)
+        ui.register_engine(cls.bl_idname)
 
     @classmethod
     def unregister(cls):
         log("Unregister", cls)
-        panels.unregister_engine(cls.bl_idname)
+        ui.unregister_engine(cls.bl_idname)
 
 
 def session_create(engine: USDHydraEngine):

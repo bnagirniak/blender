@@ -18,7 +18,6 @@
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
 #include "session.h"
-#include "intern/usd_writer_world.h"
 
 #include "glog/logging.h"
 
@@ -61,7 +60,7 @@ void add_reference_to_prim(int is_preview, UsdStageRefPtr stage, UsdStageRefPtr 
 }
 
 void BlenderSession::reset(BL::Context &b_context, BL::Depsgraph &b_depsgraph, bool is_blender_scene, int stageId, 
-                           blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview)
+                           const char *render_delegate, int is_preview)
 {
   Depsgraph *depsgraph = (Depsgraph *)b_depsgraph.ptr.data;
 
@@ -107,7 +106,7 @@ void BlenderSession::reset(BL::Context &b_context, BL::Depsgraph &b_depsgraph, b
                  inserter(paths_to_add, paths_to_add.end()));
 
   if (is_blender_scene) {
-    export_scene_to_usd(b_context, b_depsgraph, materialx_data, render_delegate, existing_paths, objects_to_update);
+    export_scene_to_usd(b_context, b_depsgraph, render_delegate, existing_paths, objects_to_update);
   }
   else {
     stage = stageCache->Find(UsdStageCache::Id::FromLongInt(stageId));
@@ -362,8 +361,8 @@ void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
   height = int(screen_height * border[1][1]);
 }
 
-void BlenderSession::export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &b_depsgraph, blender::io::usd::materialx_data_type materialx_data,
-                                                   const char *render_delegate, set<pxr::SdfPath> existing_paths, set<string> objects_to_update)
+void BlenderSession::export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &b_depsgraph,
+                                         const char *render_delegate, set<pxr::SdfPath> existing_paths, set<string> objects_to_update)
 {
   LOG(INFO) << "export_scene_to_usd";
   Depsgraph *depsgraph = (Depsgraph *)b_depsgraph.ptr.data;
@@ -379,16 +378,12 @@ void BlenderSession::export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &
 
   usd_export_params.selected_objects_only = false;
   usd_export_params.visible_objects_only = false;
-  usd_export_params.export_materialx = !materialx_data.empty();
-  usd_export_params.specified_objects_only = false;
 
   stage->Reload();
 
   stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
   stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
   stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
-
-  blender::io::usd::create_world(stage, world);
 
   /* Set up the stage for animated data. */
   //if (data->params.export_animation) {
@@ -397,7 +392,7 @@ void BlenderSession::export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &
   //  stage->SetEndTimeCode(scene->r.efra);
   //}
 
-  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, stage, usd_export_params, materialx_data, existing_paths, objects_to_update);
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, stage, usd_export_params);
   iter.iterate_and_write();
   iter.release_writers();
 
@@ -527,13 +522,13 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "reset_func";
-  PyObject *pysession, *pydata, *pycontext, *pydepsgraph, *pyMaterialx_data;
+  PyObject *pysession, *pydata, *pycontext, *pydepsgraph;
 
   int stageId = 0;
   int is_blender_scene = 1, is_preview = 0;
   const char *render_delegate;
 
-  if (!PyArg_ParseTuple(args, "OOOOOiisi", &pysession, &pydata, &pycontext, &pydepsgraph, &pyMaterialx_data, 
+  if (!PyArg_ParseTuple(args, "OOOOiisi", &pysession, &pydata, &pycontext, &pydepsgraph, 
                                            &is_blender_scene, &stageId, &render_delegate, &is_preview)) {
     Py_RETURN_NONE;
   }
@@ -547,31 +542,6 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  blender::io::usd::materialx_data_type materialx_data;
-
-  if (pyMaterialx_data != Py_None) {
-    PyObject *iter = PyObject_GetIter(pyMaterialx_data);
-
-    if (iter) {
-      char *material_name = nullptr;
-      char *file_path = nullptr;
-      char *node_name = nullptr;
-
-      while (true) {
-        PyObject *next = PyIter_Next(iter);
-
-        if (!next) {
-            break;
-        }
-
-        if (!PyArg_ParseTuple(next, "sss", &material_name, &file_path, &node_name)) {
-            continue;
-        }
-
-        materialx_data.insert(pair<string, pair<string, string>>(string(material_name), pair<string, string>(string(file_path), string(node_name))));
-      }
-    }
-  }
 
   //PointerRNA dataptr;
   //RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
@@ -581,7 +551,7 @@ static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
   //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   //BL::Depsgraph depsgraph(depsgraphptr);
 
-  session->reset(b_context, b_depsgraph, is_blender_scene, stageId, materialx_data, render_delegate, is_preview);
+  session->reset(b_context, b_depsgraph, is_blender_scene, stageId, render_delegate, is_preview);
 
   Py_RETURN_NONE;
 }

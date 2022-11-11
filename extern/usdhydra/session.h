@@ -40,14 +40,14 @@ public:
 
   void create();
   void reset(BL::Context &b_context, BL::Depsgraph &b_depsgraph, bool is_blender_scene, int stageId,
-             blender::io::usd::materialx_data_type materialx_data, const char *render_delegate, int is_preview);
+             const char *render_delegate, int is_preview);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void sync_final_render(BL::Depsgraph &b_depsgraph);
-  void export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &b_depsgraph, blender::io::usd::materialx_data_type materialx_data,
+  void export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &b_depsgraph,
                            const char *render_delegate, set<SdfPath> existing_paths = {}, set<string> objects_to_update = {});
 
   template <typename T>

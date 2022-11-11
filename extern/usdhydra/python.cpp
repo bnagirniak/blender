@@ -15,7 +15,6 @@
 #include "BKE_appdir.h"
 
 #include "stage.h"
-#include "usd_node.h"
 #include "session.h"
 #include "utils.h"
 

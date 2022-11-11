@@ -42,9 +42,6 @@ set(SRC
   session.h
   session.cpp
 
-  usd_node.h
-  usd_node.cpp
-
   utils.h
   utils.cpp
 
@@ -76,55 +73,17 @@ set(LIB
 set(ADDON_FILES
   addon/__init__.py
   addon/engine.py
-  addon/handlers.py
-  addon/storm_engine.py
+  addon/logger.py
+  addon/preferences.py
+  addon/properties.py
+  addon/ui.py
 )
 
-set(ADDON_USD_NODES_FILES
-  addon/usd_nodes/__init__.py
-  addon/usd_nodes/node_tree.py
-)
-
-set(ADDON_USD_NODES_NODES_FILES
-  addon/usd_nodes/nodes/__init__.py
-  addon/usd_nodes/nodes/base_node.py
-  addon/usd_nodes/nodes/converter.py
-  addon/usd_nodes/nodes/input.py
-  addon/usd_nodes/nodes/output.py
-  addon/usd_nodes/nodes/transformations.py
-)
-
-set(ADDON_PROPERTIES_FILES
-  addon/properties/__init__.py
-  addon/properties/scene.py
-  addon/properties/object.py
-  addon/properties/usd_stage.py
-  addon/properties/preferences.py
-  addon/properties/window_manager.py
-)
-
-set(ADDON_UI_FILES
-  addon/ui/__init__.py
-  addon/ui/render.py
-  addon/ui/object.py
-  addon/ui/material.py
-  addon/ui/world.py
-  addon/ui/light.py
-  addon/ui/panels.py
-  addon/ui/usd_nodes.py
-  addon/ui/usd_stage.py
-)
-
-set(ADDON_UTILS_FILES
-  addon/utils/__init__.py
-  addon/utils/image.py
-  addon/utils/stages.py
-  addon/utils/logging.py
-)
-
-set(ADDON_VIEWPORT_FILES
-  addon/viewport/__init__.py
-  addon/viewport/usd_collection.py
+set(ADDON_STORM_FILES
+  addon/storm/__init__.py
+  addon/storm/engine.py
+  addon/storm/properties.py
+  addon/storm/ui.py
 )
 
 set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
@@ -140,9 +99,4 @@ blender_add_lib(extern_usdhydra "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 add_dependencies(extern_usdhydra bf_rna)
 
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${USDHYDRA_INSTALL_PATH})
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_UTILS_FILES}" ${USDHYDRA_INSTALL_PATH}/utils)
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_VIEWPORT_FILES}" ${USDHYDRA_INSTALL_PATH}/viewport)
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_PROPERTIES_FILES}" ${USDHYDRA_INSTALL_PATH}/properties)
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_USD_NODES_FILES}" ${USDHYDRA_INSTALL_PATH}/usd_nodes)
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_USD_NODES_NODES_FILES}" ${USDHYDRA_INSTALL_PATH}/usd_nodes/nodes)
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_UI_FILES}" ${USDHYDRA_INSTALL_PATH}/ui)
+delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_STORM_FILES}" ${USDHYDRA_INSTALL_PATH}/storm)

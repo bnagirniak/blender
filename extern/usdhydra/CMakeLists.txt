@@ -82,8 +82,8 @@ set(ADDON_FILES
 set(ADDON_STORM_FILES
   addon/storm/__init__.py
   addon/storm/engine.py
-  addon/storm/properties.py
-  addon/storm/ui.py
+  #addon/storm/properties.py
+  #addon/storm/ui.py
 )
 
 set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")

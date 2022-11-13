@@ -80,3 +80,7 @@ endif()
 if(NOT APPLE)
   set(WITH_XR_OPENXR           ON  CACHE BOOL "" FORCE)
 endif()
+
+if(WIN32)
+  set(WITH_USDHYDRA            ON  CACHE BOOL "" FORCE)
+endif()

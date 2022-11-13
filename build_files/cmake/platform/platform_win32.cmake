@@ -542,6 +542,10 @@ if(WITH_BOOST)
       debug ${BOOST_LIBPATH}/libboost_thread-${BOOST_DEBUG_POSTFIX}
       debug ${BOOST_LIBPATH}/libboost_chrono-${BOOST_DEBUG_POSTFIX}
     )
+    set(BOOST_PYTHON_LIBRARIES
+      optimized ${BOOST_LIBPATH}/boost_python310-${BOOST_POSTFIX}
+      debug ${BOOST_LIBPATH}/boost_python310-${BOOST_DEBUG_POSTFIX}
+    )
     if(WITH_CYCLES AND WITH_CYCLES_OSL)
       set(BOOST_LIBRARIES ${BOOST_LIBRARIES}
         optimized ${BOOST_LIBPATH}/libboost_wave-${BOOST_POSTFIX}
@@ -828,16 +832,9 @@ if(WITH_USD)
   windows_find_package(USD)
   if(NOT USD_FOUND)
     set(USD_INCLUDE_DIRS ${LIBDIR}/usd/include)
-    set(USD_RELEASE_LIB ${LIBDIR}/usd/lib/usd_usd_m.lib)
-    set(USD_DEBUG_LIB ${LIBDIR}/usd/lib/usd_usd_m_d.lib)
+    set(USD_RELEASE_LIB ${LIBDIR}/usd/lib/usd_usd_ms.lib)
+    set(USD_DEBUG_LIB ${LIBDIR}/usd/lib/usd_usd_ms_d.lib)
     set(USD_LIBRARY_DIR ${LIBDIR}/usd/lib)
-    # Older USD had different filenames, if the new ones are
-    # not found see if the older ones exist, to ease the
-    # transition period while landing libs.
-    if(NOT EXISTS "${USD_RELEASE_LIB}")
-      set(USD_RELEASE_LIB ${LIBDIR}/usd/lib/libusd_m.lib)
-      set(USD_DEBUG_LIB ${LIBDIR}/usd/lib/libusd_m_d.lib)
-    endif()
     set(USD_LIBRARIES
       debug ${USD_DEBUG_LIB}
       optimized ${USD_RELEASE_LIB}

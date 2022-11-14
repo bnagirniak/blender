@@ -37,7 +37,7 @@ from storm import engine
 
 
 def exit():
-    engine.exit()
+    _usdhydra.exit()
 
 
 def register():

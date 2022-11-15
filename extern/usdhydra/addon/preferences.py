@@ -19,11 +19,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         log("update_log_level", self.log_level)
         logger.logger.setLevel(self.log_level)
 
-    def update_storm_delegate(self, context):
+    def update_storm_render_delegate(self, context):
         from storm.engine import HdStormHydraRenderEngine
 
-        log("update_storm_delegate", self.storm_delegate)
-        if self.storm_delegate:
+        log("update_storm_render_delegate", self.storm_render_delegate)
+        if self.storm_render_delegate:
             bpy.utils.register_class(HdStormHydraRenderEngine)
         else:
             bpy.utils.unregister_class(HdStormHydraRenderEngine)
@@ -48,7 +48,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         name="Storm Render Delegate",
         description="Enable Hydra Storm (OpenGL) render delegate",
         default=True,
-        update=update_storm_delegate,
+        update=update_storm_render_delegate,
     )
 
     def draw(self, context):

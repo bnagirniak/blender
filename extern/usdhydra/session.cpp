@@ -491,7 +491,8 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
   DLOG(INFO) << "create_func";
   PyObject *pyengine;
-  if (!PyArg_ParseTuple(args, "O", &pyengine)) {
+  char *engine_type, *delegate_name;
+  if (!PyArg_ParseTuple(args, "Oss", &pyengine, &engine_type, &delegate_name)) {
     Py_RETURN_NONE;
   }
 
@@ -594,7 +595,7 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
   HdRenderSettingsMap settings;
 
   if (delegate_settings != Py_None) {
-  PyObject *iter = PyObject_GetIter(delegate_settings);
+    PyObject *iter = PyObject_GetIter(delegate_settings);
 
     if (iter) {
       while (true) {
@@ -777,10 +778,7 @@ static PyMethodDef methods[] = {
   {"create", create_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
   {"render", render_func, METH_VARARGS, ""},
-  {"reset", reset_func, METH_VARARGS, ""},
-  {"final_update", final_update_func, METH_VARARGS, ""},
-  {"render_frame_finish", render_frame_finish_func, METH_VARARGS, ""},
-  {"view_update", view_update_func, METH_VARARGS, ""},
+  {"sync", sync_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},
   {"get_render_plugins", get_render_plugins_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},

@@ -28,9 +28,7 @@ import logger
 log = logger.Log('init')
 
 from . import (
-    properties,
     engine,
-    ui,
     preferences,
 )
 from storm import engine
@@ -48,16 +46,14 @@ def register():
     bpy.utils.register_class(preferences.AddonPreferences)
     preferences.addon_preferences().init()
 
-    properties.register()
-    ui.register()
     engine.register()
 
     _usdhydra.init()
 
 
 def unregister():
-    ui.unregister()
-    properties.unregister()
+    exit()
+
     engine.unregister()
 
     bpy.utils.unregister_class(preferences.AddonPreferences)

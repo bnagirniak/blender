@@ -6,7 +6,6 @@
 import bpy
 
 from ..engine import HydraRenderEngine
-from ..preferences import addon_preferences
 
 
 class HdStormHydraRenderEngine(HydraRenderEngine):
@@ -19,12 +18,9 @@ class HdStormHydraRenderEngine(HydraRenderEngine):
 
     delegate_name = "HdStormRendererPlugin"
 
-
-def register():
-    if addon_preferences().storm_delegate:
-        bpy.utils.register_class(HdStormHydraRenderEngine)
-
-
-def unregister():
-    if addon_preferences().storm_delegate:
-        bpy.utils.unregister_class(HdStormHydraRenderEngine)
+    def get_delegate_settings(self, engine_type):
+        settings = bpy.context.scene.usdhydra_storm
+        return {
+            'enableTinyPrimCulling': settings.enable_tiny_prim_culling,
+            'maxLights': settings.max_lights,
+        }

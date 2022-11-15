@@ -19,45 +19,27 @@ bl_info = {
     "category": "Render"
 }
 
-import atexit
-
-import bpy
 import _usdhydra
 
-import logger
+from . import logger
 log = logger.Log('init')
 
-from . import (
-    properties,
-    engine,
-    ui,
-    preferences,
-)
-from storm import engine
-
-
-def exit():
-    engine.exit()
+from . import preferences, engine
 
 
 def register():
-    # Make sure we only registered the callback once.
-    atexit.unregister(exit)
-    atexit.register(exit)
+    log("register")
 
-    bpy.utils.register_class(preferences.AddonPreferences)
-    preferences.addon_preferences().init()
-
-    properties.register()
-    ui.register()
+    preferences.register()
     engine.register()
 
     _usdhydra.init()
 
 
 def unregister():
-    ui.unregister()
-    properties.unregister()
-    engine.unregister()
+    log("unregister")
 
-    bpy.utils.unregister_class(preferences.AddonPreferences)
+    _usdhydra.exit()
+
+    engine.unregister()
+    preferences.unregister()

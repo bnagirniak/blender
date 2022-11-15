@@ -5,7 +5,7 @@
 
 import bpy
 
-import logger
+from . import logger
 log = logger.Log('preferences')
 
 
@@ -19,14 +19,14 @@ class AddonPreferences(bpy.types.AddonPreferences):
         log("update_log_level", self.log_level)
         logger.logger.setLevel(self.log_level)
 
-    def update_storm_delegate(self, context):
-        from storm.engine import HdStormHydraRenderEngine
+    def update_storm_render_engine(self, context):
+        log("update_storm_render_engine", self.storm_render_engine)
 
-        log("update_storm_delegate", self.storm_delegate)
-        if self.storm_delegate:
-            bpy.utils.register_class(HdStormHydraRenderEngine)
+        from . import storm
+        if self.storm_render_engine:
+            storm.register()
         else:
-            bpy.utils.unregister_class(HdStormHydraRenderEngine)
+            storm.unregister()
 
     dev_tools: bpy.props.BoolProperty(
         name="Developer Tools",
@@ -44,18 +44,18 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default='INFO',
         update=update_log_level,
     )
-    storm_render_delegate: bpy.props.BoolProperty(
-        name="Storm Render Delegate",
-        description="Enable Hydra Storm (OpenGL) render delegate",
+    storm_render_engine: bpy.props.BoolProperty(
+        name="Storm Render Engine",
+        description="Enable Hydra Storm (OpenGL) render engine delegate",
         default=True,
-        update=update_storm_delegate,
+        update=update_storm_render_engine,
     )
 
     def draw(self, context):
         layout = self.layout
 
         box = layout.box()
-        box.prop(self, 'storm_render_delegate')
+        box.prop(self, 'storm_render_engine')
 
         box = layout.box()
         # box.prop(self, 'dev_tools')
@@ -64,3 +64,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
 def addon_preferences():
     return bpy.context.preferences.addons['usdhydra'].preferences
+
+
+def register():
+    bpy.utils.register_class(AddonPreferences)
+    addon_preferences().init()
+
+
+def unregister():
+    bpy.utils.unregister_class(AddonPreferences)

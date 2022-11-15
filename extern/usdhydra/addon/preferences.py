@@ -20,13 +20,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
         logger.logger.setLevel(self.log_level)
 
     def update_storm_render_engine(self, context):
-        from .storm.engine import HdStormHydraRenderEngine
-
         log("update_storm_render_engine", self.storm_render_engine)
+
+        from . import storm
         if self.storm_render_engine:
-            bpy.utils.register_class(HdStormHydraRenderEngine)
+            storm.register()
         else:
-            bpy.utils.unregister_class(HdStormHydraRenderEngine)
+            storm.unregister()
 
     dev_tools: bpy.props.BoolProperty(
         name="Developer Tools",
@@ -64,3 +64,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
 def addon_preferences():
     return bpy.context.preferences.addons['usdhydra'].preferences
+
+
+def register():
+    bpy.utils.register_class(AddonPreferences)
+    addon_preferences().init()
+
+
+def unregister():
+    bpy.utils.unregister_class(AddonPreferences)

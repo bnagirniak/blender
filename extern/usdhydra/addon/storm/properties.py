@@ -35,8 +35,3 @@ class SceneProperties(Properties):
         description="Maximum number of lights",
         default=16, min=1,
     )
-
-
-register, unregister = bpy.utils.register_classes_factory((
-    SceneProperties,
-))

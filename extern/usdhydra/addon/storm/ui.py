@@ -19,7 +19,7 @@ class Panel(bpy.types.Panel):
 
 class USDHYDRA_STORM_RENDER_PT_render_settings(Panel):
     """Final render delegate and settings"""
-    bl_label = "Render Settings"
+    bl_label = "Storm Render Settings"
 
     def draw(self, context):
         layout = self.layout
@@ -29,10 +29,3 @@ class USDHYDRA_STORM_RENDER_PT_render_settings(Panel):
         settings = context.scene.usdhydra_storm
         layout.prop(settings, 'enable_tiny_prim_culling')
         layout.prop(settings, 'max_lights')
-
-
-
-register, unregister = bpy.utils.register_classes_factory((
-    USDHYDRA_STORM_RENDER_PT_render_settings,
-))
-

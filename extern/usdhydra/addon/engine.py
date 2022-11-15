@@ -7,6 +7,7 @@ import bpy
 import _usdhydra
 
 from . import ui
+from .preferences import addon_preferences
 
 from . import logger
 log = logger.Log('engine')
@@ -42,7 +43,6 @@ class HydraRenderEngine(bpy.types.RenderEngine):
 
     def render(self, depsgraph):
         log("render", self)
-
         session_render(self.session)
 
     # viewport render
@@ -96,3 +96,15 @@ def session_view_draw(session, depsgraph, context, space_data, region_data):
 
 def session_get_render_plugins():
     return _usdhydra.session.get_render_plugins()
+
+
+def register():
+    if addon_preferences().storm_render_engine:
+        from . import storm
+        storm.register()
+
+
+def unregister():
+    if addon_preferences().storm_render_engine:
+        from . import storm
+        storm.unregister()

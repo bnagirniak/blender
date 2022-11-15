@@ -24,14 +24,14 @@ import atexit
 import bpy
 import _usdhydra
 
-import logger
+from . import logger
 log = logger.Log('init')
 
 from . import (
     engine,
     preferences,
 )
-from storm import engine
+from .storm import engine
 
 
 def exit():

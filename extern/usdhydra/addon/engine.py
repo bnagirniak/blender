@@ -6,9 +6,9 @@
 import bpy
 import _usdhydra
 
-import ui
+from . import ui
 
-import logger
+from . import logger
 log = logger.Log('engine')
 
 

@@ -13,8 +13,8 @@ FORMAT_STR = "%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s"
 logger = logging.getLogger('usdhydra')
 logger.setLevel('DEBUG')
 
-console_handler = logger.StreamHandler(stream=sys.stdout)
-console_handler.setFormatter(logger.Formatter(FORMAT_STR))
+console_handler = logging.StreamHandler(stream=sys.stdout)
+console_handler.setFormatter(logging.Formatter(FORMAT_STR))
 logger.addHandler(console_handler)
 
 

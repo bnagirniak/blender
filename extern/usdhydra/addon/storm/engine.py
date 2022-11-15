@@ -21,10 +21,10 @@ class HdStormHydraRenderEngine(HydraRenderEngine):
 
 
 def register():
-    if addon_preferences().storm_delegate:
+    if addon_preferences().storm_render_engine:
         bpy.utils.register_class(HdStormHydraRenderEngine)
 
 
 def unregister():
-    if addon_preferences().storm_delegate:
+    if addon_preferences().storm_render_engine:
         bpy.utils.unregister_class(HdStormHydraRenderEngine)

@@ -5,6 +5,9 @@
 
 import bpy
 
+from . import logger
+log = logger.Log("ui")
+
 
 def get_panels():
     # follow the Cycles model of excluding panels we don't want
@@ -70,15 +73,18 @@ def get_panels():
             ('BLENDER_RENDER' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ not in exclude_panels) or
             ('BLENDER_EEVEE' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ in include_panels)
         ):
+            #log(panel_cls)
             yield panel_cls
 
 
 def register_engine(engine_id):
+    log("register_engine", engine_id)
     for panel_cls in get_panels():
         panel_cls.COMPAT_ENGINES.add(engine_id)
 
 
 def unregister_engine(engine_id):
+    log("unregister_engine", engine_id)
     for panel_cls in get_panels():
         if engine_id in panel_cls.COMPAT_ENGINES:
             panel_cls.COMPAT_ENGINES.remove(engine_id)

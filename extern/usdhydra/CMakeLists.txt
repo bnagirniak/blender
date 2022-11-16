@@ -8,14 +8,17 @@ endif()
 # USD headers use deprecated TBB headers, silence warning.
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
 
+add_definitions(${GFLAGS_DEFINES})
+add_definitions(${GLOG_DEFINES})
+add_definitions(-DGLOG_NO_ABBREVIATED_SEVERITIES)
+add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
+
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_DEBUG_PYTHON")
 
 set(INC
   ../gflags/src
-  # ../../intern
   ../../intern/glew-mx
   ../../intern/guardedalloc
-  # ../../mikktspace
   ../../source/blender/makesdna
   ../../source/blender/makesrna
   ../../source/blender/blenlib
@@ -39,8 +42,8 @@ set(INC_SYS
 set(SRC
   python.cpp
 
-  session.h
-  session.cpp
+  engine.h
+  engine.cpp
 
   utils.h
   utils.cpp
@@ -85,17 +88,10 @@ set(ADDON_STORM_FILES
   addon/storm/ui.py
 )
 
-set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
-
-add_definitions(${GFLAGS_DEFINES})
-add_definitions(${GLOG_DEFINES})
-add_definitions(-DGLOG_NO_ABBREVIATED_SEVERITIES)
-add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
-
-
 blender_add_lib(extern_usdhydra "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
 add_dependencies(extern_usdhydra bf_rna)
 
+set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${USDHYDRA_INSTALL_PATH})
 delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_STORM_FILES}" ${USDHYDRA_INSTALL_PATH}/storm)

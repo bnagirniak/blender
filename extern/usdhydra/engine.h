@@ -25,11 +25,35 @@
 #include "DEG_depsgraph_query.h"
 #include "utils.h"
 
-#include "session.h"
+#include "engine.h"
 #include "stage.h"
 #include "view_settings.h"
 
 namespace usdhydra {
+
+class Engine {
+public:
+  Engine(BL::RenderEngine& b_engine, const char* delegateName);
+  virtual ~Engine();
+
+  virtual void sync(BL::Depsgraph& b_depsgraph) = 0;
+
+protected:
+  BL::RenderEngine b_engine;
+  std::string delegateName;
+  pxr::UsdStageRefPtr stage;
+};
+
+class FinalEngine : public Engine {
+public:
+
+};
+
+class ViewportEngine : public Engine {
+public:
+
+};
+
 
 const vector<string> preview_allowed_prims = {"World", "Camera", "Floor", "_materials", "preview_", "CircularLight"};
 

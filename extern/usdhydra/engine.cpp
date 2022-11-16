@@ -17,13 +17,23 @@
 #include "intern/usd_hierarchy_iterator.h"
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
-#include "session.h"
+#include "engine.h"
 
 #include "glog/logging.h"
 
 using namespace pxr;
 
 namespace usdhydra {
+
+Engine::Engine(BL::RenderEngine& b_engine, const char* delegateName)
+  : b_engine(b_engine)
+  , delegateName(delegateName)
+{
+}
+
+Engine::~Engine()
+{
+}
 
 BlenderSession::BlenderSession(BL::RenderEngine &b_engine)
     : b_engine(b_engine)
@@ -520,7 +530,7 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static PyObject *reset_func(PyObject * /*self*/, PyObject *args)
+static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "reset_func";
   PyObject *pysession, *pydata, *pycontext, *pydepsgraph;

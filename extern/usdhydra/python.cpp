@@ -15,7 +15,7 @@
 #include "BKE_appdir.h"
 
 #include "stage.h"
-#include "session.h"
+#include "engine.h"
 #include "utils.h"
 
 using namespace std;

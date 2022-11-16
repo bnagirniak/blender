@@ -33,10 +33,10 @@ namespace usdhydra {
 
 class Engine {
 public:
-  Engine(BL::RenderEngine& b_engine, const char* delegateName);
+  Engine(BL::RenderEngine &b_engine, const char* delegateName);
   virtual ~Engine();
 
-  virtual void sync(BL::Depsgraph& b_depsgraph) = 0;
+  virtual void sync(BL::Depsgraph &b_depsgraph) = 0;
 
 protected:
   BL::RenderEngine b_engine;
@@ -46,12 +46,17 @@ protected:
 
 class FinalEngine : public Engine {
 public:
-
+  void sync(BL::Depsgraph &b_depsgraph) override;
+  void render(BL::Depsgraph &b_depsgraph);
 };
 
 class ViewportEngine : public Engine {
 public:
+  void sync(BL::Depsgraph &b_depsgraph) override;
+  void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
 
+private:
+  std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
 };
 
 

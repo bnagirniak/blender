@@ -25,13 +25,29 @@ using namespace pxr;
 
 namespace usdhydra {
 
-Engine::Engine(BL::RenderEngine& b_engine, const char* delegateName)
+Engine::Engine(BL::RenderEngine &b_engine, const char* delegateName)
   : b_engine(b_engine)
   , delegateName(delegateName)
 {
 }
 
 Engine::~Engine()
+{
+}
+
+void FinalEngine::sync(BL::Depsgraph &b_depsgraph)
+{
+}
+
+void FinalEngine::render(BL::Depsgraph &b_depsgraph)
+{
+}
+
+void ViewportEngine::sync(BL::Depsgraph &b_depsgraph)
+{
+}
+
+void ViewportEngine::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
 }
 

@@ -25,9 +25,9 @@ using namespace pxr;
 
 namespace usdhydra {
 
-Engine::Engine(BL::RenderEngine &b_engine, const char* delegateName)
+Engine::Engine(BL::RenderEngine &b_engine, const char* delegateId)
   : b_engine(b_engine)
-  , delegateName(delegateName)
+  , delegateId(delegateId)
 {
 }
 
@@ -35,21 +35,151 @@ Engine::~Engine()
 {
 }
 
-void FinalEngine::sync(BL::Depsgraph &b_depsgraph)
+void Engine::exportScene(BL::Depsgraph& b_depsgraph, BL::Context& b_context)
+{
+  Depsgraph *depsgraph = (Depsgraph *)b_depsgraph.ptr.data;
+
+  Scene *scene = DEG_get_input_scene(depsgraph);
+  World *world = scene->world;
+
+  DEG_graph_build_for_all_objects(depsgraph);
+
+  bContext *C = (bContext *)b_context.ptr.data;
+  Main *bmain = CTX_data_main(C);
+  USDExportParams usd_export_params;
+
+  usd_export_params.selected_objects_only = false;
+  usd_export_params.visible_objects_only = false;
+
+  //stage->Reload();
+
+  stage->SetMetadata(UsdGeomTokens->upAxis, VtValue(UsdGeomTokens->z));
+  stage->SetMetadata(UsdGeomTokens->metersPerUnit, static_cast<double>(scene->unit.scale_length));
+  stage->GetRootLayer()->SetDocumentation(std::string("Blender v") + BKE_blender_version_string());
+
+  /* Set up the stage for animated data. */
+  //if (data->params.export_animation) {
+  //  stage->SetTimeCodesPerSecond(FPS);
+  //  stage->SetStartTimeCode(scene->r.sfra);
+  //  stage->SetEndTimeCode(scene->r.efra);
+  //}
+
+  blender::io::usd::USDHierarchyIterator iter(bmain, depsgraph, stage, usd_export_params);
+  iter.iterate_and_write();
+  iter.release_writers();
+}
+
+void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
+{
+  this->renderSettings = renderSettings;
+  stage = UsdStage::CreateInMemory();
+  exportScene(b_depsgraph, b_context);
+}
+
+void FinalEngine::render(BL::Depsgraph &b_depsgraph, bool isGL)
+{
+  if (isGL) {
+    renderGL(b_depsgraph);
+  }
+  else {
+    renderLite(b_depsgraph);
+  }
+}
+
+void FinalEngine::renderGL(BL::Depsgraph &b_depsgraph)
+{
+  std::unique_ptr<UsdImagingGLEngine> imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
+
+  if (!imagingGLEngine->SetRendererPlugin(TfToken(render_delegate))) {
+    return;
+  }
+
+  for (auto const& pair : renderSettings) {
+    imagingGLEngine->SetRendererSetting(pair.first, pair.second);
+  }
+
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+
+  GlfDrawTargetRefPtr draw_target_ptr = GlfDrawTarget::New(GfVec2i(width, height));
+
+  draw_target_ptr->Bind();
+  draw_target_ptr->AddAttachment("color", GL_RGBA, GL_FLOAT, GL_RGBA);
+
+  UsdGeomCamera usd_camera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
+  UsdTimeCode usd_timecode = UsdTimeCode(b_scene.frame_current());
+  GfCamera gf_camera = usd_camera.GetCamera(usd_timecode);
+
+  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+                                  gf_camera.GetFrustum().ComputeProjectionMatrix());
+
+  imagingGLEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
+  imagingGLEngine->SetRendererAov(HdAovTokens->color);
+
+  render_params.frame = UsdTimeCode(b_scene.frame_current());
+  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+
+  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
+
+  BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
+  BL::CollectionRef b_render_passes = b_result.layers[0].passes;
+
+  int channels = 4;
+  vector<float> pixels(width * height * channels);
+
+  glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
+  draw_target_ptr->Unbind();
+
+  map<string, vector<float>> render_images{{"Combined", pixels}};
+  vector<float> images;
+
+  for (BL::RenderPass b_pass : b_render_passes) {
+    map<string, vector<float>>::iterator it_image = render_images.find(b_pass.name());
+    vector<float> image = it_image->second;
+
+    if (it_image == render_images.end()) {
+      image = vector<float>(width * height * channels);
+    }
+
+    if (b_pass.channels() != channels) {
+      for (int i = image.size(); i >= b_pass.channels(); i -= b_pass.channels()) {
+        image.erase(image.end() - i);
+      }
+    }
+
+    images.insert(images.end(), image.begin(), image.end());
+  }
+
+  for (BL::RenderPass b_pass : b_render_passes) {
+    b_pass.rect(images.data());
+  }
+
+  b_engine.end_result(b_result, false, false, false);
+}
+
+void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 {
 }
 
-void FinalEngine::render(BL::Depsgraph &b_depsgraph)
+void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
-}
+  this->renderSettings = renderSettings;
+  if (!imagingGLEngine) {
+    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
+    stage = UsdStage::CreateInMemory();
+    exportScene(b_depsgraph, b_context);
+  }
+  
 
-void ViewportEngine::sync(BL::Depsgraph &b_depsgraph)
-{
 }
 
 void ViewportEngine::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
 }
+
+
+
+
+
 
 BlenderSession::BlenderSession(BL::RenderEngine &b_engine)
     : b_engine(b_engine)
@@ -510,45 +640,49 @@ void BlenderSession::notify_final_render_status(float progress, const char *titl
 }
 
 /* ------------------------------------------------------------------------- */
-/* Python API for BlenderSession
+/* Python API for Engine
  */
 
 static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
   DLOG(INFO) << "create_func";
-  PyObject *pyengine;
-  char *engine_type, *delegate_name;
-  if (!PyArg_ParseTuple(args, "Oss", &pyengine, &engine_type, &delegate_name)) {
+  PyObject *b_pyengine;
+  char *engineType, *delegateId;
+  if (!PyArg_ParseTuple(args, "Oss", &b_pyengine, &engineType, &delegateId)) {
     Py_RETURN_NONE;
   }
 
-  PointerRNA engineptr;
-  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(pyengine), &engineptr);
-  BL::RenderEngine engine(engineptr);
+  PointerRNA b_engineptr;
+  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(b_pyengine), &b_engineptr);
+  BL::RenderEngine b_engine(b_engineptr);
 
-  /* create session */
-  BlenderSession *session = new BlenderSession(engine);
+  /* create engine */
+  Engine *engine;
+  if (strcmp(engineType, "VIEWPORT") == 0) {
+    engine = new ViewportEngine(b_engine, delegateId);
+  }
+  else {
+    engine = new FinalEngine(b_engine, delegateId);
+  }
 
-  session->create();
-
-  return PyLong_FromVoidPtr(session);
+  return PyLong_FromVoidPtr(engine);
 }
 
 static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "free_func";
-  PyObject *pysession;
-  if (!PyArg_ParseTuple(args, "O", &pysession)) {
+  PyObject *pyengine;
+  if (!PyArg_ParseTuple(args, "O", &pyengine)) {
     Py_RETURN_NONE;
   }
 
-  delete (BlenderSession *)PyLong_AsVoidPtr(pysession);
+  delete (Engine *)PyLong_AsVoidPtr(pyengine);
   Py_RETURN_NONE;
 }
 
 static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
 {
-  LOG(INFO) << "reset_func";
+  LOG(INFO) << "sync_func";
   PyObject *pysession, *pydata, *pycontext, *pydepsgraph;
 
   int stageId = 0;
@@ -669,11 +803,6 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
     session->render_gl(depsgraph, render_delegate, settings);
   }
 
-  Py_RETURN_NONE;
-}
-
-static PyObject *render_frame_finish_func(PyObject * /*self*/, PyObject *args)
-{
   Py_RETURN_NONE;
 }
 
@@ -812,7 +941,7 @@ static PyMethodDef methods[] = {
 
 static struct PyModuleDef module = {
   PyModuleDef_HEAD_INIT,
-  "session",
+  "engine",
   "",
   -1,
   methods,
@@ -822,10 +951,10 @@ static struct PyModuleDef module = {
   NULL,
 };
 
-PyObject *addPythonSubmodule_session(PyObject *mod)
+PyObject *addPythonSubmodule_engine(PyObject *mod)
 {
   PyObject *submodule = PyModule_Create(&module);
-  PyModule_AddObject(mod, "session", submodule);
+  PyModule_AddObject(mod, "engine", submodule);
   return submodule;
 }
 

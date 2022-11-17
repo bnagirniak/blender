@@ -39,11 +39,11 @@ class HydraRenderEngine(bpy.types.RenderEngine):
 
         self.engine_ptr = _usdhydra.engine.create(self.as_pointer(), engine_type, self.delegate_id)
         delegate_settings = self.get_delegate_settings(engine_type)
-        _usdhydra.engine_ptr.sync(self.engine_ptr, depsgraph.as_pointer(), delegate_settings)
+        _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), delegate_settings)
 
     def render(self, depsgraph):
         log("render", self)
-        _usdhydra.engine.render(self.engine_ptr, depsgraph.as_pointer(), self.bl_use_gpu_context)
+        _usdhydra.engine.render(self.engine_ptr, depsgraph.as_pointer())
 
     # viewport render
     def view_update(self, context, depsgraph):

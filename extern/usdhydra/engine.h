@@ -39,6 +39,9 @@ public:
   virtual void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) = 0;
 
 protected:
+  void exportScene(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+
+protected:
   BL::RenderEngine b_engine;
   std::string delegateId;
   pxr::HdRenderSettingsMap renderSettings;
@@ -50,11 +53,14 @@ class FinalEngine : public Engine {
 public:
   using Engine::Engine;
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) override;
-  void render(BL::Depsgraph &b_depsgraph, bool isGL);
+  void render(BL::Depsgraph &b_depsgraph);
 
 private:
   void renderGL(BL::Depsgraph &b_depsgraph);
   void renderLite(BL::Depsgraph &b_depsgraph);
+  void getResolution(BL::RenderSettings b_render, int &width, int &height);
+  void updateRenderResult(map<string, vector<float>> &render_images, const string &layerName, int width, int height);
+  void notifyStatus(float progress, const std::string &title, const std::string &info);
 };
 
 class ViewportEngine : public Engine {

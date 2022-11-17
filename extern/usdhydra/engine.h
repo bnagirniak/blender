@@ -67,10 +67,15 @@ class ViewportEngine : public Engine {
 public:
   using Engine::Engine;
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) override;
-  void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+  void viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+
+private:
+  void notifyStatus(const string &title, const string &info, bool redraw);
 
 private:
   std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
+  pxr::UsdImagingGLRenderParams renderParams;
+  chrono::time_point<chrono::steady_clock> timeBegin;
 };
 
 
@@ -86,7 +91,7 @@ public:
              const char *render_delegate, int is_preview);
   void render(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
-  void view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+  void viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate, HdRenderSettingsMap delegate_settings);
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
   void sync_final_render(BL::Depsgraph &b_depsgraph);
@@ -118,7 +123,7 @@ public:
   //BL::BlendData b_data;
 
   std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
-  pxr::UsdImagingGLRenderParams render_params;
+  pxr::UsdImagingGLRenderParams renderParams;
   pxr::UsdStageRefPtr stage;
 
 protected:

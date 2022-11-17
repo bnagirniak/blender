@@ -177,9 +177,8 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
   chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
   chrono::milliseconds elapsedTime;
-  string formatted_time;
 
-  float percent_done = 0.0;
+  float percentDone = 0.0;
   string layerName = b_depsgraph.view_layer().name();
 
   map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
@@ -192,14 +191,13 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
     imagingLiteEngine->Render(stage->GetPseudoRoot(), renderParams);
 
-    percent_done = getRendererPercentDone(imagingLiteEngine.get());
+    percentDone = getRendererPercentDone(&imagingLiteEngine);
     timeCurrent = chrono::steady_clock::now();
     elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
-    formatted_time = format_milliseconds(elapsedTime);
 
-    notifyStatus(percent_done / 100.0,
+    notifyStatus(percentDone / 100.0,
       b_scene.name() + ": " + layerName,
-      "Render Time: " + formatted_time + " | Done: " + to_string(int(percent_done)) + "%");
+      "Render Time: " + format_milliseconds(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
 
     if (imagingLiteEngine->IsConverged()) {
       break;
@@ -246,22 +244,77 @@ void FinalEngine::notifyStatus(float progress, const string &title, const string
   b_engine.update_stats(title.c_str(), info.c_str());
 }
 
-void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
+void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings_)
 {
-  this->renderSettings = renderSettings;
+  renderSettings = renderSettings_;
   if (!imagingGLEngine) {
-    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
     stage = UsdStage::CreateInMemory();
     exportScene(b_depsgraph, b_context);
+
+    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
+    imagingGLEngine->SetRendererPlugin(TfToken(delegateId));
   }
-  
 
+  for (auto const& pair : renderSettings) {
+    imagingGLEngine->SetRendererSetting(pair.first, pair.second);
+  }
 }
 
-void ViewportEngine::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
+void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
+  ViewSettings view_settings(b_context);
+  if (view_settings.get_width() * view_settings.get_height() == 0) {
+    return;
+  };
+
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  GfCamera gf_camera = view_settings.export_camera();
+
+  vector<GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
+
+  for (int i = 0; i < clip_planes.size(); i++) {
+    renderParams.clipPlanes.push_back((GfVec4d)clip_planes[i]);
+  }
+
+  imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
+                                  gf_camera.GetFrustum().ComputeProjectionMatrix());
+  imagingGLEngine->SetRenderViewport(GfVec4d((double)view_settings.border[0][0], (double)view_settings.border[0][1],
+                                             (double)view_settings.border[1][0], (double)view_settings.border[1][1]));
+
+  b_engine.bind_display_space_shader(b_scene);
+
+  if (getRendererPercentDone(&imagingGLEngine) == 0.0f) {
+    timeBegin = chrono::steady_clock::now();
+  }
+
+  imagingGLEngine->Render(stage->GetPseudoRoot(), renderParams);
+
+  b_engine.unbind_display_space_shader();
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();
+  chrono::milliseconds elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
+
+  string formattedTime = format_milliseconds(elapsedTime);
+
+  if (!imagingGLEngine->IsConverged()) {
+    notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone(&imagingGLEngine))) + "%",
+                 "Render", true);
+  }
+  else {
+    notifyStatus(("Time: " + formattedTime).c_str(), "Rendering Done", false);
+  }
 }
 
+void ViewportEngine::notifyStatus(const string &info, const string &status, bool redraw)
+{
+  b_engine.update_stats(status.c_str(), info.c_str());
+
+  if (redraw) {
+    b_engine.tag_redraw();
+  }
+}
 
 
 
@@ -386,10 +439,10 @@ void BlenderSession::render_gl(BL::Depsgraph &b_depsgraph, const char *render_de
   imagingGLEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingGLEngine->SetRendererAov(HdAovTokens->color);
 
-  render_params.frame = UsdTimeCode(b_scene.frame_current());
-  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+  renderParams.frame = UsdTimeCode(b_scene.frame_current());
+  renderParams.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
 
-  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
+  imagingGLEngine->Render(stage->GetPseudoRoot(), renderParams);
 
   BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, b_render_layer_name.c_str(), NULL);
   BL::CollectionRef b_render_passes = b_result.layers[0].passes;
@@ -451,10 +504,10 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
   imagingLiteEngine->SetRendererAov(HdAovTokens->color);
 
-  UsdImagingLiteRenderParams render_params;
+  UsdImagingLiteRenderParams renderParams;
 
-  render_params.frame = UsdTimeCode(b_scene.frame_current());
-  render_params.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+  renderParams.frame = UsdTimeCode(b_scene.frame_current());
+  renderParams.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
 
   time_begin = chrono::steady_clock::now();
 
@@ -475,7 +528,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
       break;
     }
 
-    imagingLiteEngine->Render(stage->GetPseudoRoot(), render_params);
+    imagingLiteEngine->Render(stage->GetPseudoRoot(), renderParams);
     percent_done = get_renderer_percent_done(&imagingLiteEngine);
     time_current = chrono::steady_clock::now();
     elapsed_time = chrono::duration_cast<chrono::milliseconds>(time_current - time_begin);
@@ -497,7 +550,7 @@ void BlenderSession::render(BL::Depsgraph& b_depsgraph, const char* render_deleg
   update_render_result(render_images, b_render_layer_name, width, height, channels);
 }
 
-void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
+void BlenderSession::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
   BL::Scene b_scene = b_depsgraph.scene_eval();
   
@@ -512,7 +565,7 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
   vector<GfVec4f> clip_planes = gf_camera.GetClippingPlanes();
 
   for (int i = 0; i < clip_planes.size(); i++) {
-    render_params.clipPlanes.push_back((GfVec4d)clip_planes[i]);
+    renderParams.clipPlanes.push_back((GfVec4d)clip_planes[i]);
   }
 
   imagingGLEngine->SetCameraState(gf_camera.GetFrustum().ComputeViewMatrix(),
@@ -526,7 +579,7 @@ void BlenderSession::view_draw(BL::Depsgraph &b_depsgraph, BL::Context &b_contex
     time_begin = chrono::steady_clock::now();
   }
 
-  imagingGLEngine->Render(stage->GetPseudoRoot(), render_params);
+  imagingGLEngine->Render(stage->GetPseudoRoot(), renderParams);
 
   b_engine.unbind_display_space_shader();
 
@@ -577,7 +630,7 @@ void BlenderSession::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
   BL::Scene b_scene = b_depsgraph.scene_eval();
   ViewSettings view_settings(b_context);
 
-  render_params.frame = UsdTimeCode(b_scene.frame_current());
+  renderParams.frame = UsdTimeCode(b_scene.frame_current());
 }
 
 void BlenderSession::sync_final_render(BL::Depsgraph& b_depsgraph) {
@@ -912,7 +965,7 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
   BL::Context b_context(contextptr);
 
   BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  session->view_draw(b_depsgraph, b_context);
+  session->viewDraw(b_depsgraph, b_context);
   
   ///* Allow Blender to execute other Python scripts. */
   //python_thread_state_save(&session->python_thread_state);

@@ -129,6 +129,6 @@ protected:
   string b_render_layer_name;
 };
 
-PyObject *addPythonSubmodule_session(PyObject *mod);
+PyObject *addPythonSubmodule_engine(PyObject *mod);
 
 }   // namespace usdhydra

@@ -743,7 +743,7 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 
   /* create engine */
   Engine *engine;
-  if (strcmp(engineType, "VIEWPORT") == 0) {
+  if (string(engineType) == "VIEWPORT") {
     engine = new ViewportEngine(b_engine, delegateId);
   }
   else {
@@ -768,16 +768,13 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "sync_func";
-  PyObject *pysession, *pydata, *pycontext, *pydepsgraph;
+  PyObject *pyengine, *pydepsgraph, *pycontext, *pysettings;
 
-  int stageId = 0;
-  int is_blender_scene = 1, is_preview = 0;
-  const char *render_delegate;
-
-  if (!PyArg_ParseTuple(args, "OOOOiisi", &pysession, &pydata, &pycontext, &pydepsgraph, 
-                                           &is_blender_scene, &stageId, &render_delegate, &is_preview)) {
+  if (!PyArg_ParseTuple(args, "OOOO", &pyengine, &pydepsgraph, &pycontext, &pysettings)) {
     Py_RETURN_NONE;
   }
+
+  Engine *engine = (Engine *)PyLong_AsVoidPtr(pyengine);
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
@@ -787,107 +784,45 @@ static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
   RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pycontext), &contextptr);
   BL::Context b_context(contextptr);
 
-  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-
-  //PointerRNA dataptr;
-  //RNA_main_pointer_create((Main *)PyLong_AsVoidPtr(pydata), &dataptr);
-  //BL::BlendData data(dataptr);
-
-  //PointerRNA depsgraphptr;
-  //RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  //BL::Depsgraph depsgraph(depsgraphptr);
-
-  session->reset(b_context, b_depsgraph, is_blender_scene, stageId, render_delegate, is_preview);
-
-  Py_RETURN_NONE;
-}
-
-static PyObject* final_update_func(PyObject* /*self*/, PyObject* args)
-{
-  LOG(INFO) << "final_update_func";
-  PyObject *pysession, *pydepsgraph;
-
-  if (!PyArg_ParseTuple(args, "OO", &pysession, &pydepsgraph)) {
-    Py_RETURN_NONE;
+  HdRenderSettingsMap settings;
+  PyObject *pyiter = PyObject_GetIter(pysettings);
+  if (pyiter) {
+    PyObject *pykey, *pyval;
+    while (pykey = PyIter_Next(pyiter)) {
+      TfToken key(PyUnicode_AsUTF8(pykey));
+      pyval = PyDict_GetItem(pysettings, pykey);
+      if (PyLong_Check(pyval)) {
+        settings[key] = PyLong_AsLong(pyval);
+      }
+      else if (PyFloat_Check(pyval)) {
+        settings[key] = PyFloat_AsDouble(pyval);
+      }
+      else if (PyUnicode_Check(pyval)) {
+        settings[key] = PyUnicode_AsUTF8(pyval);
+      }
+    }
   }
 
-  PointerRNA depsgraphptr;
-  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
-  BL::Depsgraph depsgraph(depsgraphptr);
-
-  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-
-  session->sync_final_render(depsgraph);
-
+  engine->sync(b_depsgraph, b_context, settings);
   Py_RETURN_NONE;
 }
 
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "render_func";
-  PyObject *pysession, *pydepsgraph, *delegate_settings;
-  const char *render_delegate;
+  PyObject *pyengine, *pydepsgraph;
 
-  if (!PyArg_ParseTuple(args, "OOsO", &pysession, &pydepsgraph, &render_delegate, &delegate_settings)) {
+  if (!PyArg_ParseTuple(args, "OO", &pyengine, &pydepsgraph)) {
     Py_RETURN_NONE;
   }
+
+  FinalEngine *engine = (FinalEngine *)PyLong_AsVoidPtr(pyengine);
 
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph depsgraph(depsgraphptr);
 
-  BlenderSession *session = (BlenderSession *)PyLong_AsVoidPtr(pysession);
-  HdRenderSettingsMap settings;
-
-  if (delegate_settings != Py_None) {
-    PyObject *iter = PyObject_GetIter(delegate_settings);
-
-    if (iter) {
-      while (true) {
-        PyObject *next = PyIter_Next(iter);
-
-        char *key_dirty = nullptr;
-        char *value_dirty_s = nullptr;
-        float value_dirty_f = 0.0f;
-        int value_dirty_i = 0;
-
-        VtValue value;
-        TfToken key;
-
-        if (!next) {
-          break;
-        }
-        PyErr_Clear();
-        if (PyArg_ParseTuple(next, "si", &key_dirty, &value_dirty_i)) {
-          TfToken key(key_dirty);
-          VtValue value(value_dirty_i);
-          settings.insert(pair (key, value));
-          continue;
-        }
-        if (PyArg_ParseTuple(next, "ss", &key_dirty, &value_dirty_s)) {
-          TfToken key(key_dirty);
-          VtValue value(value_dirty_s);
-          settings.insert(pair (key, value));
-          continue;
-        }
-        if (PyArg_ParseTuple(next, "sf", &key_dirty, &value_dirty_f)) {
-          TfToken key(key_dirty);
-          VtValue value(value_dirty_f);
-          settings.insert(pair (key, value));
-          continue;
-        }
-      }
-      PyErr_Clear();
-    }
-  }
-
-  if (strcmp(render_delegate, "HdRprPlugin") == 0) {
-    session->render(depsgraph, render_delegate, settings);
-  }
-  else {
-    session->render_gl(depsgraph, render_delegate, settings);
-  }
-
+  engine->render(depsgraph);
   Py_RETURN_NONE;
 }
 

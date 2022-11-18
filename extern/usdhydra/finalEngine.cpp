@@ -27,8 +27,6 @@
 #include "usdImagingLite/renderParams.h"
 #include "glog/logging.h"
 
-#include "view_settings.h"
-
 #include "engine.h"
 #include "utils.h"
 

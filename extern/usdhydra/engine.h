@@ -32,7 +32,6 @@ protected:
   BL::RenderEngine b_engine;
   std::string delegateId;
   pxr::HdRenderSettingsMap renderSettings;
-
   pxr::UsdStageRefPtr stage;
 };
 
@@ -46,7 +45,7 @@ private:
   void renderGL(BL::Depsgraph &b_depsgraph);
   void renderLite(BL::Depsgraph &b_depsgraph);
   void getResolution(BL::RenderSettings b_render, int &width, int &height);
-  void updateRenderResult(map<string, vector<float>> &render_images, const string &layerName, int width, int height);
+  void updateRenderResult(std::map<std::string, std::vector<float>> &render_images, const std::string &layerName, int width, int height);
   void notifyStatus(float progress, const std::string &title, const std::string &info);
 };
 
@@ -57,12 +56,12 @@ public:
   void viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
 
 private:
-  void notifyStatus(const string &title, const string &info, bool redraw);
+  void notifyStatus(const std::string &title, const std::string &info, bool redraw);
 
 private:
   std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
   pxr::UsdImagingGLRenderParams renderParams;
-  chrono::time_point<chrono::steady_clock> timeBegin;
+  std::chrono::time_point<std::chrono::steady_clock> timeBegin;
 };
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);

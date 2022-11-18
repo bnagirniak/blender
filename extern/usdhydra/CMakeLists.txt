@@ -53,12 +53,6 @@ set(SRC
   stage.h
   stage.cpp
 
-  camera.h
-  camera.cpp
-
-  view_settings.h
-  view_settings.cpp
-
   usdImagingLite/engine.cpp
   usdImagingLite/engine.h
   usdImagingLite/renderDataDelegate.cpp

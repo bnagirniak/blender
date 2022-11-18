@@ -15,11 +15,23 @@
 #include <pxr/base/plug/registry.h>
 
 #include "intern/usd_hierarchy_iterator.h"
+
+//#include "BKE_main.h"
+//#include "BKE_scene.h"
+#include "BKE_context.h"
+#include "BKE_blender_version.h"
+
+#include "DEG_depsgraph_query.h"
+
 #include "usdImagingLite/engine.h"
 #include "usdImagingLite/renderParams.h"
-#include "engine.h"
-
 #include "glog/logging.h"
+
+#include "view_settings.h"
+
+#include "engine.h"
+#include "utils.h"
+
 
 using namespace pxr;
 

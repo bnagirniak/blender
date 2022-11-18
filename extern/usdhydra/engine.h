@@ -9,25 +9,9 @@
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
-#include <pxr/usdImaging/usdAppUtils/camera.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
-
-#include "usd.h"
-#include "intern/usd_exporter_context.h"
-#include "BKE_main.h"
-#include "BKE_scene.h"
-#include "BKE_context.h"
-#include "BKE_blender_version.h"
-
-#include "DEG_depsgraph.h"
-#include "DEG_depsgraph_query.h"
-#include "utils.h"
-
-#include "engine.h"
-#include "stage.h"
-#include "view_settings.h"
 
 namespace usdhydra {
 

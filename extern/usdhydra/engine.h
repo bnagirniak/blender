@@ -78,62 +78,6 @@ private:
   chrono::time_point<chrono::steady_clock> timeBegin;
 };
 
-
-const vector<string> preview_allowed_prims = {"World", "Camera", "Floor", "_materials", "preview_", "CircularLight"};
-
-class BlenderSession {
-public:
-  BlenderSession(BL::RenderEngine &b_engine);
-  ~BlenderSession();
-
-  void create();
-  void reset(BL::Context &b_context, BL::Depsgraph &b_depsgraph, bool is_blender_scene, int stageId,
-             const char *render_delegate, int is_preview);
-  void render(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
-  void render_gl(BL::Depsgraph &b_depsgraph, const char *render_delegate, HdRenderSettingsMap delegate_settings);
-  void viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
-  void view_update(BL::Depsgraph &b_depsgraph, BL::Context &b_context, const char *render_delegate, HdRenderSettingsMap delegate_settings);
-  void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
-  void sync_final_render(BL::Depsgraph &b_depsgraph);
-  void export_scene_to_usd(BL::Context &b_context, BL::Depsgraph &b_depsgraph,
-                           const char *render_delegate, set<SdfPath> existing_paths = {}, set<string> objects_to_update = {});
-
-  template <typename T>
-  float get_renderer_percent_done(T *renderer)
-  {
-    float percent_done = 0.0;
-
-    VtDictionary render_stats = renderer->get()->GetRenderStats();
-
-    auto it = render_stats.find("percentDone");
-    if (it != render_stats.end()) {
-      percent_done = (float)it->second.UncheckedGet<double>();
-    }
-
-    return round(percent_done * 10.0f) / 10.0f;
-  }
-
-protected:
-  void update_render_result(map<string, vector<float>> &render_images, string b_render_layer_name, int width, int height, int channels = 4);
-  void notify_status(const char *info, const char *status, bool redraw = true);
-  void notify_final_render_status(float progress, const char *title, const char *info);
-
-public:
-  BL::RenderEngine b_engine;
-  //BL::BlendData b_data;
-
-  std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
-  pxr::UsdImagingGLRenderParams renderParams;
-  pxr::UsdStageRefPtr stage;
-
-protected:
-  chrono::time_point<chrono::steady_clock> time_begin;
-
-  int width;
-  int height;
-  string b_render_layer_name;
-};
-
 PyObject *addPythonSubmodule_engine(PyObject *mod);
 
 }   // namespace usdhydra

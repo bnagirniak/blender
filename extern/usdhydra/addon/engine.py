@@ -50,18 +50,17 @@ class HydraRenderEngine(bpy.types.RenderEngine):
         log("view_update", self)
 
         if not self.engine_ptr:
-            self.engine_ptr = _usdhydra.engine.create(self.as_pointer(), 'VIEWPORT', self.delegate_name)
+            self.engine_ptr = _usdhydra.engine.create(self.as_pointer(), 'VIEWPORT', self.delegate_id)
 
         delegate_settings = self.get_delegate_settings('VIEWPORT')
-        _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), delegate_settings)
+        _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer(), delegate_settings)
 
     def view_draw(self, context, depsgraph):
         if not self.engine_ptr:
             return
 
         log("view_draw", self)
-        _usdhydra.engine.view_draw(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer(),
-                                   context.space_data.as_pointer(), context.region_data.as_pointer())
+        _usdhydra.engine.view_draw(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer())
 
     @classmethod
     def register(cls):

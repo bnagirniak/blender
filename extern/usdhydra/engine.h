@@ -25,6 +25,9 @@ public:
 protected:
   void exportScene(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
 
+  template <typename T>
+  float getRendererPercentDone(T &renderer);
+
 protected:
   BL::RenderEngine b_engine;
   std::string delegateId;
@@ -63,5 +66,19 @@ private:
 };
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);
+
+template <typename T>
+float Engine::getRendererPercentDone(T &renderer)
+{
+  float percent = 0.0;
+
+  VtDictionary render_stats = renderer.GetRenderStats();
+  auto it = render_stats.find("percentDone");
+  if (it != render_stats.end()) {
+    percent = (float)it->second.UncheckedGet<double>();
+  }
+
+  return round(percent * 10.0f) / 10.0f;
+}
 
 }   // namespace usdhydra

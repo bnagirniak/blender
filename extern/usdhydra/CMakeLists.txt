@@ -44,6 +44,8 @@ set(SRC
 
   engine.h
   engine.cpp
+  finalEngine.cpp
+  viewportEngine.cpp
 
   utils.h
   utils.cpp

@@ -92,10 +92,6 @@ ViewSettings::ViewSettings(BL::Context b_context)
   border[1][1] = y2 - y1;
 }
 
-ViewSettings::~ViewSettings()
-{
-}
-
 int ViewSettings::get_width()
 {
   return border[1][0];

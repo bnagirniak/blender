@@ -16,7 +16,7 @@ class HdStormHydraRenderEngine(HydraRenderEngine):
     bl_use_preview = False
     bl_use_gpu_context = True
 
-    delegate_name = "HdStormRendererPlugin"
+    delegate_id = 'HdStormRendererPlugin'
 
     def get_delegate_settings(self, engine_type):
         settings = bpy.context.scene.usdhydra_storm

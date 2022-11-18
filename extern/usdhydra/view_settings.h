@@ -10,22 +10,19 @@
 
 namespace usdhydra {
 
-class ViewSettings {
-  public:
-    ViewSettings(BL::Context b_context);
+struct ViewSettings {
+  ViewSettings(BL::Context b_context);
 
-    ~ViewSettings();
+  int get_width();
+  int get_height();
 
-    int get_width();
-    int get_height();
+  pxr::GfCamera export_camera();
 
-    pxr::GfCamera export_camera();
+  CameraData camera_data;
 
-    CameraData camera_data;
-
-    int screen_width;
-    int screen_height;
-    int border[2][2];
+  int screen_width;
+  int screen_height;
+  int border[2][2];
 };
 
 } // namespace usdhydra

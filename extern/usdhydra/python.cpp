@@ -15,7 +15,7 @@
 #include "BKE_appdir.h"
 
 #include "stage.h"
-#include "session.h"
+#include "engine.h"
 #include "utils.h"
 
 using namespace std;
@@ -105,7 +105,7 @@ PyObject *USDHydra_initPython(void)
 {
   PyObject *mod = PyModule_Create(&usdhydra::module);
   usdhydra::addPythonSubmodule_stage(mod);
-  usdhydra::addPythonSubmodule_session(mod);
+  usdhydra::addPythonSubmodule_engine(mod);
   usdhydra::addPythonSubmodule_utils(mod);
 
   return mod;

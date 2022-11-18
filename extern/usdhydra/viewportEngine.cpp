@@ -1,22 +1,54 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include <math.h>
-#include <algorithm>
+#include <pxr/base/gf/camera.h>
+#include <pxr/imaging/glf/drawTarget.h>
+#include <pxr/usd/usdGeom/camera.h>
 
 #include "BLI_math_matrix.h"
 
-#include "camera.h"
+#include "glog/logging.h"
+
+#include "engine.h"
 #include "utils.h"
+
+using namespace std;
+using namespace pxr;
 
 namespace usdhydra {
 
-// Core has issues with drawing faces in orthographic camera view with big
-// ortho depth (far_clip_plane - near_clip_plane).
-// Experimentally found quite suited value = 200
-float MAX_ORTHO_DEPTH = 200.0f;
+struct CameraData {
+  static CameraData init_from_camera(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2]);
+  static CameraData init_from_context(BL::Context &b_context);
 
-CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][4], float ratio, float border[2][2])
+  pxr::GfCamera export_gf(float tile[4]);
+
+  BL::Camera::type_enum mode;
+  float clip_range[2];
+  float focal_length = 0.0;
+  float sensor_size[2];
+  float transform[4][4];
+  float lens_shift[2];
+  float ortho_size[2];
+  tuple<float, float, int> dof_data;
+};
+
+struct ViewSettings {
+  ViewSettings(BL::Context &b_context);
+
+  int get_width();
+  int get_height();
+
+  pxr::GfCamera export_camera();
+
+  CameraData camera_data;
+
+  int screen_width;
+  int screen_height;
+  int border[2][2];
+};
+
+CameraData CameraData::init_from_camera(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2])
 {
   float pos[2] = {border[0][0], border[0][1]};
   float size[2] = {border[1][0], border[1][1]};
@@ -30,11 +62,9 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
   data.mode = b_camera.type();
 
   if (b_camera.dof().use_dof()) {
-
     float focus_distance;
-
     if (!b_camera.dof().focus_object()) {
-      float focus_distance = b_camera.dof().focus_distance();
+      focus_distance = b_camera.dof().focus_distance();
     } 
     else {
       float obj_pos[] = {b_camera.dof().focus_object().matrix_world()[3],
@@ -45,9 +75,9 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
                             transform[1][3],
                             transform[2][3]};
 
-      float focus_distance = sqrt(pow((obj_pos[0] - camera_pos[0]), 2) + 
-                                  pow((obj_pos[1] - camera_pos[1]), 2) + 
-                                  pow((obj_pos[2] - camera_pos[2]), 2));
+      focus_distance = sqrt(pow((obj_pos[0] - camera_pos[0]), 2) + 
+                            pow((obj_pos[1] - camera_pos[1]), 2) + 
+                            pow((obj_pos[2] - camera_pos[2]), 2));
     }
 
     data.dof_data = tuple(max(focus_distance, 0.001f),
@@ -55,7 +85,7 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
                           b_camera.dof().aperture_blades());
   }
 
-  if (b_camera.sensor_fit() ==BL::Camera::sensor_fit_VERTICAL) {
+  if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
     data.lens_shift[0] = b_camera.shift_x() / ratio;
     data.lens_shift[1] = b_camera.shift_y();
   } 
@@ -64,7 +94,6 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
     data.lens_shift[1] = b_camera.shift_y() * ratio;
   } 
   else if ((b_camera.sensor_fit() == BL::Camera::sensor_fit_AUTO)) {
-
     if (ratio > 1.0f) {
       data.lens_shift[0] = b_camera.shift_x();
       data.lens_shift[1] = b_camera.shift_y() * ratio;
@@ -73,10 +102,10 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
       data.lens_shift[0] = b_camera.shift_x() / ratio;
       data.lens_shift[1] = b_camera.shift_y();
     }
-
   } 
   else {
-
+    data.lens_shift[0] = b_camera.shift_x();
+    data.lens_shift[1] = b_camera.shift_y();
   }
 
   data.lens_shift[0] = data.lens_shift[0] / size[0] + (pos[0] + size[0] * 0.5 - 0.5) / size[0];
@@ -88,14 +117,12 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
     if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
       data.sensor_size[0] = b_camera.sensor_height() * ratio;
       data.sensor_size[1] = b_camera.sensor_height();
-
     } 
     else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
       data.sensor_size[0] = b_camera.sensor_width();
       data.sensor_size[1] = b_camera.sensor_width() / ratio;
     } 
     else {
-
       if (ratio > 1.0f) {
         data.sensor_size[0] = b_camera.sensor_width();
         data.sensor_size[1] = b_camera.sensor_width() / ratio;
@@ -104,12 +131,9 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
         data.sensor_size[0] = b_camera.sensor_width() * ratio;
         data.sensor_size[1] = b_camera.sensor_width();
       }
-
     }
-
     data.sensor_size[0] = data.sensor_size[0] * size[0];
     data.sensor_size[1] = data.sensor_size[1] * size[1];
-
   } 
   else if (b_camera.type() == BL::Camera::type_ORTHO) {
     if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
@@ -121,7 +145,6 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
       data.ortho_size[1] = b_camera.ortho_scale() / ratio;
     } 
     else {
-
       if (ratio > 1.0f) {
         data.ortho_size[0] = b_camera.ortho_scale();
         data.ortho_size[1] = b_camera.ortho_scale() / ratio;
@@ -130,15 +153,13 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
         data.ortho_size[0] = b_camera.ortho_scale() * ratio;
         data.ortho_size[1] = b_camera.ortho_scale();
       }
-
     }
 
     data.ortho_size[0] = data.ortho_size[0] * size[0];
     data.ortho_size[1] = data.ortho_size[1] * size[1];
 
     data.clip_range[0] = b_camera.clip_start();
-    data.clip_range[1] = min(b_camera.clip_end(), MAX_ORTHO_DEPTH + b_camera.clip_start());
-
+    data.clip_range[1] = b_camera.clip_end();
   } 
   else if (b_camera.type() == BL::Camera::type_PANO) {
     // TODO: Recheck parameters for PANO camera
@@ -152,7 +173,6 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
       data.sensor_size[1] = b_camera.sensor_height() / ratio;
     } 
     else {
-
       if (ratio > 1.0f) {
         data.sensor_size[0] = b_camera.sensor_width();
         data.sensor_size[1] = b_camera.sensor_width() / ratio;
@@ -161,21 +181,20 @@ CameraData CameraData::init_from_camera(BL::Camera b_camera, float transform[4][
         data.sensor_size[0] = b_camera.sensor_width() * ratio;
         data.sensor_size[1] = b_camera.sensor_width();
       }
-
     }
-
     data.sensor_size[0] = data.sensor_size[0] * size[0];
     data.sensor_size[1] = data.sensor_size[1] * size[1];
-
   } 
   else {
-
+    data.focal_length = b_camera.lens();
+    data.sensor_size[0] = b_camera.sensor_height() * ratio;
+    data.sensor_size[1] = b_camera.sensor_height();
   }
 
   return data;
 }
 
-CameraData CameraData::init_from_context(BL::Context b_context)
+CameraData CameraData::init_from_context(BL::Context &b_context)
 {
   // this constant was found experimentally, didn't find such option in
   // context.space_data or context.region_data
@@ -212,7 +231,7 @@ CameraData CameraData::init_from_context(BL::Context b_context)
     data.lens_shift[1] = 0.0f;
 
     float ortho_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
-    float ortho_depth = min(space_data.clip_end(), MAX_ORTHO_DEPTH);
+    float ortho_depth = space_data.clip_end();
 
     data.clip_range[0] = -ortho_depth * 0.5;
     data.clip_range[1] = ortho_depth * 0.5;
@@ -231,12 +250,10 @@ CameraData CameraData::init_from_context(BL::Context b_context)
     BL::Object camera_obj = space_data.camera();
 
     float border[2][2] = {{0, 0}, {1, 1}};
-
     float inverted_transform[4][4];
-
     invert_m4_m4(inverted_transform, (float(*)[4])b_context.region_data().view_matrix().data);    
 
-    data = CameraData::init_from_camera((BL::Camera)camera_obj.data(), inverted_transform, ratio, border);
+    data = CameraData::init_from_camera((BL::Camera &)camera_obj.data(), inverted_transform, ratio, border);
 
     // This formula was taken from previous plugin with corresponded comment
     // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
@@ -301,16 +318,184 @@ pxr::GfCamera CameraData::export_gf(float tile[4])
   }
 
   double transform_d[4][4];
-
   for (int i = 0 ; i < 4; i++) {
     for (int j = 0 ; j < 4; j++) {
       transform_d[i][j] = (double)transform[i][j];
     }
   }
-
   gf_camera.SetTransform(pxr::GfMatrix4d(transform_d));
   
   return gf_camera;
 }
 
-} //namespace usdhydra
+ViewSettings::ViewSettings(BL::Context &b_context)
+{
+  camera_data = CameraData::init_from_context(b_context);
+
+  screen_width = b_context.region().width();
+  screen_height = b_context.region().height();
+
+  float width_half = screen_width / 2.0f;
+  float height_half = screen_height / 2.0f;
+
+  BL::Scene b_scene = b_context.scene();
+
+  //getting render border
+  int x1 = 0, y1 = 0;
+  int x2 = screen_width, y2 = screen_height;
+
+  if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
+    if (b_scene.render().use_border()) {
+      BL::Object b_camera_obj = b_scene.camera();
+      BL::Camera b_camera = (BL::Camera)b_camera_obj.data();
+
+      float camera_points[4][3];
+
+      b_camera.view_frame(b_scene, camera_points[0], camera_points[1], camera_points[2], camera_points[3]);
+
+      BL::Array<float, 16> region_persp_matrix = b_context.region_data().perspective_matrix();
+      BL::Array<float, 16> camera_world_matrix = b_camera_obj.matrix_world();
+
+      float screen_points[4][2];
+
+      for (int i = 0 ; i < 4; i++) {
+        float world_location[] = {camera_points[i][0], camera_points[i][1], camera_points[i][2], 1.0f};
+        mul_m4_v4((float(*)[4])camera_world_matrix.data, world_location);
+        mul_m4_v4((float(*)[4])region_persp_matrix.data, world_location);
+
+        if (world_location[3] > 0.0) {
+          screen_points[i][0] = width_half + width_half * (world_location[0] / world_location[3]);
+          screen_points[i][1] = height_half + height_half * (world_location[1] / world_location[3]);
+        }
+      }
+
+      // getting camera view region
+      float x1_f = min({screen_points[0][0], screen_points[1][0], screen_points[2][0], screen_points[3][0]});
+      float x2_f = max({screen_points[0][0], screen_points[1][0], screen_points[2][0], screen_points[3][0]});
+      float y1_f = min({screen_points[0][1], screen_points[1][1], screen_points[2][1], screen_points[3][1]});
+      float y2_f = max({screen_points[0][1], screen_points[1][1], screen_points[2][1], screen_points[3][1]});
+
+      // adjusting region to border
+      float x = x1_f, y = y1_f;
+      float dx = x2_f - x1_f, dy = y2_f - y1_f;
+
+      x1 = x + b_scene.render().border_min_x() * dx;
+      x2 = x + b_scene.render().border_max_x() * dx;
+      y1 = y + b_scene.render().border_min_y() * dy;
+      y2 = y + b_scene.render().border_max_y() * dy;
+
+      // adjusting to region screen resolution
+      x1 = max(min(x1, screen_width), 0);
+      x2 = max(min(x2, screen_width), 0);
+      y1 = max(min(y1, screen_height), 0);
+      y2 = max(min(y2, screen_height), 0);
+    }
+  }
+  else {
+    if (((BL::SpaceView3D)b_context.space_data()).use_render_border()) {
+      int x = x1, y = y1;
+      int dx = x2 - x1, dy = y2 - y1;
+
+      x1 = int(x + ((BL::SpaceView3D)b_context.space_data()).render_border_min_x() * dx);
+      x2 = int(x + ((BL::SpaceView3D)b_context.space_data()).render_border_max_x() * dx);
+      y1 = int(y + ((BL::SpaceView3D)b_context.space_data()).render_border_min_y() * dy);
+      y2 = int(y + ((BL::SpaceView3D)b_context.space_data()).render_border_max_y() * dy);
+    }
+  }
+
+  border[0][0] = x1;
+  border[0][1] = y1;
+  border[1][0] = x2 - x1;
+  border[1][1] = y2 - y1;
+}
+
+int ViewSettings::get_width()
+{
+  return border[1][0];
+}
+
+int ViewSettings::get_height()
+{
+  return border[1][1];
+}
+
+pxr::GfCamera ViewSettings::export_camera()
+{
+  float tile[4] = {(float)border[0][0] / screen_width, (float)border[0][1] / screen_height,
+                   (float)border[1][0] / screen_width, (float)border[1][1] / screen_height};
+  return camera_data.export_gf(tile);
+}
+
+void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings_)
+{
+  renderSettings = renderSettings_;
+  if (!imagingGLEngine) {
+    stage = UsdStage::CreateInMemory();
+    exportScene(b_depsgraph, b_context);
+
+    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
+    imagingGLEngine->SetRendererPlugin(TfToken(delegateId));
+  }
+
+  for (auto const& pair : renderSettings) {
+    imagingGLEngine->SetRendererSetting(pair.first, pair.second);
+  }
+}
+
+void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
+{
+  ViewSettings viewSettings(b_context);
+  if (viewSettings.get_width() * viewSettings.get_height() == 0) {
+    return;
+  };
+
+  BL::Scene b_scene = b_depsgraph.scene_eval();
+  GfCamera gfCamera = viewSettings.export_camera();
+
+  vector<GfVec4f> clipPlanes = gfCamera.GetClippingPlanes();
+
+  for (int i = 0; i < clipPlanes.size(); i++) {
+    renderParams.clipPlanes.push_back((GfVec4d)clipPlanes[i]);
+  }
+
+  imagingGLEngine->SetCameraState(gfCamera.GetFrustum().ComputeViewMatrix(),
+                                  gfCamera.GetFrustum().ComputeProjectionMatrix());
+  imagingGLEngine->SetRenderViewport(GfVec4d((double)viewSettings.border[0][0], (double)viewSettings.border[0][1],
+                                             (double)viewSettings.border[1][0], (double)viewSettings.border[1][1]));
+
+  b_engine.bind_display_space_shader(b_scene);
+
+  if (getRendererPercentDone(*imagingGLEngine) == 0.0f) {
+    timeBegin = chrono::steady_clock::now();
+  }
+
+  imagingGLEngine->Render(stage->GetPseudoRoot(), renderParams);
+
+  b_engine.unbind_display_space_shader();
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();
+  chrono::milliseconds elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
+
+  string formattedTime = formatDuration(elapsedTime);
+
+  if (!imagingGLEngine->IsConverged()) {
+    notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone(*imagingGLEngine))) + "%",
+                 "Render", true);
+  }
+  else {
+    notifyStatus(("Time: " + formattedTime).c_str(), "Rendering Done", false);
+  }
+}
+
+void ViewportEngine::notifyStatus(const string &info, const string &status, bool redraw)
+{
+  b_engine.update_stats(status.c_str(), info.c_str());
+
+  if (redraw) {
+    b_engine.tag_redraw();
+  }
+}
+
+}   // namespace usdhydra

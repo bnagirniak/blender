@@ -9,25 +9,9 @@
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
-#include <pxr/usdImaging/usdAppUtils/camera.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
-
-#include "usd.h"
-#include "intern/usd_exporter_context.h"
-#include "BKE_main.h"
-#include "BKE_scene.h"
-#include "BKE_context.h"
-#include "BKE_blender_version.h"
-
-#include "DEG_depsgraph.h"
-#include "DEG_depsgraph_query.h"
-#include "utils.h"
-
-#include "engine.h"
-#include "stage.h"
-#include "view_settings.h"
 
 namespace usdhydra {
 
@@ -37,15 +21,18 @@ public:
   virtual ~Engine();
 
   virtual void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) = 0;
+  pxr::UsdStageRefPtr getStage();
 
 protected:
   void exportScene(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
+
+  template <typename T>
+  float getRendererPercentDone(T &renderer);
 
 protected:
   BL::RenderEngine b_engine;
   std::string delegateId;
   pxr::HdRenderSettingsMap renderSettings;
-
   pxr::UsdStageRefPtr stage;
 };
 
@@ -59,7 +46,7 @@ private:
   void renderGL(BL::Depsgraph &b_depsgraph);
   void renderLite(BL::Depsgraph &b_depsgraph);
   void getResolution(BL::RenderSettings b_render, int &width, int &height);
-  void updateRenderResult(map<string, vector<float>> &render_images, const string &layerName, int width, int height);
+  void updateRenderResult(std::map<std::string, std::vector<float>> &render_images, const std::string &layerName, int width, int height);
   void notifyStatus(float progress, const std::string &title, const std::string &info);
 };
 
@@ -70,14 +57,33 @@ public:
   void viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
 
 private:
-  void notifyStatus(const string &title, const string &info, bool redraw);
+  void notifyStatus(const std::string &title, const std::string &info, bool redraw);
 
 private:
   std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
   pxr::UsdImagingGLRenderParams renderParams;
-  chrono::time_point<chrono::steady_clock> timeBegin;
+  std::chrono::time_point<std::chrono::steady_clock> timeBegin;
 };
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);
+
+template <typename T>
+float Engine::getRendererPercentDone(T &renderer)
+{
+  float percent = 0.0;
+
+  VtDictionary render_stats = renderer.GetRenderStats();
+  auto it = render_stats.find("percentDone");
+  if (it != render_stats.end()) {
+    percent = (float)it->second.UncheckedGet<double>();
+  }
+
+  return round(percent * 10.0f) / 10.0f;
+}
+
+inline pxr::UsdStageRefPtr Engine::getStage()
+{
+  return stage;
+}
 
 }   // namespace usdhydra

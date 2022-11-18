@@ -1,35 +1,18 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include <pxr/pxr.h>
-#include <pxr/usd/usd/stage.h>
-#include <pxr/base/gf/camera.h>
-#include <pxr/imaging/glf/drawTarget.h>
-#include <pxr/usd/usdGeom/camera.h>
-#include <pxr/usd/usdLux/domeLight.h>
-#include <pxr/usd/usdLux/shapingAPI.h>
-#include <pxr/usdImaging/usdImagingGL/engine.h>
-#include <pxr/usdImaging/usdImagingGL/renderParams.h>
-#include <pxr/usdImaging/usdAppUtils/camera.h>
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
+#include <pxr/usd/usdGeom/tokens.h>
 
-#include "intern/usd_hierarchy_iterator.h"
-
-//#include "BKE_main.h"
-//#include "BKE_scene.h"
-#include "BKE_context.h"
-#include "BKE_blender_version.h"
-
-#include "DEG_depsgraph_query.h"
-
-#include "usdImagingLite/engine.h"
-#include "usdImagingLite/renderParams.h"
 #include "glog/logging.h"
 
-#include "engine.h"
-#include "utils.h"
+#include "intern/usd_hierarchy_iterator.h"
+#include "BKE_context.h"
+#include "BKE_blender_version.h"
+#include "DEG_depsgraph_query.h"
 
+#include "engine.h"
 
 using namespace pxr;
 
@@ -86,6 +69,7 @@ void Engine::exportScene(BL::Depsgraph& b_depsgraph, BL::Context& b_context)
 static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
   DLOG(INFO) << "create_func";
+
   PyObject *b_pyengine;
   char *engineType, *delegateId;
   if (!PyArg_ParseTuple(args, "Oss", &b_pyengine, &engineType, &delegateId)) {
@@ -96,9 +80,8 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(b_pyengine), &b_engineptr);
   BL::RenderEngine b_engine(b_engineptr);
 
-  /* create engine */
   Engine *engine;
-  if (string(engineType) == "VIEWPORT") {
+  if (std::string(engineType) == "VIEWPORT") {
     engine = new ViewportEngine(b_engine, delegateId);
   }
   else {
@@ -111,6 +94,7 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "free_func";
+
   PyObject *pyengine;
   if (!PyArg_ParseTuple(args, "O", &pyengine)) {
     Py_RETURN_NONE;
@@ -123,8 +107,8 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "sync_func";
-  PyObject *pyengine, *pydepsgraph, *pycontext, *pysettings;
 
+  PyObject *pyengine, *pydepsgraph, *pycontext, *pysettings;
   if (!PyArg_ParseTuple(args, "OOOO", &pyengine, &pydepsgraph, &pycontext, &pysettings)) {
     Py_RETURN_NONE;
   }
@@ -164,9 +148,9 @@ static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
-  LOG(INFO) << "render_func";
+  DLOG(INFO) << "render_func";
+  
   PyObject *pyengine, *pydepsgraph;
-
   if (!PyArg_ParseTuple(args, "OO", &pyengine, &pydepsgraph)) {
     Py_RETURN_NONE;
   }
@@ -187,10 +171,9 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 {
-  LOG(INFO) << "view_draw_func";
+  DLOG(INFO) << "view_draw_func";
 
   PyObject *pyengine, *pydepsgraph, *pycontext;
-
   if (!PyArg_ParseTuple(args, "OOO", &pyengine, &pydepsgraph, &pycontext)) {
     Py_RETURN_NONE;
   }

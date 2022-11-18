@@ -1,28 +1,12 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
-#include <pxr/pxr.h>
-#include <pxr/usd/usd/stage.h>
 #include <pxr/base/gf/camera.h>
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usd/usdGeom/camera.h>
-#include <pxr/usd/usdLux/domeLight.h>
-#include <pxr/usd/usdLux/shapingAPI.h>
-#include <pxr/usdImaging/usdImagingGL/engine.h>
-#include <pxr/usdImaging/usdImagingGL/renderParams.h>
-#include <pxr/usdImaging/usdAppUtils/camera.h>
-#include <pxr/base/plug/plugin.h>
-#include <pxr/base/plug/registry.h>
 
-#include "intern/usd_hierarchy_iterator.h"
 #include "BLI_math_matrix.h"
-#include "BKE_context.h"
-#include "BKE_blender_version.h"
 
-#include "DEG_depsgraph_query.h"
-
-#include "usdImagingLite/engine.h"
-#include "usdImagingLite/renderParams.h"
 #include "glog/logging.h"
 
 #include "engine.h"

@@ -11,6 +11,7 @@
 #include "engine.h"
 #include "utils.h"
 
+using namespace std;
 using namespace pxr;
 
 namespace usdhydra {
@@ -129,7 +130,7 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
     notifyStatus(percentDone / 100.0,
       b_scene.name() + ": " + layerName,
-      "Render Time: " + format_milliseconds(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
+      "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
 
     if (imagingLiteEngine->IsConverged()) {
       break;

@@ -478,7 +478,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();
   chrono::milliseconds elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
 
-  string formattedTime = format_milliseconds(elapsedTime);
+  string formattedTime = formatDuration(elapsedTime);
 
   if (!imagingGLEngine->IsConverged()) {
     notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone(*imagingGLEngine))) + "%",

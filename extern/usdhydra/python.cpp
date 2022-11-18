@@ -14,9 +14,7 @@
 #include "glog/logging.h"
 #include "BKE_appdir.h"
 
-#include "stage.h"
 #include "engine.h"
-#include "utils.h"
 
 using namespace std;
 
@@ -35,8 +33,6 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
   vector<string> paths;
   paths.push_back(BKE_appdir_folder_id(BLENDER_DATAFILES, "usd"));
   registry.RegisterPlugins(paths);
-
-  stage_init();
 
   Py_RETURN_NONE;
 }
@@ -72,7 +68,6 @@ static PyObject *init_delegate_func(PyObject * /*self*/, PyObject *args)
 static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
 {
   LOG(INFO) << "exit_func";
-  stageCache = nullptr;
   Py_RETURN_NONE;
 }
 
@@ -104,9 +99,7 @@ extern "C" {
 PyObject *USDHydra_initPython(void)
 {
   PyObject *mod = PyModule_Create(&usdhydra::module);
-  usdhydra::addPythonSubmodule_stage(mod);
   usdhydra::addPythonSubmodule_engine(mod);
-  usdhydra::addPythonSubmodule_utils(mod);
 
   return mod;
 }

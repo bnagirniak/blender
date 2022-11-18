@@ -221,6 +221,33 @@ static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
   return ret;
 }
 
+static PyObject *stage_export_to_str_func(PyObject * /*self*/, PyObject *args)
+{
+  LOG(INFO) << "stage_export_to_str_func";
+
+  PyObject *pyengine;
+  int flatten;
+  if (!PyArg_ParseTuple(args, "Op", &pyengine, &flatten)) {
+    Py_RETURN_NONE;
+  }
+
+  Engine *engine = (Engine *)PyLong_AsVoidPtr(pyengine);
+  UsdStageRefPtr stage = engine->getStage();
+
+  if (!stage) {
+    Py_RETURN_NONE;
+  }
+
+  std::string str;
+  if (flatten) {
+    stage->ExportToString(&str);
+  }
+  else {
+    stage->GetRootLayer()->ExportToString(&str);
+  }
+  return PyUnicode_FromString(str.c_str());
+}
+
 static PyMethodDef methods[] = {
   {"create", create_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
@@ -228,6 +255,7 @@ static PyMethodDef methods[] = {
   {"sync", sync_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},
   {"get_render_plugins", get_render_plugins_func, METH_VARARGS, ""},
+  {"stage_export_to_str", stage_export_to_str_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

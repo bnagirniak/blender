@@ -50,9 +50,6 @@ set(SRC
   utils.h
   utils.cpp
 
-  stage.h
-  stage.cpp
-
   usdImagingLite/engine.cpp
   usdImagingLite/engine.h
   usdImagingLite/renderDataDelegate.cpp

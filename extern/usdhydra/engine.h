@@ -21,6 +21,7 @@ public:
   virtual ~Engine();
 
   virtual void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) = 0;
+  pxr::UsdStageRefPtr getStage();
 
 protected:
   void exportScene(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
@@ -78,6 +79,11 @@ float Engine::getRendererPercentDone(T &renderer)
   }
 
   return round(percent * 10.0f) / 10.0f;
+}
+
+inline pxr::UsdStageRefPtr Engine::getStage()
+{
+  return stage;
 }
 
 }   // namespace usdhydra

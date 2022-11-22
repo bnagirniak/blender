@@ -24,11 +24,6 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "init_func";
 
-  // TODO: add PXR_MTLX_PLUGIN_SEARCH_PATHS if there are custom mtlx files
-  string MatX_libs_folder = BKE_appdir_folder_id(BLENDER_DATAFILES, "MaterialX");
-  string MatX_libs_env_var = "PXR_MTLX_STDLIB_SEARCH_PATHS=" + MatX_libs_folder + "/libraries;";
-  putenv(MatX_libs_env_var.c_str());
-
   pxr::PlugRegistry &registry = pxr::PlugRegistry::GetInstance();
   vector<string> paths;
   paths.push_back(BKE_appdir_folder_id(BLENDER_DATAFILES, "usd"));

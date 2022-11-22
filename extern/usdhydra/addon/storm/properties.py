@@ -33,5 +33,5 @@ class SceneProperties(Properties):
     max_lights: bpy.props.IntProperty(
         name="Max Lights",
         description="Maximum number of lights",
-        default=16, min=1,
+        default=16, min=0,
     )

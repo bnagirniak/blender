@@ -55,6 +55,9 @@ class HydraRenderEngine(bpy.types.RenderEngine):
         delegate_settings = self.get_delegate_settings('VIEWPORT')
         _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer(), delegate_settings)
 
+        usd_str = _usdhydra.engine.stage_export_to_str(self.engine_ptr, True)
+        print(usd_str)
+
     def view_draw(self, context, depsgraph):
         if not self.engine_ptr:
             return

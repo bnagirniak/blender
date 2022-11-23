@@ -5,12 +5,14 @@
 
 import bpy
 
+from .engine import StormHydraRenderEngine
+
 
 class Panel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'render'
-    COMPAT_ENGINES = {'HdStormHydraRenderEngine'}
+    COMPAT_ENGINES = {StormHydraRenderEngine.bl_idname}
 
     @classmethod
     def poll(cls, context):

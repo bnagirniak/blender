@@ -8,8 +8,8 @@ import bpy
 from ..engine import HydraRenderEngine
 
 
-class HdStormHydraRenderEngine(HydraRenderEngine):
-    bl_idname = 'HdStormHydraRenderEngine'
+class StormHydraRenderEngine(HydraRenderEngine):
+    bl_idname = 'StormHydraRenderEngine'
     bl_label = "Hydra: Storm"
     bl_info = "Hydra Storm (OpenGL) render delegate"
 

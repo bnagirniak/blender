@@ -68,12 +68,12 @@ class HydraRenderEngine(bpy.types.RenderEngine):
     @classmethod
     def register(cls):
         log("register", cls)
-        ui.register_engine(cls.bl_idname)
+        ui.register_engine(cls)
 
     @classmethod
     def unregister(cls):
         log("unregister", cls)
-        ui.unregister_engine(cls.bl_idname)
+        ui.unregister_engine(cls)
 
 
 def register():

@@ -5,9 +5,6 @@
 
 import bpy
 
-from . import logger
-log = logger.Log("ui")
-
 
 def get_panels():
     # follow the Cycles model of excluding panels we don't want
@@ -73,14 +70,12 @@ def get_panels():
             yield panel_cls
 
 
-def register_engine(engine_id):
-    log("register_engine", engine_id)
+def register_engine(engine_cls):
     for panel_cls in get_panels():
-        panel_cls.COMPAT_ENGINES.add(engine_id)
+        panel_cls.COMPAT_ENGINES.add(engine_cls.bl_idname)
 
 
-def unregister_engine(engine_id):
-    log("unregister_engine", engine_id)
+def unregister_engine(engine_cls):
     for panel_cls in get_panels():
-        if engine_id in panel_cls.COMPAT_ENGINES:
-            panel_cls.COMPAT_ENGINES.remove(engine_id)
+        if engine_cls.bl_idname in panel_cls.COMPAT_ENGINES:
+            panel_cls.COMPAT_ENGINES.remove(engine_cls.bl_idname)

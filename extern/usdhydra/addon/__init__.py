@@ -4,12 +4,12 @@
 # <pep8 compliant>
 
 bl_info = {
-    "name": "USD Hydra render engine",
+    "name": "Hydra render engine",
     "author": "AMD",
     "version": (1, 0, 0),
     "blender": (3, 5, 0),
     "location": "Info header > Render engine menu",
-    "description": "USD Hydra renderer integration",
+    "description": "Hydra renderer integration",
     "tracker_url": "",
     "doc_url": "",
     "community": "",

@@ -12,8 +12,8 @@ class Properties(bpy.types.PropertyGroup):
     @classmethod
     def register(cls):
         cls.bl_type.usdhydra_storm = bpy.props.PointerProperty(
-            name="USDHydra Storm",
-            description="USDHydra Storm properties",
+            name="Hydra Storm",
+            description="Hydra Storm properties",
             type=cls,
         )
 
@@ -29,6 +29,21 @@ class SceneProperties(Properties):
         name="Tiny Prim Culling",
         description="Enable Tiny Prim Culling",
         default=False,
+    )
+    volume_raymarching_step_size: bpy.props.FloatProperty(
+        name="Volume Raymarching Step Size",
+        description="Step size when raymarching volume",
+        default=1.0,
+    )
+    volume_raymarching_step_size_lighting: bpy.props.FloatProperty(
+        name="Volume Raymarching Step Size",
+        description="Step size when raymarching volume for lighting computation",
+        default=10.0,
+    )
+    volume_max_texture_memory_per_field: bpy.props.FloatProperty(
+        name="Volume Max Texture Memory Per Field",
+        description="Maximum memory for a volume field texture in Mb (unless overridden by field prim)",
+        default=128.0,
     )
     max_lights: bpy.props.IntProperty(
         name="Max Lights",

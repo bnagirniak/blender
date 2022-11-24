@@ -19,7 +19,7 @@ class StormHydraRenderEngine(HydraRenderEngine):
     delegate_id = 'HdStormRendererPlugin'
 
     def get_delegate_settings(self, engine_type):
-        settings = bpy.context.scene.usdhydra_storm
+        settings = bpy.context.scene.hydra_storm
         return {
             'enableTinyPrimCulling': settings.enable_tiny_prim_culling,
             'volumeRaymarchingStepSize': settings.volume_raymarching_step_size,

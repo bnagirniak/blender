@@ -139,7 +139,9 @@ static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
       else if (PyUnicode_Check(pyval)) {
         settings[key] = PyUnicode_AsUTF8(pyval);
       }
+      Py_DECREF(pykey);
     }
+    Py_DECREF(pyiter);
   }
 
   engine->sync(b_depsgraph, b_context, settings);
@@ -198,6 +200,8 @@ static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
 {
+  LOG(INFO) << "get_render_plugins_func";
+
   PlugRegistry &registry = PlugRegistry::GetInstance();
   TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
   PyObject *ret = PyTuple_New(pluginsIds.size());

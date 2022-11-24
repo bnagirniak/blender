@@ -11,7 +11,7 @@ class Properties(bpy.types.PropertyGroup):
 
     @classmethod
     def register(cls):
-        cls.bl_type.usdhydra_storm = bpy.props.PointerProperty(
+        cls.bl_type.hydra_storm = bpy.props.PointerProperty(
             name="Hydra Storm",
             description="Hydra Storm properties",
             type=cls,
@@ -19,7 +19,7 @@ class Properties(bpy.types.PropertyGroup):
 
     @classmethod
     def unregister(cls):
-        del cls.bl_type.usdhydra_storm
+        del cls.bl_type.hydra_storm
 
 
 class SceneProperties(Properties):

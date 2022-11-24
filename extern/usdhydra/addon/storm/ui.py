@@ -19,7 +19,7 @@ class Panel(bpy.types.Panel):
         return context.engine in cls.COMPAT_ENGINES
 
 
-class USDHYDRA_STORM_RENDER_PT_render_settings(Panel):
+class STORM_HYDRA_RENDER_PT_render_settings(Panel):
     """Final render delegate and settings"""
     bl_label = "Storm Render Settings"
 
@@ -28,6 +28,6 @@ class USDHYDRA_STORM_RENDER_PT_render_settings(Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        settings = context.scene.usdhydra_storm
+        settings = context.scene.hydra_storm
         layout.prop(settings, 'enable_tiny_prim_culling')
         layout.prop(settings, 'max_lights')

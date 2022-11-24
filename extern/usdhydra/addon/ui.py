@@ -5,29 +5,21 @@
 
 import bpy
 
-from . import logger
-log = logger.Log("ui")
-
 
 def get_panels():
     # follow the Cycles model of excluding panels we don't want
     exclude_panels = {
         'DATA_PT_area',
-        'DATA_PT_context_light',
         'DATA_PT_falloff_curve',
-        'DATA_PT_light',
-        'NODE_DATA_PT_light',
         'DATA_PT_shadow',
         'DATA_PT_spot',
         'DATA_PT_sunsky',
-        'MATERIAL_PT_context_material',
         'MATERIAL_PT_diffuse',
         'MATERIAL_PT_flare',
         'MATERIAL_PT_halo',
         'MATERIAL_PT_mirror',
         'MATERIAL_PT_options',
         'MATERIAL_PT_pipeline',
-        'MATERIAL_PT_preview',
         'MATERIAL_PT_shading',
         'MATERIAL_PT_shadow',
         'MATERIAL_PT_specular',
@@ -62,7 +54,9 @@ def get_panels():
         'WORLD_PT_preview',
         'WORLD_PT_world',
     }
-    include_panels = {
+    include_eevee_panels = {
+        'MATERIAL_PT_preview',
+        'EEVEE_MATERIAL_PT_context_material',
         'EEVEE_MATERIAL_PT_surface',
         'EEVEE_MATERIAL_PT_volume',
         'EEVEE_MATERIAL_PT_settings',
@@ -71,20 +65,17 @@ def get_panels():
     for panel_cls in bpy.types.Panel.__subclasses__():
         if hasattr(panel_cls, 'COMPAT_ENGINES') and (
             ('BLENDER_RENDER' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ not in exclude_panels) or
-            ('BLENDER_EEVEE' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ in include_panels)
+            ('BLENDER_EEVEE' in panel_cls.COMPAT_ENGINES and panel_cls.__name__ in include_eevee_panels)
         ):
-            #log(panel_cls)
             yield panel_cls
 
 
-def register_engine(engine_id):
-    log("register_engine", engine_id)
+def register_engine(engine_cls):
     for panel_cls in get_panels():
-        panel_cls.COMPAT_ENGINES.add(engine_id)
+        panel_cls.COMPAT_ENGINES.add(engine_cls.bl_idname)
 
 
-def unregister_engine(engine_id):
-    log("unregister_engine", engine_id)
+def unregister_engine(engine_cls):
     for panel_cls in get_panels():
-        if engine_id in panel_cls.COMPAT_ENGINES:
-            panel_cls.COMPAT_ENGINES.remove(engine_id)
+        if engine_cls.bl_idname in panel_cls.COMPAT_ENGINES:
+            panel_cls.COMPAT_ENGINES.remove(engine_cls.bl_idname)

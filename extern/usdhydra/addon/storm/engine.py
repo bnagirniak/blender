@@ -8,8 +8,8 @@ import bpy
 from ..engine import HydraRenderEngine
 
 
-class HdStormHydraRenderEngine(HydraRenderEngine):
-    bl_idname = 'HdStormHydraRenderEngine'
+class StormHydraRenderEngine(HydraRenderEngine):
+    bl_idname = 'StormHydraRenderEngine'
     bl_label = "Hydra: Storm"
     bl_info = "Hydra Storm (OpenGL) render delegate"
 
@@ -19,8 +19,11 @@ class HdStormHydraRenderEngine(HydraRenderEngine):
     delegate_id = 'HdStormRendererPlugin'
 
     def get_delegate_settings(self, engine_type):
-        settings = bpy.context.scene.usdhydra_storm
+        settings = bpy.context.scene.hydra_storm
         return {
             'enableTinyPrimCulling': settings.enable_tiny_prim_culling,
+            'volumeRaymarchingStepSize': settings.volume_raymarching_step_size,
+            'volumeRaymarchingStepSizeLighting': settings.volume_raymarching_step_size_lighting,
+            'volumeMaxTextureMemoryPerField': settings.volume_max_texture_memory_per_field,
             'maxLights': settings.max_lights,
         }

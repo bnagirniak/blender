@@ -9,7 +9,7 @@ from . import engine, properties, ui
 
 
 register, unregister = bpy.utils.register_classes_factory((
-    engine.HdStormHydraRenderEngine,
+    engine.StormHydraRenderEngine,
     properties.SceneProperties,
-    ui.USDHYDRA_STORM_RENDER_PT_render_settings,
+    ui.STORM_HYDRA_RENDER_PT_render_settings,
 ))

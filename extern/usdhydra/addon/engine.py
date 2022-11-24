@@ -55,6 +55,9 @@ class HydraRenderEngine(bpy.types.RenderEngine):
         delegate_settings = self.get_delegate_settings('VIEWPORT')
         _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer(), delegate_settings)
 
+        # usd_str = _usdhydra.engine.stage_export_to_str(self.engine_ptr, True)
+        # print(usd_str)
+
     def view_draw(self, context, depsgraph):
         if not self.engine_ptr:
             return
@@ -65,12 +68,12 @@ class HydraRenderEngine(bpy.types.RenderEngine):
     @classmethod
     def register(cls):
         log("register", cls)
-        ui.register_engine(cls.bl_idname)
+        ui.register_engine(cls)
 
     @classmethod
     def unregister(cls):
         log("unregister", cls)
-        ui.unregister_engine(cls.bl_idname)
+        ui.unregister_engine(cls)
 
 
 def register():

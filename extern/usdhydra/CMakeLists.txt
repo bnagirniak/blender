@@ -57,6 +57,9 @@ set(SRC
   usdImagingLite/renderTask.cpp
   usdImagingLite/renderTask.h
   usdImagingLite/renderParams.h
+
+  sceneDelegate/blenderSceneDelegate.cpp
+  sceneDelegate/blenderSceneDelegate.h
 )
 
 set(LIB

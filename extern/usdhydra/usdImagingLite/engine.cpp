@@ -21,6 +21,7 @@
 #include "renderTask.h"
 #include "engine.h"
 #include "renderDataDelegate.h"
+#include "../sceneDelegate/blenderSceneDelegate.h"
 
 namespace usdhydra {
 
@@ -107,12 +108,12 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
     TF_VERIFY(_sceneDelegate);
 
     if (!_isPopulated) {
-        _sceneDelegate->Populate(root);
+        _sceneDelegate->Sync(nullptr);
         _isPopulated = true;
     }
 
-    // SetTime will only react if time actually changes.
-    _sceneDelegate->SetTime(params.frame);
+    //// SetTime will only react if time actually changes.
+    //_sceneDelegate->SetTime(params.frame);
 
     SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
     _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
@@ -210,7 +211,7 @@ std::string UsdImagingLiteEngine::GetRendererDisplayName(TfToken const & id)
     return pluginDescriptor.displayName;
 }
 
-bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
+bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id, BL::Depsgraph &b_depsgraph)
 {
     HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
@@ -228,8 +229,8 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
         return false;
     }
 
-    const GfMatrix4d rootTransform = _sceneDelegate ? _sceneDelegate->GetRootTransform() : GfMatrix4d(1.0);
-    const bool isVisible = _sceneDelegate ? _sceneDelegate->GetRootVisibility() : true;
+    //const GfMatrix4d rootTransform = _sceneDelegate ? _sceneDelegate->GetRootTransform() : GfMatrix4d(1.0);
+    //const bool isVisible = _sceneDelegate ? _sceneDelegate->GetRootVisibility() : true;
 
     _DeleteHydraResources();
 
@@ -242,8 +243,10 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
     _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
 
     // Create the new delegate
-    _sceneDelegate = std::make_unique<UsdImagingDelegate>(_renderIndex.get(), 
-        SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
+    //_sceneDelegate = std::make_unique<UsdImagingDelegate>(_renderIndex.get(), 
+    //    SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
+    _sceneDelegate = std::make_unique<BlenderSceneDelegate>(_renderIndex.get(), 
+        SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
 
     _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
         SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
@@ -253,9 +256,9 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
     // create it last.
     _engine = std::make_unique<HdEngine>();
 
-    // Rebuild state in the new delegate/task controller.
-    _sceneDelegate->SetRootVisibility(isVisible);
-    _sceneDelegate->SetRootTransform(rootTransform);
+    //// Rebuild state in the new delegate/task controller.
+    //_sceneDelegate->SetRootVisibility(isVisible);
+    //_sceneDelegate->SetRootTransform(rootTransform);
 
     return true;
 }

@@ -83,7 +83,7 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 {
   std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
 
-  if (!imagingLiteEngine->SetRendererPlugin(TfToken(delegateId))) {
+  if (!imagingLiteEngine->SetRendererPlugin(TfToken(delegateId), b_depsgraph)) {
     DLOG(ERROR) << "Error in SetRendererPlugin(" << delegateId << ")";
     return;
   }

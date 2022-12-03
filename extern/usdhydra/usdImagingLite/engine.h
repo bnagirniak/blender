@@ -15,6 +15,9 @@
 #include "renderDataDelegate.h"
 #include "renderTask.h"
 
+#include "MEM_guardedalloc.h"
+#include "RNA_blender_cpp.h"
+
 namespace usdhydra {
 
 /// \class UsdImagingLiteEngine
@@ -95,7 +98,7 @@ public:
 
     /// Set the current render-graph delegate to \p id.
     /// the plugin will be loaded if it's not yet.
-    bool SetRendererPlugin(TfToken const &id);
+    bool SetRendererPlugin(TfToken const &id, BL::Depsgraph &b_depsgraph);
 
     /// @}
 
@@ -146,7 +149,7 @@ public:
 private:
     std::unique_ptr<HdRenderIndex> _renderIndex;
     HdPluginRenderDelegateUniqueHandle _renderDelegate;
-    std::unique_ptr<UsdImagingDelegate> _sceneDelegate;
+    std::unique_ptr<HdSceneDelegate> _sceneDelegate;
     std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
     std::unique_ptr<HdEngine> _engine;
 

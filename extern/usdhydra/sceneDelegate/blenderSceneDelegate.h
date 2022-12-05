@@ -28,6 +28,7 @@ public:
   VtValue Get(SdfPath const& id, TfToken const& key) override;
   VtValue GetCameraParamValue(SdfPath const& id, TfToken const& key) override;
   VtValue GetLightParamValue(SdfPath const& id, TfToken const& key) override;
+  HdPrimvarDescriptorVector GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation) override;
 
 private:
   BL::Depsgraph _depsgraph;

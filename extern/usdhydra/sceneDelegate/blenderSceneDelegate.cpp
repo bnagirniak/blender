@@ -32,10 +32,12 @@ void BlenderSceneDelegate::Sync(HdSyncRequestVector* request)
     
     if (obj.type() == BL::Object::type_MESH) {
       GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+      //GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, 
+      //  HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::AllDirty);
       continue;
     }
     if (obj.type() == BL::Object::type_LIGHT) {
-      GetRenderIndex().InsertSprim(HdPrimTypeTokens->light, this, objId);
+      GetRenderIndex().InsertSprim(HdPrimTypeTokens->sphereLight, this, objId);
       continue;
     }
     if (obj.type() == BL::Object::type_CAMERA) {
@@ -51,8 +53,11 @@ HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)
 {
   std::cout << "GetMeshTopology: " << id.GetAsString() << "\n";
 
-  HdMeshTopology topology;
-  return topology;
+  VtIntArray faceVertexCounts = {3};
+  VtIntArray faceVertexIndices = {0, 1, 2};
+
+  return HdMeshTopology(PxOsdOpenSubdivTokens->catmullClark, HdTokens->rightHanded,
+                        faceVertexCounts, faceVertexIndices);
 }
 
 VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
@@ -95,10 +100,31 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
   return VtValue();
 }
 
+HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation)
+{
+  std::cout << "GetPrimvarDescriptors: " << id.GetAsString() << " " << interpolation << "\n";
+  HdPrimvarDescriptorVector primvars;
+  if (interpolation == HdInterpolationVertex) {
+    primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
+    primvars.emplace_back(HdTokens->normals, interpolation, HdPrimvarRoleTokens->normal);
+  } 
+  return primvars;
+}
+
 GfMatrix4d BlenderSceneDelegate::GetTransform(SdfPath const& id)
 {
-  std::cout << "GetTransform: " << id.GetAsString() << "\n";
-  return GfMatrix4d(1);
+  std::cout << "GetTransform: " << id.GetAsString() << " " << id.GetName() <<"\n";
+  BL::Object object = _depsgraph.objects[id.GetName()];
+  if (!object) {
+    return GfMatrix4d(1);
+  }
+
+  auto m = object.matrix_world();
+  return GfMatrix4d(
+    m[0], m[1], m[2], m[3],
+    m[4], m[5], m[6], m[7],
+    m[8], m[9], m[10], m[11],
+    m[12], m[13], m[14], m[15]);
 }
 
 VtValue BlenderSceneDelegate::GetCameraParamValue(SdfPath const& id, TfToken const& key)

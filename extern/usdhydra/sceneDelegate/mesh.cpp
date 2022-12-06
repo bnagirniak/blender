@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "BKE_mesh.h"
+
 #include <BLI_span.hh>
 
 #include "mesh.h"
@@ -42,6 +44,7 @@ VtVec3fArray MeshExport::vertices()
 
 VtVec3fArray MeshExport::normals()
 {
+  
   VtVec3fArray ret = {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}};
   return ret;
 }

@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <iostream>
+
 #include <pxr/imaging/hd/engine.h>
 #include <pxr/imaging/hd/camera.h>
 #include <pxr/imaging/hd/renderPass.h>
@@ -24,6 +26,41 @@
 #include "../sceneDelegate/blenderSceneDelegate.h"
 
 namespace usdhydra {
+
+class UsdImagingDelegate2 : public UsdImagingDelegate
+{
+public:
+  UsdImagingDelegate2(HdRenderIndex* renderIndex, SdfPath const &delegateId)
+    : UsdImagingDelegate(renderIndex, delegateId)
+  {}
+  ~UsdImagingDelegate2() override = default;
+  VtValue Get(SdfPath const& id, TfToken const& key) override
+  {
+    std::cout << "Get: " << id.GetAsString() << " [" << key.GetString() << "]\n";
+    return UsdImagingDelegate::Get(id, key);
+  }
+  GfMatrix4d GetTransform(SdfPath const& id) override
+  {
+    std::cout << "GetTransform: " << id.GetAsString() << "\n";
+    return UsdImagingDelegate::GetTransform(id);
+  }
+  HdMeshTopology GetMeshTopology(SdfPath const& id) override
+  {
+    std::cout << "GetMeshTopology: " << id.GetAsString() << "\n";
+    return UsdImagingDelegate::GetMeshTopology(id);
+  }
+  VtValue GetLightParamValue(SdfPath const& id, TfToken const& key) override
+  {
+    std::cout << "GetLightParamValue: " << id.GetAsString() << " [" << key.GetString() << "]\n";
+    return UsdImagingDelegate::GetLightParamValue(id, key);
+  }
+  VtValue GetCameraParamValue(SdfPath const& id, TfToken const& key) override
+  {
+    std::cout << "GetCameraParamValue: " << id.GetAsString() << " [" << key.GetString() << "]\n";
+    return UsdImagingDelegate::GetCameraParamValue(id, key);
+  }
+};
+
 
 UsdImagingLiteEngine::UsdImagingLiteEngine()
     : _isPopulated(false)

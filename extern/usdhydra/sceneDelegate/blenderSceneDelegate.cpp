@@ -2,7 +2,9 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <iostream>
+
 #include "blenderSceneDelegate.h"
+#include "object.h"
 
 namespace usdhydra {
 
@@ -11,6 +13,17 @@ BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath c
   , _depsgraph(b_depsgraph)
   , _isPopulated(false)
 {
+}
+
+std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const & id)
+{
+  std::string name = id.GetName();
+  for (BL::Object &obj : _depsgraph.objects) {
+    if (obj.name() == name) {
+      return std::make_unique<ObjectExport>(obj);
+    }
+  }
+  return nullptr;
 }
 
 void BlenderSceneDelegate::Sync(HdSyncRequestVector* request)
@@ -52,24 +65,30 @@ void BlenderSceneDelegate::Sync(HdSyncRequestVector* request)
 HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)
 {
   std::cout << "GetMeshTopology: " << id.GetAsString() << "\n";
-
-  VtIntArray faceVertexCounts = {3};
-  VtIntArray faceVertexIndices = {0, 1, 2};
-
+  MeshExport meshExport = objectExport(id)->meshExport();
   return HdMeshTopology(PxOsdOpenSubdivTokens->catmullClark, HdTokens->rightHanded,
-                        faceVertexCounts, faceVertexIndices);
+                        meshExport.faceVertexCounts(), meshExport.faceVertexIndices());
 }
 
 VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
 {
   std::cout << "Get: " << id.GetAsString() << " [" << key.GetString() << "]\n";
-
-  // tasks
-  _ValueCache *vcache = TfMapLookupPtr(_valueCacheMap, id);
-  VtValue ret;
-  if (vcache && TfMapLookup(*vcache, key, &ret)) {
-      return ret;
+  if (key == HdTokens->points) {
+    VtVec3fArray points = objectExport(id)->meshExport().vertices();
+    return VtValue(points);
   }
+  if (key == HdTokens->normals) {
+    VtVec3fArray normals = objectExport(id)->meshExport().normals();
+    return VtValue(normals);
+  }
+
+  //// tasks
+  //_ValueCache *vcache = TfMapLookupPtr(_valueCacheMap, id);
+  //VtValue ret;
+  //if (vcache && TfMapLookup(*vcache, key, &ret)) {
+  //    return ret;
+  //}
+
 
   //// prims
   //if (key == HdTokens->points) {
@@ -114,17 +133,7 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
 GfMatrix4d BlenderSceneDelegate::GetTransform(SdfPath const& id)
 {
   std::cout << "GetTransform: " << id.GetAsString() << " " << id.GetName() <<"\n";
-  BL::Object object = _depsgraph.objects[id.GetName()];
-  if (!object) {
-    return GfMatrix4d(1);
-  }
-
-  auto m = object.matrix_world();
-  return GfMatrix4d(
-    m[0], m[1], m[2], m[3],
-    m[4], m[5], m[6], m[7],
-    m[8], m[9], m[10], m[11],
-    m[12], m[13], m[14], m[15]);
+  return objectExport(id)->transform();
 }
 
 VtValue BlenderSceneDelegate::GetCameraParamValue(SdfPath const& id, TfToken const& key)

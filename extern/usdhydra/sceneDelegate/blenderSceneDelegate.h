@@ -12,6 +12,8 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
+#include "object.h"
+
 using namespace pxr;
 
 namespace usdhydra {
@@ -38,6 +40,7 @@ private:
   typedef TfHashMap<SdfPath, _ValueCache, SdfPath::Hash> _ValueCacheMap;
   _ValueCacheMap _valueCacheMap;
 
+  std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
 };
 
 } // namespace usdhydra

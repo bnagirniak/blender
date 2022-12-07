@@ -16,26 +16,18 @@ namespace usdhydra {
 class ObjectExport
 {
 public:
-  ObjectExport(BL::Object &b_object)
+  ObjectExport(BL::Object &b_object, BL::Depsgraph &b_depsgraph)
     : b_object(b_object)
+    , b_depsgraph(b_depsgraph)
   {}
-  inline MeshExport meshExport();
-  inline LightExport lightExport();
+  MeshExport meshExport();
+  LightExport lightExport();
 
   pxr::GfMatrix4d transform();
 
 private:
   BL::Object &b_object;
+  BL::Depsgraph &b_depsgraph;
 };
-
-inline MeshExport ObjectExport::meshExport()
-{
-  return MeshExport((BL::Mesh &)b_object.data());
-}
-
-inline LightExport ObjectExport::lightExport()
-{
-  return LightExport((BL::Light &)b_object.data());
-}
 
 } // namespace usdhydra

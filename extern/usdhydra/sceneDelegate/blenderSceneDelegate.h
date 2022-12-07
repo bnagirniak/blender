@@ -33,7 +33,7 @@ public:
   HdPrimvarDescriptorVector GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation) override;
 
 private:
-  BL::Depsgraph _depsgraph;
+  BL::Depsgraph b_depsgraph;
   bool _isPopulated;
 
   typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> _ValueCache;

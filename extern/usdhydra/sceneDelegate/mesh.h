@@ -16,14 +16,13 @@ namespace usdhydra {
 class MeshExport
 {
 public:
-  MeshExport(BL::Mesh &b_mesh);
+  MeshExport(BL::Object &b_object);
   pxr::VtIntArray faceVertexCounts();
   pxr::VtIntArray faceVertexIndices();
   pxr::VtVec3fArray vertices();
   pxr::VtVec3fArray normals();
 
 private:
-  BL::Mesh &b_mesh;
   Mesh *mesh;
 };
 

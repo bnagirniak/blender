@@ -5,6 +5,16 @@
 
 namespace usdhydra {
 
+MeshExport ObjectExport::meshExport()
+{
+  return MeshExport(b_object);
+}
+
+LightExport ObjectExport::lightExport()
+{
+  return LightExport((BL::Light &)b_object.data());
+}
+
 pxr::GfMatrix4d ObjectExport::transform()
 {
   auto m = b_object.matrix_world();

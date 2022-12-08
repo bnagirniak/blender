@@ -68,7 +68,7 @@ void Engine::exportScene(BL::Depsgraph& b_depsgraph, BL::Context& b_context)
 
 static PyObject *create_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "create_func";
+  LOG(INFO) << "create_func";
 
   PyObject *b_pyengine;
   char *engineType, *delegateId;
@@ -116,7 +116,7 @@ static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
   Engine *engine = (Engine *)PyLong_AsVoidPtr(pyengine);
 
   PointerRNA depsgraphptr;
-  RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph b_depsgraph(depsgraphptr);
 
   PointerRNA contextptr;
@@ -150,7 +150,7 @@ static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "render_func";
+  LOG(INFO) << "render_func";
   
   PyObject *pyengine, *pydepsgraph;
   if (!PyArg_ParseTuple(args, "OO", &pyengine, &pydepsgraph)) {
@@ -173,7 +173,7 @@ static PyObject *render_func(PyObject * /*self*/, PyObject *args)
 
 static PyObject *view_draw_func(PyObject * /*self*/, PyObject *args)
 {
-  DLOG(INFO) << "view_draw_func";
+  LOG(INFO) << "view_draw_func";
 
   PyObject *pyengine, *pydepsgraph, *pycontext;
   if (!PyArg_ParseTuple(args, "OOO", &pyengine, &pydepsgraph, &pycontext)) {

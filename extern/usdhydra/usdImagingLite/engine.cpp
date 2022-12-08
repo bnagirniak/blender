@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <iostream>
+
 #include <pxr/imaging/hd/engine.h>
 #include <pxr/imaging/hd/camera.h>
 #include <pxr/imaging/hd/renderPass.h>
@@ -21,8 +23,44 @@
 #include "renderTask.h"
 #include "engine.h"
 #include "renderDataDelegate.h"
+#include "../sceneDelegate/blenderSceneDelegate.h"
 
 namespace usdhydra {
+
+class UsdImagingDelegate2 : public UsdImagingDelegate
+{
+public:
+  UsdImagingDelegate2(HdRenderIndex* renderIndex, SdfPath const &delegateId)
+    : UsdImagingDelegate(renderIndex, delegateId)
+  {}
+  ~UsdImagingDelegate2() override = default;
+  VtValue Get(SdfPath const& id, TfToken const& key) override
+  {
+    std::cout << "Get: " << id.GetAsString() << " [" << key.GetString() << "]\n";
+    return UsdImagingDelegate::Get(id, key);
+  }
+  GfMatrix4d GetTransform(SdfPath const& id) override
+  {
+    std::cout << "GetTransform: " << id.GetAsString() << "\n";
+    return UsdImagingDelegate::GetTransform(id);
+  }
+  HdMeshTopology GetMeshTopology(SdfPath const& id) override
+  {
+    std::cout << "GetMeshTopology: " << id.GetAsString() << "\n";
+    return UsdImagingDelegate::GetMeshTopology(id);
+  }
+  VtValue GetLightParamValue(SdfPath const& id, TfToken const& key) override
+  {
+    std::cout << "GetLightParamValue: " << id.GetAsString() << " [" << key.GetString() << "]\n";
+    return UsdImagingDelegate::GetLightParamValue(id, key);
+  }
+  VtValue GetCameraParamValue(SdfPath const& id, TfToken const& key) override
+  {
+    std::cout << "GetCameraParamValue: " << id.GetAsString() << " [" << key.GetString() << "]\n";
+    return UsdImagingDelegate::GetCameraParamValue(id, key);
+  }
+};
+
 
 UsdImagingLiteEngine::UsdImagingLiteEngine()
     : _isPopulated(false)
@@ -107,12 +145,12 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
     TF_VERIFY(_sceneDelegate);
 
     if (!_isPopulated) {
-        _sceneDelegate->Populate(root);
+        _sceneDelegate->Sync(nullptr);
         _isPopulated = true;
     }
 
-    // SetTime will only react if time actually changes.
-    _sceneDelegate->SetTime(params.frame);
+    //// SetTime will only react if time actually changes.
+    //_sceneDelegate->SetTime(params.frame);
 
     SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
     _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
@@ -210,7 +248,7 @@ std::string UsdImagingLiteEngine::GetRendererDisplayName(TfToken const & id)
     return pluginDescriptor.displayName;
 }
 
-bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
+bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id, BL::Depsgraph &b_depsgraph)
 {
     HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
@@ -228,8 +266,8 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
         return false;
     }
 
-    const GfMatrix4d rootTransform = _sceneDelegate ? _sceneDelegate->GetRootTransform() : GfMatrix4d(1.0);
-    const bool isVisible = _sceneDelegate ? _sceneDelegate->GetRootVisibility() : true;
+    //const GfMatrix4d rootTransform = _sceneDelegate ? _sceneDelegate->GetRootTransform() : GfMatrix4d(1.0);
+    //const bool isVisible = _sceneDelegate ? _sceneDelegate->GetRootVisibility() : true;
 
     _DeleteHydraResources();
 
@@ -242,8 +280,10 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
     _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
 
     // Create the new delegate
-    _sceneDelegate = std::make_unique<UsdImagingDelegate>(_renderIndex.get(), 
-        SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
+    //_sceneDelegate = std::make_unique<UsdImagingDelegate>(_renderIndex.get(), 
+    //    SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
+    _sceneDelegate = std::make_unique<BlenderSceneDelegate>(_renderIndex.get(), 
+        SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
 
     _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
         SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
@@ -253,9 +293,9 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
     // create it last.
     _engine = std::make_unique<HdEngine>();
 
-    // Rebuild state in the new delegate/task controller.
-    _sceneDelegate->SetRootVisibility(isVisible);
-    _sceneDelegate->SetRootTransform(rootTransform);
+    //// Rebuild state in the new delegate/task controller.
+    //_sceneDelegate->SetRootVisibility(isVisible);
+    //_sceneDelegate->SetRootTransform(rootTransform);
 
     return true;
 }

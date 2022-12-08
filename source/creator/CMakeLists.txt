@@ -1578,6 +1578,14 @@ if(WITH_USD)
   endif()
 endif()
 
+if(WITH_USD AND WITH_USDHYDRA)
+  install(DIRECTORY
+    ${LIBDIR}/usd/plugin/usd/hdStorm
+    ${LIBDIR}/usd/plugin/usd/usdShaders
+    DESTINATION "./blender.shared/usd"
+  )
+endif()
+
 if(WITH_MATERIALX AND TARGETDIR_LIB)
   install(
     DIRECTORY ${LIBDIR}/materialx/libraries

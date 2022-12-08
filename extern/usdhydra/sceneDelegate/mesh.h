@@ -16,7 +16,7 @@ namespace usdhydra {
 class MeshExport
 {
 public:
-  MeshExport(BL::Object &b_object);
+  MeshExport(BL::Mesh &b_mesh);
   pxr::VtIntArray faceVertexCounts();
   pxr::VtIntArray faceVertexIndices();
   pxr::VtVec3fArray vertices();

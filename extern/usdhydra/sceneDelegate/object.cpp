@@ -7,7 +7,7 @@ namespace usdhydra {
 
 MeshExport ObjectExport::meshExport()
 {
-  return MeshExport(b_object);
+  return MeshExport((BL::Mesh &)b_object.data());
 }
 
 LightExport ObjectExport::lightExport()

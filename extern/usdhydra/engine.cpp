@@ -116,7 +116,7 @@ static PyObject *sync_func(PyObject * /*self*/, PyObject *args)
   Engine *engine = (Engine *)PyLong_AsVoidPtr(pyengine);
 
   PointerRNA depsgraphptr;
-  RNA_pointer_create(NULL, &RNA_Context, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
+  RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph b_depsgraph(depsgraphptr);
 
   PointerRNA contextptr;

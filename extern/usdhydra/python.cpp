@@ -23,11 +23,7 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "init_func";
 
-  const char *blender_dir = BKE_appdir_program_dir();
-  std::string shared_folder_path(blender_dir);
-  shared_folder_path.append("/blender.shared/usd");
-
-  pxr::PlugRegistry::GetInstance().RegisterPlugins(shared_folder_path);
+  pxr::PlugRegistry::GetInstance().RegisterPlugins(std::string(BKE_appdir_program_dir()) + "/blender.shared/usd");
 
   Py_RETURN_NONE;
 }

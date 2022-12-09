@@ -149,7 +149,6 @@ endif()
 # https://github.com/PixarAnimationStudios/USD/blob/master/BUILDING.md#linking-whole-archives
 if(WIN32)
   target_link_libraries(bf_usd INTERFACE ${USD_LIBRARIES})
-  target_link_libraries(bf_usd INTERFACE ${BOOST_PYTHON_LIBRARIES})
 elseif(APPLE)
   target_link_libraries(bf_usd INTERFACE -Wl,-force_load ${USD_LIBRARIES})
 elseif(UNIX)

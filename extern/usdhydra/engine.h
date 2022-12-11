@@ -45,6 +45,7 @@ public:
 private:
   void renderGL(BL::Depsgraph &b_depsgraph);
   void renderLite(BL::Depsgraph &b_depsgraph);
+  void renderLite0(BL::Depsgraph &b_depsgraph);
   void getResolution(BL::RenderSettings b_render, int &width, int &height);
   void updateRenderResult(std::map<std::string, std::vector<float>> &render_images, const std::string &layerName, int width, int height);
   void notifyStatus(float progress, const std::string &title, const std::string &info);

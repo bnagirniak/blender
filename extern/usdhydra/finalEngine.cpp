@@ -3,6 +3,7 @@
 
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usdImaging/usdAppUtils/camera.h>
+#include <pxr/imaging/hd/rendererPluginRegistry.h>
 
 #include "glog/logging.h"
 
@@ -10,6 +11,8 @@
 
 #include "engine.h"
 #include "utils.h"
+#include "sceneDelegate/blenderSceneDelegate.h"
+#include "sceneDelegate/scene.h"
 
 using namespace std;
 using namespace pxr;
@@ -29,7 +32,7 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
     renderGL(b_depsgraph);
   }
   else {
-    renderLite(b_depsgraph);
+    renderLite0(b_depsgraph);
   }
 }
 
@@ -81,6 +84,83 @@ void FinalEngine::renderGL(BL::Depsgraph &b_depsgraph)
 
 void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 {
+  std::unique_ptr<HdRenderIndex> _renderIndex;
+  std::unique_ptr<HdSceneDelegate> _sceneDelegate;
+  std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
+  std::unique_ptr<HdEngine> _engine;
+
+  HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
+
+  TF_PY_ALLOW_THREADS_IN_SCOPE();
+
+  HdPluginRenderDelegateUniqueHandle _renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
+  _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
+  _sceneDelegate = std::make_unique<BlenderSceneDelegate>(_renderIndex.get(), 
+      SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
+  _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
+    SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
+  _engine = std::make_unique<HdEngine>();
+
+  for (auto const& setting : renderSettings) {
+    _renderDelegate->SetRenderSetting(setting.first, setting.second);
+  }
+
+  SceneExport sceneExport(b_depsgraph);
+  auto resolution = sceneExport.resolution();
+  GfCamera gfCamera = sceneExport.gfCamera();
+
+
+
+
+
+  //std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
+
+  //imagingLiteEngine->SetCameraState(gfCamera);
+  //imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
+  //imagingLiteEngine->SetRendererAov(HdAovTokens->color);
+
+  //UsdImagingLiteRenderParams renderParams;
+  //renderParams.frame = UsdTimeCode(b_scene.frame_current());
+  //renderParams.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+
+  //chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
+  //chrono::milliseconds elapsedTime;
+
+  //float percentDone = 0.0;
+  //string layerName = b_depsgraph.view_layer().name();
+
+  //map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
+  //vector<float> &pixels = renderImages["Combined"];
+
+  //while (true) {
+  //  if (b_engine.test_break()) {
+  //    break;
+  //  }
+
+  //  imagingLiteEngine->Render(stage->GetPseudoRoot(), renderParams);
+
+  //  percentDone = getRendererPercentDone(*imagingLiteEngine);
+  //  timeCurrent = chrono::steady_clock::now();
+  //  elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
+
+  //  notifyStatus(percentDone / 100.0,
+  //    b_scene.name() + ": " + layerName,
+  //    "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
+
+  //  if (imagingLiteEngine->IsConverged()) {
+  //    break;
+  //  }
+
+  //  imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
+  //  updateRenderResult(renderImages, layerName, width, height);
+  //}
+
+  //imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
+  //updateRenderResult(renderImages, layerName, width, height);
+}
+
+void FinalEngine::renderLite0(BL::Depsgraph &b_depsgraph)
+{
   std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
 
   if (!imagingLiteEngine->SetRendererPlugin(TfToken(delegateId), b_depsgraph)) {
@@ -92,13 +172,13 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
     imagingLiteEngine->SetRendererSetting(setting.first, setting.second);
   }
 
+  SceneExport sceneExport(b_depsgraph);
+  auto resolution = sceneExport.resolution();
+  GfCamera gfCamera = sceneExport.gfCamera();
+
   BL::Scene b_scene = b_depsgraph.scene_eval();
 
-  int width, height;
-  getResolution(b_scene.render(), width, height);
-
-  UsdGeomCamera usdCamera = UsdAppUtilsGetCameraAtPath(stage, SdfPath(TfMakeValidIdentifier(b_scene.camera().data().name())));
-  GfCamera gfCamera = usdCamera.GetCamera(UsdTimeCode(b_scene.frame_current()));
+  int width = resolution.first, height = resolution.second;
 
   imagingLiteEngine->SetCameraState(gfCamera);
   imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));

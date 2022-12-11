@@ -22,8 +22,8 @@ namespace usdhydra {
 void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
   this->renderSettings = renderSettings;
-  stage = UsdStage::CreateInMemory();
-  exportScene(b_depsgraph, b_context);
+  //stage = UsdStage::CreateInMemory();
+  //exportScene(b_depsgraph, b_context);
 }
 
 void FinalEngine::render(BL::Depsgraph &b_depsgraph)
@@ -202,7 +202,7 @@ void FinalEngine::renderLite0(BL::Depsgraph &b_depsgraph)
       break;
     }
 
-    imagingLiteEngine->Render(stage->GetPseudoRoot(), renderParams);
+    imagingLiteEngine->Render(renderParams);
 
     percentDone = getRendererPercentDone(*imagingLiteEngine);
     timeCurrent = chrono::steady_clock::now();

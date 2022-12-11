@@ -29,22 +29,6 @@ VtValue HdRenderDataDelegate::Get(SdfPath const& id, TfToken const& key)
     return VtValue();
 }
 
-GfMatrix4d HdRenderDataDelegate::GetTransform(SdfPath const& id)
-{
-    VtValue val = GetCameraParamValue(id, HdTokens->transform);
-    return val.Get<GfMatrix4d>();
-}
-
-VtValue HdRenderDataDelegate::GetCameraParamValue(SdfPath const& id, TfToken const& key)
-{
-    return Get(id, key);
-}
-
-VtValue HdRenderDataDelegate::GetLightParamValue(SdfPath const& id, TfToken const& paramName)
-{
-    return Get(id, paramName);
-}
-
 HdRenderBufferDescriptor HdRenderDataDelegate::GetRenderBufferDescriptor(SdfPath const& id)
 {
     return GetParameter<HdRenderBufferDescriptor>(id, _tokens->renderBufferDescriptor);

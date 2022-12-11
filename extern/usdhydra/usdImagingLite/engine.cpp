@@ -140,7 +140,7 @@ void UsdImagingLiteEngine::SetRendererSetting(TfToken const& id, VtValue const& 
     _renderDelegate->SetRenderSetting(id, value);
 }
 
-void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams &params)
+void UsdImagingLiteEngine::Render(const UsdImagingLiteRenderParams &params)
 {
     TF_VERIFY(_sceneDelegate);
 
@@ -204,27 +204,8 @@ void UsdImagingLiteEngine::SetRenderViewport(GfVec4d const & viewport)
 void UsdImagingLiteEngine::SetCameraState(const GfCamera& cam)
 {
     TF_VERIFY(_renderIndex);
-
-    SdfPath freeCameraId = _renderDataDelegate->GetDelegateID().AppendElementString("freeCamera");
-    if (_renderIndex->GetSprim(HdPrimTypeTokens->camera, freeCameraId)) {
-        _renderIndex->RemoveSprim(HdPrimTypeTokens->camera, freeCameraId);
-    }
-    _renderIndex->InsertSprim(HdPrimTypeTokens->camera, _renderDataDelegate.get(), freeCameraId);
-
-    _renderDataDelegate->SetParameter(freeCameraId, HdTokens->transform, VtValue(cam.GetTransform()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->windowPolicy, VtValue(CameraUtilFit));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projection, VtValue(cam.GetProjection()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clippingRange, VtValue(cam.GetClippingRange()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->horizontalAperture, VtValue(cam.GetHorizontalAperture()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->verticalAperture, VtValue(cam.GetVerticalAperture()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->horizontalApertureOffset, VtValue(cam.GetHorizontalApertureOffset()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->verticalApertureOffset, VtValue(cam.GetVerticalApertureOffset()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->focalLength, VtValue(cam.GetFocalLength()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clipPlanes, VtValue(cam.GetClippingPlanes()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->fStop, VtValue(cam.GetFStop()));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->focusDistance, VtValue(cam.GetFocusDistance()));
-
-    _renderTaskParams.camera = freeCameraId;
+    _freeCameraDelegate->SetCamera(cam);
+    _renderTaskParams.camera = _freeCameraDelegate->GetCameraId();
  }
 
 TfTokenVector UsdImagingLiteEngine::GetRendererPlugins()
@@ -287,6 +268,8 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id, BL::Depsgraph &
 
     _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
         SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
+    _freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(_renderIndex.get(),
+        SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
 
     // The task context holds on to resources in the render
     // deletegate, so we want to destroy it first and thus
@@ -344,6 +327,7 @@ void UsdImagingLiteEngine::_DeleteHydraResources()
     _engine = nullptr;
     _renderDataDelegate = nullptr;
     _sceneDelegate = nullptr;
+    _freeCameraDelegate = nullptr;
     _renderIndex = nullptr;
     _renderDelegate = nullptr;
 }

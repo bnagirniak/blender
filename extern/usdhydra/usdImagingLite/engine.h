@@ -6,6 +6,7 @@
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/stage.h>
 
+#include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
 #include <pxr/imaging/hd/engine.h>
 #include <pxr/imaging/hd/rendererPlugin.h>
 #include <pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h>
@@ -49,7 +50,7 @@ public:
     // ---------------------------------------------------------------------
 
     /// Entry point for kicking off a render
-    void Render(UsdPrim root, const UsdImagingLiteRenderParams &params);
+    void Render(const UsdImagingLiteRenderParams &params);
 
     /// Returns true if the resulting image is fully converged.
     /// (otherwise, caller may need to call Render() again to refine the result)
@@ -151,6 +152,7 @@ private:
     HdPluginRenderDelegateUniqueHandle _renderDelegate;
     std::unique_ptr<HdSceneDelegate> _sceneDelegate;
     std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
+    std::unique_ptr<HdxFreeCameraSceneDelegate> _freeCameraDelegate;
     std::unique_ptr<HdEngine> _engine;
 
     HdRenderPassAovBindingVector _aovBindings;

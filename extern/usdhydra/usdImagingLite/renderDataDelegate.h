@@ -42,9 +42,6 @@ public:
 
     bool HasParameter(SdfPath const& id, TfToken const& key) const;
     VtValue Get(SdfPath const& id, TfToken const& key) override;
-    GfMatrix4d GetTransform(SdfPath const& id) override;
-    VtValue GetCameraParamValue(SdfPath const& id, TfToken const& key) override;
-    VtValue GetLightParamValue(SdfPath const& id, TfToken const& paramName) override;
     HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const& id) override;
     TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
 

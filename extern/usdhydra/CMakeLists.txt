@@ -2,7 +2,7 @@
 # Copyright 2011-2022 Blender Foundation
 
 if(WIN32)
-  add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+  add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN -DBOOST_DEBUG_PYTHON)
 endif()
 
 # USD headers use deprecated TBB headers, silence warning.
@@ -13,7 +13,7 @@ add_definitions(${GLOG_DEFINES})
 add_definitions(-DGLOG_NO_ABBREVIATED_SEVERITIES)
 add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_DEBUG_PYTHON")
+add_definitions(-DBOOST_ALL_NO_LIB)
 
 set(INC
   ../gflags/src
@@ -66,10 +66,8 @@ set(SRC
 )
 
 set(LIB
-  ${PYTHON_LINKFLAGS}
   ${PYTHON_LIBRARIES}
   ${BOOST_LIBRARIES}
-  ${BOOST_PYTHON_LIBRARIES}
 )
 
 set(ADDON_FILES

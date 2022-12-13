@@ -54,13 +54,12 @@ public:
 
     /// Returns true if the resulting image is fully converged.
     /// (otherwise, caller may need to call Render() again to refine the result)
-    bool IsConverged() const;
+    bool IsConverged();
 
     bool SetRendererAov(TfToken const &id);
 
     bool GetRendererAov(TfToken const &id, void *buf);
 
-    void ClearRendererAovs();
     /// @}
 
     /// Gets a renderer setting's current value.

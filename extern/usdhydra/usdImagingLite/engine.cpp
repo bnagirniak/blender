@@ -83,49 +83,20 @@ bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
         return false;
     }
 
-    SdfPath renderBufferId = _renderDataDelegate->GetDelegateID().AppendElementString("aov_" + id.GetString());
-    _renderIndex->InsertBprim(HdPrimTypeTokens->renderBuffer, _renderDataDelegate.get(), renderBufferId);
-
-    HdRenderBufferDescriptor desc;
-    desc.dimensions = GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0],
-                              _renderTaskParams.viewport[3] - _renderTaskParams.viewport[1], 1);
-    desc.format = aovDesc.format;
-    desc.multiSampled = aovDesc.multiSampled;
-    _renderDataDelegate->SetParameter(renderBufferId, _tokens->renderBufferDescriptor, desc);
-    _renderIndex->GetChangeTracker().MarkBprimDirty(renderBufferId, HdRenderBuffer::DirtyDescription);
-
-    HdRenderPassAovBinding binding;
-    binding.aovName = id;
-    binding.renderBufferId = renderBufferId;
-    binding.aovSettings = aovDesc.aovSettings;
-    _renderTaskParams.aovBindings.push_back(binding);
+    _renderDataDelegate->SetRendererAov(id, _renderTaskParams, aovDesc);
 
     return true;
 }
 
 bool UsdImagingLiteEngine::GetRendererAov(TfToken const &id, void *buf)
 {
-    SdfPath renderBufferId = _renderDataDelegate->GetDelegateID().AppendElementString("aov_" + id.GetString());
-    HdRenderBuffer *rBuf = static_cast<HdRenderBuffer*>(_renderIndex->GetBprim(HdPrimTypeTokens->renderBuffer, renderBufferId));
-    void *data = rBuf->Map();
-    memcpy(buf, data, rBuf->GetWidth() * rBuf->GetHeight() * HdDataSizeOfFormat(rBuf->GetFormat()));
-    rBuf->Unmap();
-    return true;
+  _renderDataDelegate->GetRendererAov(id, buf);
+  return true;
 }
 
 SdfPath UsdImagingLiteEngine::_GetRendererAovPath(TfToken const &aov) const
 {
     return _renderDataDelegate->GetDelegateID().AppendElementString("aov_" + aov.GetString());
-}
-
-void UsdImagingLiteEngine::ClearRendererAovs()
-{
-    TF_VERIFY(_renderIndex);
-
-    for (HdRenderPassAovBinding& binding : _renderTaskParams.aovBindings) {
-        _renderIndex->RemoveBprim(HdPrimTypeTokens->renderBuffer, binding.renderBufferId);
-    }
-    _renderTaskParams.aovBindings.clear();
 }
 
 VtValue UsdImagingLiteEngine::GetRendererSetting(TfToken const& id) const
@@ -187,13 +158,9 @@ void UsdImagingLiteEngine::Render(const UsdImagingLiteRenderParams &params)
     }
 }
 
-bool UsdImagingLiteEngine::IsConverged() const
+bool UsdImagingLiteEngine::IsConverged()
 {
-    TF_VERIFY(_renderIndex);
-
-    std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(
-        _renderDataDelegate->GetDelegateID().AppendElementString("renderTask")));
-    return renderTask->IsConverged();
+    return _renderDataDelegate->IsConverged();
 }
 
 void UsdImagingLiteEngine::SetRenderViewport(GfVec4d const & viewport)

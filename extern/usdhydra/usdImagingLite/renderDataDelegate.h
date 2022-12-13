@@ -9,6 +9,9 @@
 #include <pxr/imaging/hd/renderIndex.h>
 #include <pxr/usd/usd/stage.h>
 
+#include "renderDataDelegate.h"
+#include "renderTask.h"
+
 using namespace pxr;
 
 namespace usdhydra {
@@ -44,6 +47,10 @@ public:
     VtValue Get(SdfPath const& id, TfToken const& key) override;
     HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const& id) override;
     TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
+
+    bool IsConverged();
+    void SetRendererAov(TfToken const &aovId, HdRenderTaskParams &_renderTaskParams, HdAovDescriptor &aovDesc);
+    void GetRendererAov(TfToken const &id, void *buf);
 
 private:
     typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> ValueCache;

@@ -11,7 +11,20 @@ namespace usdhydra {
 
 HdRenderDataDelegate::HdRenderDataDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
     : HdSceneDelegate(parentIndex, delegateID)
-{}
+{
+  SdfPath renderTaskId = GetDelegateID().AppendElementString("renderTask");
+  GetRenderIndex().InsertTask<HdRenderTask>(this, renderTaskId);
+  HdReprSelector reprSelector = HdReprSelector(HdReprTokens->smoothHull);
+  HdRprimCollection rprimCollection(HdTokens->geometry, reprSelector, false, TfToken());
+  rprimCollection.SetRootPath(SdfPath::AbsoluteRootPath());
+  SetParameter(renderTaskId, HdTokens->collection, rprimCollection);
+  GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyCollection);
+
+  TfTokenVector renderTags{ HdRenderTagTokens->geometry };
+  SetParameter(renderTaskId, HdTokens->renderTags, renderTags);
+  GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyRenderTags);
+
+}
 
 bool HdRenderDataDelegate::HasParameter(SdfPath const& id, TfToken const& key) const
 {
@@ -78,6 +91,13 @@ void HdRenderDataDelegate::GetRendererAov(TfToken const &aovId, void *buf)
     void *data = rBuf->Map();
     memcpy(buf, data, rBuf->GetWidth() * rBuf->GetHeight() * HdDataSizeOfFormat(rBuf->GetFormat()));
     rBuf->Unmap();
+}
+
+HdTaskSharedPtrVector HdRenderDataDelegate::GetTasks()
+{
+  SdfPath renderTaskId = GetDelegateID().AppendElementString("renderTask");
+  HdTaskSharedPtr renderTask = GetRenderIndex().GetTask(renderTaskId);
+  return { renderTask };
 }
 
 

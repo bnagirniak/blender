@@ -124,8 +124,6 @@ void UsdImagingLiteEngine::Render(const UsdImagingLiteRenderParams &params)
     //_sceneDelegate->SetTime(params.frame);
 
     SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
-    _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
-    std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
 
     SdfPath renderBufferId = _GetRendererAovPath(HdAovTokens->color);
 
@@ -139,17 +137,7 @@ void UsdImagingLiteEngine::Render(const UsdImagingLiteRenderParams &params)
     _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
 
-    HdReprSelector reprSelector = HdReprSelector(HdReprTokens->smoothHull);
-    HdRprimCollection rprimCollection(HdTokens->geometry, reprSelector, false, TfToken());
-    rprimCollection.SetRootPath(SdfPath::AbsoluteRootPath());
-    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->collection, rprimCollection);
-    _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyCollection);
-
-    TfTokenVector renderTags{ HdRenderTagTokens->geometry };
-    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->renderTags, renderTags);
-    _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyRenderTags);
-
-    HdTaskSharedPtrVector tasks = { renderTask };
+    HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
     {
         // Release the GIL before calling into hydra, in case any hydra plugins
         // call into python.

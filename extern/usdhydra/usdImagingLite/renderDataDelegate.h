@@ -52,6 +52,8 @@ public:
     void SetRendererAov(TfToken const &aovId, HdRenderTaskParams &_renderTaskParams, HdAovDescriptor &aovDesc);
     void GetRendererAov(TfToken const &id, void *buf);
 
+    HdTaskSharedPtrVector GetTasks();
+
 private:
     typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> ValueCache;
     typedef TfHashMap<SdfPath, ValueCache, SdfPath::Hash> ValueCacheMap;

@@ -154,11 +154,7 @@ private:
     std::unique_ptr<HdxFreeCameraSceneDelegate> _freeCameraDelegate;
     std::unique_ptr<HdEngine> _engine;
 
-    HdRenderPassAovBindingVector _aovBindings;
-    HdRenderTaskParams _renderTaskParams;
-
     bool _isPopulated;
-    HdRprimCollection _renderCollection;
 
     // This function disposes of: the render index, the render plugin,
     // the task controller, and the usd imaging delegate.

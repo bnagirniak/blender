@@ -49,11 +49,12 @@ public:
     TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
 
     bool IsConverged();
-    void SetRendererAov(TfToken const &aovId, HdRenderTaskParams &_renderTaskParams, HdAovDescriptor &aovDesc);
+    void SetRendererAov(TfToken const &aovId, HdAovDescriptor &aovDesc);
     void GetRendererAov(TfToken const &id, void *buf);
 
     HdTaskSharedPtrVector GetTasks();
 
+    HdRenderTaskParams _renderTaskParams;
 private:
     typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> ValueCache;
     typedef TfHashMap<SdfPath, ValueCache, SdfPath::Hash> ValueCacheMap;

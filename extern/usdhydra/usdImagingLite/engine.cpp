@@ -83,7 +83,7 @@ bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
         return false;
     }
 
-    _renderDataDelegate->SetRendererAov(id, _renderTaskParams, aovDesc);
+    _renderDataDelegate->SetRendererAov(id, aovDesc);
 
     return true;
 }
@@ -127,14 +127,14 @@ void UsdImagingLiteEngine::Render(const UsdImagingLiteRenderParams &params)
 
     SdfPath renderBufferId = _GetRendererAovPath(HdAovTokens->color);
 
-    for (size_t i = 0; i < _renderTaskParams.aovBindings.size(); ++i) {
-        if (_renderTaskParams.aovBindings[i].renderBufferId == renderBufferId) {
-            _renderTaskParams.aovBindings[i].clearValue = params.clearColor;
+    for (size_t i = 0; i < _renderDataDelegate->_renderTaskParams.aovBindings.size(); ++i) {
+        if (_renderDataDelegate->_renderTaskParams.aovBindings[i].renderBufferId == renderBufferId) {
+            _renderDataDelegate->_renderTaskParams.aovBindings[i].clearValue = params.clearColor;
             break;
         }
     }
 
-    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
+    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderDataDelegate->_renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
 
     HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
@@ -153,14 +153,14 @@ bool UsdImagingLiteEngine::IsConverged()
 
 void UsdImagingLiteEngine::SetRenderViewport(GfVec4d const & viewport)
 {
-    _renderTaskParams.viewport = viewport;
+    _renderDataDelegate->_renderTaskParams.viewport = viewport;
 }
 
 void UsdImagingLiteEngine::SetCameraState(const GfCamera& cam)
 {
     TF_VERIFY(_renderIndex);
     _freeCameraDelegate->SetCamera(cam);
-    _renderTaskParams.camera = _freeCameraDelegate->GetCameraId();
+    _renderDataDelegate->_renderTaskParams.camera = _freeCameraDelegate->GetCameraId();
  }
 
 TfTokenVector UsdImagingLiteEngine::GetRendererPlugins()

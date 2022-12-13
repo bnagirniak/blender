@@ -66,7 +66,7 @@ bool HdRenderDataDelegate::IsConverged()
   return ((HdRenderTask &)*renderTask).IsConverged();
 }
 
-void HdRenderDataDelegate::SetRendererAov(TfToken const &aovId, HdRenderTaskParams &_renderTaskParams, HdAovDescriptor &aovDesc)
+void HdRenderDataDelegate::SetRendererAov(TfToken const &aovId, HdAovDescriptor &aovDesc)
 {
   HdRenderBufferDescriptor desc(GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0], _renderTaskParams.viewport[3] - _renderTaskParams.viewport[1], 1),
     aovDesc.format, aovDesc.multiSampled);

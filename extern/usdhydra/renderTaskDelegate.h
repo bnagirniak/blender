@@ -25,11 +25,6 @@ class HdRenderTask : public HdTask
 {
 public:
     HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id);
-
-    HdRenderTask() = delete;
-    HdRenderTask(HdRenderTask const&) = delete;
-    HdRenderTask &operator=(HdRenderTask const&) = delete;
-
     ~HdRenderTask() override;
 
     bool IsConverged() const;
@@ -77,6 +72,8 @@ class HdRenderDataDelegate : public HdSceneDelegate {
 public:
     HdRenderDataDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID);
     ~HdRenderDataDelegate() override = default;
+
+    SdfPath GetTaskID() const;
 
     template <typename T>
     void SetParameter(SdfPath const& id, TfToken const& key, T const& value)

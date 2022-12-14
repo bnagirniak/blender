@@ -12,9 +12,7 @@
 
 #include "engine.h"
 #include "utils.h"
-#include "sceneDelegate/blenderSceneDelegate.h"
 #include "sceneDelegate/scene.h"
-#include "usdImagingLite/renderDataDelegate.h"
 
 using namespace std;
 using namespace pxr;

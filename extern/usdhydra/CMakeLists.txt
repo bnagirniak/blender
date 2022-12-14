@@ -50,10 +50,8 @@ set(SRC
   utils.h
   utils.cpp
 
-  usdImagingLite/renderDataDelegate.cpp
-  usdImagingLite/renderDataDelegate.h
-  usdImagingLite/renderTask.cpp
-  usdImagingLite/renderTask.h
+  renderTaskDelegate.cpp
+  renderTaskDelegate.h
 
   sceneDelegate/blenderSceneDelegate.h
   sceneDelegate/blenderSceneDelegate.cpp

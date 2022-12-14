@@ -17,7 +17,7 @@
 #include "RNA_blender_cpp.h"
 
 #include "sceneDelegate/blenderSceneDelegate.h"
-#include "usdImagingLite/renderDataDelegate.h"
+#include "renderTaskDelegate.h"
 
 namespace usdhydra {
 

@@ -55,11 +55,11 @@ public:
     HdTaskSharedPtrVector GetTasks();
     void SetCameraViewport(SdfPath const& cameraId, int width, int height);
 
-    HdRenderTaskParams _renderTaskParams;
 private:
     typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> ValueCache;
     typedef TfHashMap<SdfPath, ValueCache, SdfPath::Hash> ValueCacheMap;
     ValueCacheMap _valueCacheMap;
+    HdRenderTaskParams _renderTaskParams;
 };
 
 } // namespace usdhydra

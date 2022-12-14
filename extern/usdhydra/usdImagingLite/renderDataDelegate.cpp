@@ -81,6 +81,11 @@ void HdRenderDataDelegate::SetRendererAov(TfToken const &aovId, HdAovDescriptor 
   binding.renderBufferId = renderBufferId;
   binding.aovSettings = aovDesc.aovSettings;
   _renderTaskParams.aovBindings.push_back(binding);
+
+  SdfPath renderTaskId = GetDelegateID().AppendElementString("renderTask");
+  SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
+  GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
+
 }
 
 void HdRenderDataDelegate::GetRendererAov(TfToken const &aovId, void *buf)

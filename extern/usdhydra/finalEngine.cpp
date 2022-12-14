@@ -1,18 +1,21 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <memory>
+
+#include <pxr/imaging/hd/rendererPluginRegistry.h>
+#include <pxr/imaging/hd/engine.h>
+#include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usdImaging/usdAppUtils/camera.h>
-#include <pxr/imaging/hd/rendererPluginRegistry.h>
 
 #include "glog/logging.h"
-
-#include "usdImagingLite/engine.h"
 
 #include "engine.h"
 #include "utils.h"
 #include "sceneDelegate/blenderSceneDelegate.h"
 #include "sceneDelegate/scene.h"
+#include "usdImagingLite/renderDataDelegate.h"
 
 using namespace std;
 using namespace pxr;
@@ -22,8 +25,6 @@ namespace usdhydra {
 void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
   this->renderSettings = renderSettings;
-  //stage = UsdStage::CreateInMemory();
-  //exportScene(b_depsgraph, b_context);
 }
 
 void FinalEngine::render(BL::Depsgraph &b_depsgraph)
@@ -108,23 +109,21 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
     _renderDelegate->SetRenderSetting(setting.first, setting.second);
   }
 
+  _sceneDelegate->Sync(nullptr);
+
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();
   int width = resolution.first, height = resolution.second;
 
   GfCamera gfCamera = sceneExport.gfCamera();
   _freeCameraDelegate->SetCamera(gfCamera);
-
   _renderDataDelegate->SetCameraViewport(_freeCameraDelegate->GetCameraId(), width, height);
 
   TfToken aov = HdAovTokens->color;
   HdAovDescriptor aovDesc = _renderDelegate->GetDefaultAovDescriptor(aov);
   _renderDataDelegate->SetRendererAov(aov, aovDesc);
 
-  _sceneDelegate->Sync(nullptr);
   HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
-
-  _renderDataDelegate->SetCameraViewport(_freeCameraDelegate->GetCameraId(), width, height);
 
   chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
   chrono::milliseconds elapsedTime;
@@ -171,71 +170,6 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
   _freeCameraDelegate = nullptr;
   _renderIndex = nullptr;
   _renderDelegate = nullptr;
-}
-
-void FinalEngine::renderLite0(BL::Depsgraph &b_depsgraph)
-{
-  std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
-
-  if (!imagingLiteEngine->SetRendererPlugin(TfToken(delegateId), b_depsgraph)) {
-    DLOG(ERROR) << "Error in SetRendererPlugin(" << delegateId << ")";
-    return;
-  }
-
-  for (auto const& setting : renderSettings) {
-    imagingLiteEngine->SetRendererSetting(setting.first, setting.second);
-  }
-
-  SceneExport sceneExport(b_depsgraph);
-  auto resolution = sceneExport.resolution();
-  GfCamera gfCamera = sceneExport.gfCamera();
-
-  BL::Scene b_scene = b_depsgraph.scene_eval();
-
-  int width = resolution.first, height = resolution.second;
-
-  imagingLiteEngine->SetCameraState(gfCamera);
-  imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
-  imagingLiteEngine->SetRendererAov(HdAovTokens->color);
-
-  UsdImagingLiteRenderParams renderParams;
-  renderParams.frame = UsdTimeCode(b_scene.frame_current());
-  renderParams.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
-
-  chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
-  chrono::milliseconds elapsedTime;
-
-  float percentDone = 0.0;
-  string layerName = b_depsgraph.view_layer().name();
-
-  map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
-  vector<float> &pixels = renderImages["Combined"];
-
-  while (true) {
-    if (b_engine.test_break()) {
-      break;
-    }
-
-    imagingLiteEngine->Render(renderParams);
-
-    percentDone = getRendererPercentDone(*imagingLiteEngine);
-    timeCurrent = chrono::steady_clock::now();
-    elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
-
-    notifyStatus(percentDone / 100.0,
-      b_scene.name() + ": " + layerName,
-      "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
-
-    if (imagingLiteEngine->IsConverged()) {
-      break;
-    }
-
-    imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
-    updateRenderResult(renderImages, layerName, width, height);
-  }
-
-  imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
-  updateRenderResult(renderImages, layerName, width, height);
 }
 
 void FinalEngine::getResolution(BL::RenderSettings b_render, int &width, int &height)

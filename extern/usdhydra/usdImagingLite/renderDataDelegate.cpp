@@ -49,11 +49,15 @@ VtValue HdRenderDataDelegate::Get(SdfPath const& id, TfToken const& key)
 
 HdRenderBufferDescriptor HdRenderDataDelegate::GetRenderBufferDescriptor(SdfPath const& id)
 {
+  std::cout << "HdRenderDataDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
+
   return GetParameter<HdRenderBufferDescriptor>(id, _tokens->renderBufferDescriptor);
 }
 
 TfTokenVector HdRenderDataDelegate::GetTaskRenderTags(SdfPath const& taskId)
 {
+  std::cout << "HdRenderDataDelegate::GetTaskRenderTags - " << taskId.GetAsString() << "\n";
+
   if (HasParameter(taskId, _tokens->renderTags)) {
       return GetParameter<TfTokenVector>(taskId, _tokens->renderTags);
   }

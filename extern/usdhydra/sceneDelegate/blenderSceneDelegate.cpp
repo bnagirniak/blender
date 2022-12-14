@@ -26,11 +26,15 @@ std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const &
   return nullptr;
 }
 
-void BlenderSceneDelegate::Sync(HdSyncRequestVector* request)
+void BlenderSceneDelegate::Populate()
 {
-  LOG(INFO) << "Sync " << _isPopulated;
+  LOG(INFO) << "Populate " << _isPopulated;
 
   if (_isPopulated) {
+    // TODO: check depsgraph updates
+    
+      //GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, 
+      //  HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::AllDirty);
     return;
   }
 
@@ -45,19 +49,12 @@ void BlenderSceneDelegate::Sync(HdSyncRequestVector* request)
     
     if (obj.type() == BL::Object::type_MESH) {
       GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-      //GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, 
-      //  HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::AllDirty);
       continue;
     }
-    //if (obj.type() == BL::Object::type_LIGHT) {
-    //  GetRenderIndex().InsertSprim(HdPrimTypeTokens->sphereLight, this, objId);
-    //  continue;
-    //}
-    if (obj.type() == BL::Object::type_CAMERA) {
-      GetRenderIndex().InsertSprim(HdPrimTypeTokens->camera, this, objId);
+    if (obj.type() == BL::Object::type_LIGHT) {
+      //GetRenderIndex().InsertSprim(HdPrimTypeTokens->sphereLight, this, objId);
       continue;
     }
-
   }
   _isPopulated = true;
 }

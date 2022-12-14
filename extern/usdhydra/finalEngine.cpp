@@ -86,30 +86,33 @@ void FinalEngine::renderGL(BL::Depsgraph &b_depsgraph)
 void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 {
   std::unique_ptr<HdRenderIndex> _renderIndex;
-  std::unique_ptr<HdSceneDelegate> _sceneDelegate;
+  std::unique_ptr<BlenderSceneDelegate> _sceneDelegate;
   std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
   std::unique_ptr<HdxFreeCameraSceneDelegate> _freeCameraDelegate;
   std::unique_ptr<HdEngine> _engine;
+  HdPluginRenderDelegateUniqueHandle _renderDelegate;
 
   HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
-  TF_PY_ALLOW_THREADS_IN_SCOPE();
+  {
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
 
-  HdPluginRenderDelegateUniqueHandle _renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
-  _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
-  _sceneDelegate = std::make_unique<BlenderSceneDelegate>(_renderIndex.get(), 
-      SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
-  _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
-    SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
-  _freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(_renderIndex.get(),
-    SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
-  _engine = std::make_unique<HdEngine>();
+    _renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
+    _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
+    _sceneDelegate = std::make_unique<BlenderSceneDelegate>(_renderIndex.get(), 
+        SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
+    _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
+      SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
+    _freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(_renderIndex.get(),
+      SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
+    _engine = std::make_unique<HdEngine>();
+  }
 
   for (auto const& setting : renderSettings) {
     _renderDelegate->SetRenderSetting(setting.first, setting.second);
   }
 
-  _sceneDelegate->Sync(nullptr);
+  _sceneDelegate->Populate();
 
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();

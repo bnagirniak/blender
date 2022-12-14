@@ -40,9 +40,14 @@ std::pair<int,int> SceneExport::resolution()
     int(b_render.resolution_y() * border_h * b_render.resolution_percentage() / 100));
 }
 
-std::string SceneExport::name()
+std::string SceneExport::sceneName()
 {
   return b_scene.name();
+}
+
+std::string SceneExport::layerName()
+{
+  return b_depsgraph.view_layer().name();
 }
 
 } // namespace usdhydra

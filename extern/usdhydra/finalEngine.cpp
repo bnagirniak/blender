@@ -3,7 +3,6 @@
 
 #include <memory>
 
-#include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hd/engine.h>
 #include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
 #include <pxr/imaging/glf/drawTarget.h>
@@ -24,7 +23,13 @@ namespace usdhydra {
 
 void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
-  this->renderSettings = renderSettings;
+  sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
+    SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
+  sceneDelegate->Populate();
+
+  for (auto const& setting : renderSettings) {
+    renderDelegate->SetRenderSetting(setting.first, setting.second);
+  }
 }
 
 void FinalEngine::render(BL::Depsgraph &b_depsgraph)
@@ -85,54 +90,25 @@ void FinalEngine::renderGL(BL::Depsgraph &b_depsgraph)
 
 void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 {
-  std::unique_ptr<HdRenderIndex> _renderIndex;
-  std::unique_ptr<BlenderSceneDelegate> _sceneDelegate;
-  std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
-  std::unique_ptr<HdxFreeCameraSceneDelegate> _freeCameraDelegate;
-  std::unique_ptr<HdEngine> _engine;
-  HdPluginRenderDelegateUniqueHandle _renderDelegate;
-
-  HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
-
-  {
-    TF_PY_ALLOW_THREADS_IN_SCOPE();
-
-    _renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
-    _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
-    _sceneDelegate = std::make_unique<BlenderSceneDelegate>(_renderIndex.get(), 
-        SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
-    _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
-      SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
-    _freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(_renderIndex.get(),
-      SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
-    _engine = std::make_unique<HdEngine>();
-  }
-
-  for (auto const& setting : renderSettings) {
-    _renderDelegate->SetRenderSetting(setting.first, setting.second);
-  }
-
-  _sceneDelegate->Populate();
-
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();
   int width = resolution.first, height = resolution.second;
 
   GfCamera gfCamera = sceneExport.gfCamera();
-  _freeCameraDelegate->SetCamera(gfCamera);
-  _renderDataDelegate->SetCameraViewport(_freeCameraDelegate->GetCameraId(), width, height);
+  freeCameraDelegate->SetCamera(gfCamera);
+  renderTaskDelegate->SetCameraViewport(freeCameraDelegate->GetCameraId(), width, height);
 
   TfToken aov = HdAovTokens->color;
-  HdAovDescriptor aovDesc = _renderDelegate->GetDefaultAovDescriptor(aov);
-  _renderDataDelegate->SetRendererAov(aov, aovDesc);
+  HdAovDescriptor aovDesc = renderDelegate->GetDefaultAovDescriptor(aov);
+  renderTaskDelegate->SetRendererAov(aov, aovDesc);
 
-  HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
+  HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
   chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
   chrono::milliseconds elapsedTime;
 
   float percentDone = 0.0;
-  string layerName = b_depsgraph.view_layer().name();
+  string sceneName = sceneExport.sceneName(), layerName = sceneExport.layerName();
 
   map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
   vector<float> &pixels = renderImages["Combined"];
@@ -145,34 +121,26 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
     {
       // Release the GIL before calling into hydra, in case any hydra plugins call into python.
       TF_PY_ALLOW_THREADS_IN_SCOPE();
-      _engine->Execute(_renderIndex.get(), &tasks);
+      _engine.Execute(renderIndex.get(), &tasks);
     }
 
-    percentDone = getRendererPercentDone(*_renderDelegate);
+    percentDone = getRendererPercentDone(*renderDelegate);
     timeCurrent = chrono::steady_clock::now();
     elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
 
-    notifyStatus(percentDone / 100.0,
-      sceneExport.name() + ": " + layerName,
+    notifyStatus(percentDone / 100.0, sceneName + ": " + layerName,
       "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
 
-    if (_renderDataDelegate->IsConverged()) {
+    if (renderTaskDelegate->IsConverged()) {
       break;
     }
 
-    _renderDataDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
+    renderTaskDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
     updateRenderResult(renderImages, layerName, width, height);
   }
 
-  _renderDataDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
+  renderTaskDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
   updateRenderResult(renderImages, layerName, width, height);
-
-  _engine = nullptr;
-  _renderDataDelegate = nullptr;
-  _sceneDelegate = nullptr;
-  _freeCameraDelegate = nullptr;
-  _renderIndex = nullptr;
-  _renderDelegate = nullptr;
 }
 
 void FinalEngine::getResolution(BL::RenderSettings b_render, int &width, int &height)

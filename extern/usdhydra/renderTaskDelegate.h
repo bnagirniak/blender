@@ -75,25 +75,6 @@ public:
 
     SdfPath GetTaskID() const;
 
-    template <typename T>
-    void SetParameter(SdfPath const& id, TfToken const& key, T const& value)
-    {
-        _valueCacheMap[id][key] = value;
-    }
-
-    template <typename T>
-    T const& GetParameter(SdfPath const& id, TfToken const& key) const
-    {
-        VtValue vParams;
-        ValueCache vCache;
-        TF_VERIFY(
-            TfMapLookup(_valueCacheMap, id, &vCache) &&
-            TfMapLookup(vCache, key, &vParams) &&
-            vParams.IsHolding<T>());
-        return vParams.Get<T>();
-    }
-
-    bool HasParameter(SdfPath const& id, TfToken const& key) const;
     VtValue Get(SdfPath const& id, TfToken const& key) override;
     HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const& id) override;
     TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
@@ -106,10 +87,8 @@ public:
     void SetCameraViewport(SdfPath const& cameraId, int width, int height);
 
 private:
-    typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> ValueCache;
-    typedef TfHashMap<SdfPath, ValueCache, SdfPath::Hash> ValueCacheMap;
-    ValueCacheMap _valueCacheMap;
     HdRenderTaskParams _renderTaskParams;
+    TfHashMap<SdfPath, HdRenderBufferDescriptor, SdfPath::Hash> aovs;
 };
 
 } // namespace usdhydra

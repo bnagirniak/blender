@@ -159,26 +159,12 @@ HdRenderDataDelegate::HdRenderDataDelegate(HdRenderIndex* parentIndex, SdfPath c
   SdfPath renderTaskId = GetTaskID();
   GetRenderIndex().InsertTask<HdRenderTask>(this, renderTaskId);
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyCollection);
-
-  TfTokenVector renderTags{ HdRenderTagTokens->geometry };
-  SetParameter(renderTaskId, HdTokens->renderTags, renderTags);
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyRenderTags);
-
 }
 
 SdfPath HdRenderDataDelegate::GetTaskID() const
 {
   return GetDelegateID().AppendElementString("task");
-}
-
-bool HdRenderDataDelegate::HasParameter(SdfPath const& id, TfToken const& key) const
-{
-  ValueCache vCache;
-  if (TfMapLookup(_valueCacheMap, id, &vCache) &&
-      vCache.count(key) > 0) {
-      return true;
-  }
-  return false;
 }
 
 VtValue HdRenderDataDelegate::Get(SdfPath const& id, TfToken const& key)
@@ -199,7 +185,7 @@ HdRenderBufferDescriptor HdRenderDataDelegate::GetRenderBufferDescriptor(SdfPath
 {
   std::cout << "HdRenderDataDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
 
-  return GetParameter<HdRenderBufferDescriptor>(id, _tokens->renderBufferDescriptor);
+  return aovs[id];
 }
 
 TfTokenVector HdRenderDataDelegate::GetTaskRenderTags(SdfPath const& taskId)
@@ -215,18 +201,19 @@ bool HdRenderDataDelegate::IsConverged()
   return ((HdRenderTask &)*renderTask).IsConverged();
 }
 
-void HdRenderDataDelegate::SetRendererAov(TfToken const &aovId, HdAovDescriptor &aovDesc)
+void HdRenderDataDelegate::SetRendererAov(TfToken const &aovName, HdAovDescriptor &aovDesc)
 {
   HdRenderBufferDescriptor desc(GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0], _renderTaskParams.viewport[3] - _renderTaskParams.viewport[1], 1),
     aovDesc.format, aovDesc.multiSampled);
 
-  SdfPath renderBufferId = GetDelegateID().AppendElementString("aov_" + aovId.GetString());
+  SdfPath renderBufferId = GetDelegateID().AppendElementString("aov_" + aovName.GetString());
   GetRenderIndex().InsertBprim(HdPrimTypeTokens->renderBuffer, this, renderBufferId);
-  SetParameter(renderBufferId, _tokens->renderBufferDescriptor, desc);
+  
+  aovs[renderBufferId] = desc;
   GetRenderIndex().GetChangeTracker().MarkBprimDirty(renderBufferId, HdRenderBuffer::DirtyDescription);
 
   HdRenderPassAovBinding binding;
-  binding.aovName = aovId;
+  binding.aovName = aovName;
   binding.renderBufferId = renderBufferId;
   binding.aovSettings = aovDesc.aovSettings;
   _renderTaskParams.aovBindings.push_back(binding);

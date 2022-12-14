@@ -100,5 +100,15 @@ HdTaskSharedPtrVector HdRenderDataDelegate::GetTasks()
   return { renderTask };
 }
 
+void HdRenderDataDelegate::SetCameraViewport(SdfPath const & cameraId, int width, int height)
+{
+  _renderTaskParams.viewport = GfVec4d(0, 0, width, height);
+  _renderTaskParams.camera = cameraId;
+  
+  SdfPath renderTaskId = GetDelegateID().AppendElementString("renderTask");
+  SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
+  GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
+}
+
 
 } // namespace usdhydra

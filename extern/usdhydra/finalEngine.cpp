@@ -115,12 +115,16 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
   GfCamera gfCamera = sceneExport.gfCamera();
   _freeCameraDelegate->SetCamera(gfCamera);
 
-  _renderDataDelegate->_renderTaskParams.viewport = GfVec4d(0, 0, width, height);
-  _renderDataDelegate->_renderTaskParams.camera = _freeCameraDelegate->GetCameraId();
+  _renderDataDelegate->SetCameraViewport(_freeCameraDelegate->GetCameraId(), width, height);
 
   TfToken aov = HdAovTokens->color;
   HdAovDescriptor aovDesc = _renderDelegate->GetDefaultAovDescriptor(aov);
   _renderDataDelegate->SetRendererAov(aov, aovDesc);
+
+  _sceneDelegate->Sync(nullptr);
+  HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
+
+  _renderDataDelegate->SetCameraViewport(_freeCameraDelegate->GetCameraId(), width, height);
 
   chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
   chrono::milliseconds elapsedTime;
@@ -130,13 +134,6 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
   map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
   vector<float> &pixels = renderImages["Combined"];
-
-  _sceneDelegate->Sync(nullptr);
-  HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
-
-  SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
-  _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderDataDelegate->_renderTaskParams);
-  _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
 
   while (true) {
     if (b_engine.test_break()) {

@@ -53,6 +53,7 @@ public:
     void GetRendererAov(TfToken const &id, void *buf);
 
     HdTaskSharedPtrVector GetTasks();
+    void SetCameraViewport(SdfPath const& cameraId, int width, int height);
 
     HdRenderTaskParams _renderTaskParams;
 private:

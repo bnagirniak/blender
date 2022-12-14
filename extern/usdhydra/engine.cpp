@@ -30,7 +30,7 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
   renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {}));
   freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
-  renderTaskDelegate = std::make_unique<HdRenderDataDelegate>(
+  renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
 }
 

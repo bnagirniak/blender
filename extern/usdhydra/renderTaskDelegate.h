@@ -21,11 +21,11 @@ TF_DEFINE_PRIVATE_TOKENS(_tokens,
     (renderBufferDescriptor)
     (renderTags));
 
-class HdRenderTask : public HdTask
+class RenderTask : public HdTask
 {
 public:
-    HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id);
-    ~HdRenderTask() override;
+    RenderTask(HdSceneDelegate* delegate, SdfPath const& id);
+    ~RenderTask() override;
 
     bool IsConverged() const;
 
@@ -68,10 +68,10 @@ std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv);
 bool operator==(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
 bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
 
-class HdRenderDataDelegate : public HdSceneDelegate {
+class RenderTaskDelegate : public HdSceneDelegate {
 public:
-    HdRenderDataDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID);
-    ~HdRenderDataDelegate() override = default;
+    RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID);
+    ~RenderTaskDelegate() override = default;
 
     SdfPath GetTaskID() const;
 

@@ -41,7 +41,7 @@ protected:
   HdPluginRenderDelegateUniqueHandle renderDelegate;
   std::unique_ptr<HdRenderIndex> renderIndex;
   std::unique_ptr<BlenderSceneDelegate> sceneDelegate;
-  std::unique_ptr<HdRenderDataDelegate> renderTaskDelegate;
+  std::unique_ptr<RenderTaskDelegate> renderTaskDelegate;
   std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
   HdEngine _engine;
 

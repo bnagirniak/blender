@@ -10,25 +10,25 @@
 
 namespace usdhydra {
 
-/* HdRenderTask */
+/* RenderTask */
 
-HdRenderTask::HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id)
-    : HdTask(id)
+RenderTask::RenderTask(HdSceneDelegate* delegate, SdfPath const& id)
+  : HdTask(id)
 {
 }
 
-HdRenderTask::~HdRenderTask()
+RenderTask::~RenderTask()
 {
 }
 
-bool HdRenderTask::IsConverged() const
+bool RenderTask::IsConverged() const
 {
     return _pass ? _pass->IsConverged() : true;
 }
 
-void HdRenderTask::Sync(HdSceneDelegate* delegate,
-                        HdTaskContext* ctx,
-                        HdDirtyBits* dirtyBits)
+void RenderTask::Sync(HdSceneDelegate* delegate,
+                      HdTaskContext* ctx,
+                      HdDirtyBits* dirtyBits)
 {
     auto renderIndex = &delegate->GetRenderIndex();
 
@@ -76,8 +76,7 @@ void HdRenderTask::Sync(HdSceneDelegate* delegate,
     *dirtyBits = HdChangeTracker::Clean;
 }
 
-void HdRenderTask::Prepare(HdTaskContext* ctx,
-                           HdRenderIndex* renderIndex)
+void RenderTask::Prepare(HdTaskContext* ctx, HdRenderIndex* renderIndex)
 {
     if (!_passState) {
         _passState = renderIndex->GetRenderDelegate()->CreateRenderPassState();
@@ -109,7 +108,7 @@ void HdRenderTask::Prepare(HdTaskContext* ctx,
     _passState->Prepare(renderIndex->GetResourceRegistry());
 }
 
-void HdRenderTask::Execute(HdTaskContext* ctx)
+void RenderTask::Execute(HdTaskContext* ctx)
 {
     // Bind the render state and render geometry with the rendertags (if any)
     if (_pass) {
@@ -117,7 +116,7 @@ void HdRenderTask::Execute(HdTaskContext* ctx)
     }
 }
 
-TfTokenVector const& HdRenderTask::GetRenderTags() const
+TfTokenVector const& RenderTask::GetRenderTags() const
 {
     return _renderTags;
 }
@@ -151,25 +150,25 @@ bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs)
     return !(lhs == rhs);
 }
 
-/* HdRenderDataDelegate */
+/* RenderTaskDelegate */
 
-HdRenderDataDelegate::HdRenderDataDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
+RenderTaskDelegate::RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
     : HdSceneDelegate(parentIndex, delegateID)
 {
   SdfPath renderTaskId = GetTaskID();
-  GetRenderIndex().InsertTask<HdRenderTask>(this, renderTaskId);
+  GetRenderIndex().InsertTask<RenderTask>(this, renderTaskId);
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyCollection);
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyRenderTags);
 }
 
-SdfPath HdRenderDataDelegate::GetTaskID() const
+SdfPath RenderTaskDelegate::GetTaskID() const
 {
   return GetDelegateID().AppendElementString("task");
 }
 
-VtValue HdRenderDataDelegate::Get(SdfPath const& id, TfToken const& key)
+VtValue RenderTaskDelegate::Get(SdfPath const& id, TfToken const& key)
 {
-  std::cout << "HdRenderDataDelegate::Get - " << id.GetAsString() << " " << key.GetString() << "\n";
+  std::cout << "RenderTaskDelegate::Get - " << id.GetAsString() << " " << key.GetString() << "\n";
   if (key == HdTokens->params) {
     return VtValue(_renderTaskParams);
   }
@@ -181,27 +180,27 @@ VtValue HdRenderDataDelegate::Get(SdfPath const& id, TfToken const& key)
   return VtValue();
 }
 
-HdRenderBufferDescriptor HdRenderDataDelegate::GetRenderBufferDescriptor(SdfPath const& id)
+HdRenderBufferDescriptor RenderTaskDelegate::GetRenderBufferDescriptor(SdfPath const& id)
 {
-  std::cout << "HdRenderDataDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
+  std::cout << "RenderTaskDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
 
   return aovs[id];
 }
 
-TfTokenVector HdRenderDataDelegate::GetTaskRenderTags(SdfPath const& taskId)
+TfTokenVector RenderTaskDelegate::GetTaskRenderTags(SdfPath const& taskId)
 {
-  std::cout << "HdRenderDataDelegate::GetTaskRenderTags - " << taskId.GetAsString() << "\n";
+  std::cout << "RenderTaskDelegate::GetTaskRenderTags - " << taskId.GetAsString() << "\n";
 
   return { HdRenderTagTokens->geometry };
 }
 
-bool HdRenderDataDelegate::IsConverged()
+bool RenderTaskDelegate::IsConverged()
 {
   HdTaskSharedPtr renderTask = GetRenderIndex().GetTask(GetTaskID());
-  return ((HdRenderTask &)*renderTask).IsConverged();
+  return ((RenderTask &)*renderTask).IsConverged();
 }
 
-void HdRenderDataDelegate::SetRendererAov(TfToken const &aovName, HdAovDescriptor &aovDesc)
+void RenderTaskDelegate::SetRendererAov(TfToken const &aovName, HdAovDescriptor &aovDesc)
 {
   HdRenderBufferDescriptor desc(GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0], _renderTaskParams.viewport[3] - _renderTaskParams.viewport[1], 1),
     aovDesc.format, aovDesc.multiSampled);
@@ -221,7 +220,7 @@ void HdRenderDataDelegate::SetRendererAov(TfToken const &aovName, HdAovDescripto
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
 }
 
-void HdRenderDataDelegate::GetRendererAov(TfToken const &aovId, void *buf)
+void RenderTaskDelegate::GetRendererAov(TfToken const &aovId, void *buf)
 {
     SdfPath renderBufferId = GetDelegateID().AppendElementString("aov_" + aovId.GetString());
     HdRenderBuffer *rBuf = static_cast<HdRenderBuffer*>(GetRenderIndex().GetBprim(HdPrimTypeTokens->renderBuffer, renderBufferId));
@@ -231,13 +230,13 @@ void HdRenderDataDelegate::GetRendererAov(TfToken const &aovId, void *buf)
     rBuf->Unmap();
 }
 
-HdTaskSharedPtrVector HdRenderDataDelegate::GetTasks()
+HdTaskSharedPtrVector RenderTaskDelegate::GetTasks()
 {
   HdTaskSharedPtr renderTask = GetRenderIndex().GetTask(GetTaskID());
   return { renderTask };
 }
 
-void HdRenderDataDelegate::SetCameraViewport(SdfPath const & cameraId, int width, int height)
+void RenderTaskDelegate::SetCameraViewport(SdfPath const & cameraId, int width, int height)
 {
   _renderTaskParams.viewport = GfVec4d(0, 0, width, height);
   _renderTaskParams.camera = cameraId;

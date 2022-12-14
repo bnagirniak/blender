@@ -127,12 +127,12 @@ void UsdImagingLiteEngine::Render(const UsdImagingLiteRenderParams &params)
 
     SdfPath renderBufferId = _GetRendererAovPath(HdAovTokens->color);
 
-    for (size_t i = 0; i < _renderDataDelegate->_renderTaskParams.aovBindings.size(); ++i) {
-        if (_renderDataDelegate->_renderTaskParams.aovBindings[i].renderBufferId == renderBufferId) {
-            _renderDataDelegate->_renderTaskParams.aovBindings[i].clearValue = params.clearColor;
-            break;
-        }
-    }
+    //for (size_t i = 0; i < _renderDataDelegate->_renderTaskParams.aovBindings.size(); ++i) {
+    //    if (_renderDataDelegate->_renderTaskParams.aovBindings[i].renderBufferId == renderBufferId) {
+    //        _renderDataDelegate->_renderTaskParams.aovBindings[i].clearValue = params.clearColor;
+    //        break;
+    //    }
+    //}
 
     _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderDataDelegate->_renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);

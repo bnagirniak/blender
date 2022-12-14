@@ -19,6 +19,7 @@ public:
   {}
   pxr::GfCamera gfCamera();
   std::pair<int, int> resolution();
+  std::string name();
 
 private:
   BL::Depsgraph &b_depsgraph;

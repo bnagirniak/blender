@@ -32,7 +32,7 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
     renderGL(b_depsgraph);
   }
   else {
-    renderLite0(b_depsgraph);
+    renderLite(b_depsgraph);
   }
 }
 
@@ -87,6 +87,7 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
   std::unique_ptr<HdRenderIndex> _renderIndex;
   std::unique_ptr<HdSceneDelegate> _sceneDelegate;
   std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
+  std::unique_ptr<HdxFreeCameraSceneDelegate> _freeCameraDelegate;
   std::unique_ptr<HdEngine> _engine;
 
   HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
@@ -99,6 +100,8 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
       SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
   _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
     SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
+  _freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(_renderIndex.get(),
+    SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
   _engine = std::make_unique<HdEngine>();
 
   for (auto const& setting : renderSettings) {
@@ -107,56 +110,70 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();
+  int width = resolution.first, height = resolution.second;
+
   GfCamera gfCamera = sceneExport.gfCamera();
+  _freeCameraDelegate->SetCamera(gfCamera);
 
+  _renderDataDelegate->_renderTaskParams.viewport = GfVec4d(0, 0, width, height);
+  _renderDataDelegate->_renderTaskParams.camera = _freeCameraDelegate->GetCameraId();
 
+  TfToken aov = HdAovTokens->color;
+  HdAovDescriptor aovDesc = _renderDelegate->GetDefaultAovDescriptor(aov);
+  _renderDataDelegate->SetRendererAov(aov, aovDesc);
 
+  chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
+  chrono::milliseconds elapsedTime;
 
+  float percentDone = 0.0;
+  string layerName = b_depsgraph.view_layer().name();
 
-  //std::unique_ptr<UsdImagingLiteEngine> imagingLiteEngine = std::make_unique<UsdImagingLiteEngine>();
+  map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
+  vector<float> &pixels = renderImages["Combined"];
 
-  //imagingLiteEngine->SetCameraState(gfCamera);
-  //imagingLiteEngine->SetRenderViewport(GfVec4d(0, 0, width, height));
-  //imagingLiteEngine->SetRendererAov(HdAovTokens->color);
+  _sceneDelegate->Sync(nullptr);
+  HdTaskSharedPtrVector tasks = _renderDataDelegate->GetTasks();
 
-  //UsdImagingLiteRenderParams renderParams;
-  //renderParams.frame = UsdTimeCode(b_scene.frame_current());
-  //renderParams.clearColor = GfVec4f(1.0, 1.0, 1.0, 0.0);
+  SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
+  _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderDataDelegate->_renderTaskParams);
+  _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
 
-  //chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
-  //chrono::milliseconds elapsedTime;
+  while (true) {
+    if (b_engine.test_break()) {
+      break;
+    }
 
-  //float percentDone = 0.0;
-  //string layerName = b_depsgraph.view_layer().name();
+    {
+      // Release the GIL before calling into hydra, in case any hydra plugins call into python.
+      TF_PY_ALLOW_THREADS_IN_SCOPE();
+      _engine->Execute(_renderIndex.get(), &tasks);
+    }
 
-  //map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
-  //vector<float> &pixels = renderImages["Combined"];
+    percentDone = getRendererPercentDone(*_renderDelegate);
+    timeCurrent = chrono::steady_clock::now();
+    elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
 
-  //while (true) {
-  //  if (b_engine.test_break()) {
-  //    break;
-  //  }
+    notifyStatus(percentDone / 100.0,
+      sceneExport.name() + ": " + layerName,
+      "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
 
-  //  imagingLiteEngine->Render(stage->GetPseudoRoot(), renderParams);
+    if (_renderDataDelegate->IsConverged()) {
+      break;
+    }
 
-  //  percentDone = getRendererPercentDone(*imagingLiteEngine);
-  //  timeCurrent = chrono::steady_clock::now();
-  //  elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
+    _renderDataDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
+    updateRenderResult(renderImages, layerName, width, height);
+  }
 
-  //  notifyStatus(percentDone / 100.0,
-  //    b_scene.name() + ": " + layerName,
-  //    "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
+  _renderDataDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
+  updateRenderResult(renderImages, layerName, width, height);
 
-  //  if (imagingLiteEngine->IsConverged()) {
-  //    break;
-  //  }
-
-  //  imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
-  //  updateRenderResult(renderImages, layerName, width, height);
-  //}
-
-  //imagingLiteEngine->GetRendererAov(HdAovTokens->color, pixels.data());
-  //updateRenderResult(renderImages, layerName, width, height);
+  _engine = nullptr;
+  _renderDataDelegate = nullptr;
+  _sceneDelegate = nullptr;
+  _freeCameraDelegate = nullptr;
+  _renderIndex = nullptr;
+  _renderDelegate = nullptr;
 }
 
 void FinalEngine::renderLite0(BL::Depsgraph &b_depsgraph)

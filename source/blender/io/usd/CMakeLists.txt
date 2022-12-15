@@ -9,8 +9,9 @@ if(UNIX AND NOT APPLE)
   add_definitions(-D_GLIBCXX_PERMIT_BACKWARD_HASH)
 endif()
 if(WIN32)
-  add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+  add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN -DBOOST_DEBUG_PYTHON)
 endif()
+add_definitions(-DBOOST_ALL_NO_LIB)
 
 # USD headers use deprecated TBB headers, silence warning.
 add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES=1)
@@ -57,7 +58,7 @@ set(INC_SYS
   ${USD_INCLUDE_DIRS}
   ${BOOST_INCLUDE_DIR}
   ${TBB_INCLUDE_DIR}
-  ${PYTHON_INCLUDE_DIRS}
+  ${PYTHON_INCLUDE_DIR}
 )
 
 set(SRC
@@ -124,6 +125,8 @@ set(LIB
 
 list(APPEND LIB
   ${BOOST_LIBRARIES}
+  ${BOOST_PYTHON_LIBRARIES}
+  ${PYTHON_LIBRARIES}
 )
 
 if(WITH_OPENVDB)

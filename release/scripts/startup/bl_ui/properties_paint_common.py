@@ -961,7 +961,8 @@ def brush_settings_advanced(layout, context, brush, popover=False):
         is_cavity_active = brush.use_automasking_cavity or brush.use_automasking_cavity_inverted
 
         if is_cavity_active:
-            row.operator("sculpt.mask_from_cavity", text="Create Mask")
+            props = row.operator("sculpt.mask_from_cavity", text="Create Mask")
+            props.settings_source = "BRUSH"
 
         col.prop(brush, "use_automasking_cavity_inverted", text="Cavity (inverted)")
 
@@ -1195,7 +1196,7 @@ def brush_basic_texpaint_settings(layout, context, brush, *, compact=False):
         unified_name="use_unified_size",
         slider=True,
         text="Radius",
-        header=True
+        header=True,
     )
     UnifiedPaintPanel.prop_unified(
         layout,
@@ -1204,7 +1205,7 @@ def brush_basic_texpaint_settings(layout, context, brush, *, compact=False):
         "strength",
         pressure_name="use_pressure_strength",
         unified_name="use_unified_strength",
-        header=True
+        header=True,
     )
 
 
@@ -1344,7 +1345,7 @@ def brush_basic_gpencil_paint_settings(layout, context, brush, *, compact=False)
             "builtin.line",
             "builtin.box",
             "builtin.circle",
-            "builtin.polyline"
+            "builtin.polyline",
     }:
         settings = context.tool_settings.gpencil_sculpt
         if compact:

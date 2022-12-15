@@ -92,6 +92,10 @@ if(WITH_COMPOSITOR_CPU)
   add_subdirectory(smaa_areatex)
 endif()
 
+if(WITH_VULKAN_BACKEND)
+  add_subdirectory(vulkan_memory_allocator)
+endif()
+
 if(WITH_USDHYDRA)
   add_subdirectory(usdhydra)
 endif()

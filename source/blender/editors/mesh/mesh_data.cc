@@ -14,6 +14,7 @@
 #include "DNA_view3d_types.h"
 
 #include "BLI_array.hh"
+#include "BLI_index_mask_ops.hh"
 #include "BLI_math.h"
 #include "BLI_utildefines.h"
 
@@ -41,6 +42,8 @@
 #include "ED_screen.h"
 #include "ED_uvedit.h"
 #include "ED_view3d.h"
+
+#include "GEO_mesh_split_edges.hh"
 
 #include "mesh_intern.h" /* own include */
 
@@ -781,49 +784,45 @@ void MESH_OT_customdata_skin_clear(wmOperatorType *ot)
 static int mesh_customdata_custom_splitnormals_add_exec(bContext *C, wmOperator * /*op*/)
 {
   Mesh *me = ED_mesh_context(C);
-
-  if (!BKE_mesh_has_custom_loop_normals(me)) {
-    CustomData *data = GET_CD_DATA(me, ldata);
-
-    if (me->edit_mesh) {
-      /* Tag edges as sharp according to smooth threshold if needed,
-       * to preserve auto-smooth shading. */
-      if (me->flag & ME_AUTOSMOOTH) {
-        BM_edges_sharp_from_angle_set(me->edit_mesh->bm, me->smoothresh);
-      }
-
-      BM_data_layer_add(me->edit_mesh->bm, data, CD_CUSTOMLOOPNORMAL);
-    }
-    else {
-      /* Tag edges as sharp according to smooth threshold if needed,
-       * to preserve auto-smooth shading. */
-      if (me->flag & ME_AUTOSMOOTH) {
-        const Span<MVert> verts = me->verts();
-        MutableSpan<MEdge> edges = me->edges_for_write();
-        const Span<MPoly> polys = me->polys();
-        const Span<MLoop> loops = me->loops();
-
-        BKE_edges_sharp_from_angle_set(verts.data(),
-                                       verts.size(),
-                                       edges.data(),
-                                       edges.size(),
-                                       loops.data(),
-                                       loops.size(),
-                                       polys.data(),
-                                       BKE_mesh_poly_normals_ensure(me),
-                                       polys.size(),
-                                       me->smoothresh);
-      }
-
-      CustomData_add_layer(data, CD_CUSTOMLOOPNORMAL, CD_SET_DEFAULT, nullptr, me->totloop);
-    }
-
-    DEG_id_tag_update(&me->id, 0);
-    WM_event_add_notifier(C, NC_GEOM | ND_DATA, me);
-
-    return OPERATOR_FINISHED;
+  if (BKE_mesh_has_custom_loop_normals(me)) {
+    return OPERATOR_CANCELLED;
   }
-  return OPERATOR_CANCELLED;
+
+  if (me->edit_mesh) {
+    BMesh &bm = *me->edit_mesh->bm;
+    /* Tag edges as sharp according to smooth threshold if needed,
+     * to preserve auto-smooth shading. */
+    if (me->flag & ME_AUTOSMOOTH) {
+      BM_edges_sharp_from_angle_set(&bm, me->smoothresh);
+    }
+
+    BM_data_layer_add(&bm, &bm.ldata, CD_CUSTOMLOOPNORMAL);
+  }
+  else {
+    /* Tag edges as sharp according to smooth threshold if needed,
+     * to preserve auto-smooth shading. */
+    if (me->flag & ME_AUTOSMOOTH) {
+      MutableSpan<MEdge> edges = me->edges_for_write();
+      const Span<MPoly> polys = me->polys();
+      const Span<MLoop> loops = me->loops();
+
+      BKE_edges_sharp_from_angle_set(edges.data(),
+                                     edges.size(),
+                                     loops.data(),
+                                     loops.size(),
+                                     polys.data(),
+                                     BKE_mesh_poly_normals_ensure(me),
+                                     polys.size(),
+                                     me->smoothresh);
+    }
+
+    CustomData_add_layer(&me->ldata, CD_CUSTOMLOOPNORMAL, CD_SET_DEFAULT, nullptr, me->totloop);
+  }
+
+  DEG_id_tag_update(&me->id, 0);
+  WM_event_add_notifier(C, NC_GEOM | ND_DATA, me);
+
+  return OPERATOR_FINISHED;
 }
 
 void MESH_OT_customdata_custom_splitnormals_add(wmOperatorType *ot)
@@ -1118,8 +1117,8 @@ void ED_mesh_update(Mesh *mesh, bContext *C, bool calc_edges, bool calc_edges_lo
     BKE_mesh_calc_edges(mesh, calc_edges, true);
   }
 
-  if (calc_edges_loose && mesh->totedge) {
-    BKE_mesh_calc_edges_loose(mesh);
+  if (calc_edges_loose) {
+    mesh->runtime->loose_edges_cache.tag_dirty();
   }
 
   /* Default state is not to have tessface's so make sure this is the case. */
@@ -1130,6 +1129,13 @@ void ED_mesh_update(Mesh *mesh, bContext *C, bool calc_edges, bool calc_edges_lo
 
   DEG_id_tag_update(&mesh->id, 0);
   WM_event_add_notifier(C, NC_GEOM | ND_DATA, mesh);
+}
+
+bool ED_mesh_edge_is_loose(const Mesh *mesh, const int index)
+{
+  using namespace blender;
+  const bke::LooseEdgeCache &loose_edges = mesh->loose_edges();
+  return loose_edges.count > 0 && loose_edges.is_loose_bits[index];
 }
 
 static void mesh_add_verts(Mesh *mesh, int len)
@@ -1460,4 +1466,44 @@ Mesh *ED_mesh_context(bContext *C)
   }
 
   return (Mesh *)data;
+}
+
+void ED_mesh_split_faces(Mesh *mesh)
+{
+  using namespace blender;
+  Array<MEdge> edges(mesh->edges());
+  const Span<MPoly> polys = mesh->polys();
+  const Span<MLoop> loops = mesh->loops();
+  const float split_angle = (mesh->flag & ME_AUTOSMOOTH) != 0 ? mesh->smoothresh : float(M_PI);
+  BKE_edges_sharp_from_angle_set(edges.data(),
+                                 edges.size(),
+                                 loops.data(),
+                                 loops.size(),
+                                 polys.data(),
+                                 BKE_mesh_poly_normals_ensure(mesh),
+                                 polys.size(),
+                                 split_angle);
+
+  threading::parallel_for(polys.index_range(), 1024, [&](const IndexRange range) {
+    for (const int poly_i : range) {
+      const MPoly &poly = polys[poly_i];
+      if (!(poly.flag & ME_SMOOTH)) {
+        for (const MLoop &loop : loops.slice(poly.loopstart, poly.totloop)) {
+          edges[loop.e].flag |= ME_SHARP;
+        }
+      }
+    }
+  });
+
+  Vector<int64_t> split_indices;
+  const IndexMask split_mask = index_mask_ops::find_indices_based_on_predicate(
+      edges.index_range(), 4096, split_indices, [&](const int64_t i) {
+        return edges[i].flag & ME_SHARP;
+      });
+
+  if (split_mask.is_empty()) {
+    return;
+  }
+
+  geometry::split_edges(*mesh, split_mask);
 }

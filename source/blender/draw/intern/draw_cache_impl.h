@@ -42,7 +42,7 @@ void DRW_curve_batch_cache_free(struct Curve *cu);
 
 void DRW_mesh_batch_cache_dirty_tag(struct Mesh *me, eMeshBatchDirtyMode mode);
 void DRW_mesh_batch_cache_validate(struct Object *object, struct Mesh *me);
-void DRW_mesh_batch_cache_free(struct Mesh *me);
+void DRW_mesh_batch_cache_free(void *batch_cache);
 
 void DRW_lattice_batch_cache_dirty_tag(struct Lattice *lt, int mode);
 void DRW_lattice_batch_cache_validate(struct Lattice *lt);
@@ -137,6 +137,7 @@ struct GPUVertBuf **DRW_curves_texture_for_evaluated_attribute(struct Curves *cu
                                                                bool *r_is_point_domain);
 
 struct GPUBatch *DRW_curves_batch_cache_get_edit_points(struct Curves *curves);
+struct GPUBatch *DRW_curves_batch_cache_get_edit_lines(struct Curves *curves);
 
 void DRW_curves_batch_cache_create_requested(struct Object *ob);
 

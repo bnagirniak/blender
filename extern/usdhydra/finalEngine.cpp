@@ -42,6 +42,9 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
 
 void FinalEngine::renderGL(BL::Depsgraph &b_depsgraph)
 {
+  // TODO implement with BlenderSceneDelegate
+  return;
+
   std::unique_ptr<UsdImagingGLEngine> imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
 
   if (!imagingGLEngine->SetRendererPlugin(TfToken(delegateId))) {
@@ -111,15 +114,15 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
   map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
   vector<float> &pixels = renderImages["Combined"];
 
+  {
+    // Release the GIL before calling into hydra, in case any hydra plugins call into python.
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+    _engine.Execute(renderIndex.get(), &tasks);
+  }
+
   while (true) {
     if (b_engine.test_break()) {
       break;
-    }
-
-    {
-      // Release the GIL before calling into hydra, in case any hydra plugins call into python.
-      TF_PY_ALLOW_THREADS_IN_SCOPE();
-      _engine.Execute(renderIndex.get(), &tasks);
     }
 
     percentDone = getRendererPercentDone(*renderDelegate);

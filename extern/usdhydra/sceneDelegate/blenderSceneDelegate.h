@@ -23,8 +23,9 @@ public:
   BlenderSceneDelegate(HdRenderIndex* renderIndex, SdfPath const &delegateId, BL::Depsgraph &b_depsgraph);
   ~BlenderSceneDelegate() override = default;
 
+  void Populate();
+
   // delegate methods
-  void Sync(HdSyncRequestVector* request) override;
   HdMeshTopology GetMeshTopology(SdfPath const& id) override;
   GfMatrix4d GetTransform(SdfPath const& id) override;
   VtValue Get(SdfPath const& id, TfToken const& key) override;
@@ -35,10 +36,6 @@ public:
 private:
   BL::Depsgraph b_depsgraph;
   bool _isPopulated;
-
-  typedef TfHashMap<TfToken, VtValue, TfToken::HashFunctor> _ValueCache;
-  typedef TfHashMap<SdfPath, _ValueCache, SdfPath::Hash> _ValueCacheMap;
-  _ValueCacheMap _valueCacheMap;
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
 };

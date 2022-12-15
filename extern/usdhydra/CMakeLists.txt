@@ -50,22 +50,19 @@ set(SRC
   utils.h
   utils.cpp
 
-  usdImagingLite/engine.cpp
-  usdImagingLite/engine.h
-  usdImagingLite/renderDataDelegate.cpp
-  usdImagingLite/renderDataDelegate.h
-  usdImagingLite/renderTask.cpp
-  usdImagingLite/renderTask.h
-  usdImagingLite/renderParams.h
+  renderTaskDelegate.cpp
+  renderTaskDelegate.h
 
-  sceneDelegate/blenderSceneDelegate.cpp
   sceneDelegate/blenderSceneDelegate.h
-  sceneDelegate/object.cpp
+  sceneDelegate/blenderSceneDelegate.cpp
   sceneDelegate/object.h
-  sceneDelegate/mesh.cpp
+  sceneDelegate/object.cpp
   sceneDelegate/mesh.h
-  sceneDelegate/light.cpp
+  sceneDelegate/mesh.cpp
   sceneDelegate/light.h
+  sceneDelegate/light.cpp
+  sceneDelegate/scene.h
+  sceneDelegate/scene.cpp
 )
 
 set(LIB

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
 #include <pxr/usd/usdGeom/tokens.h>
@@ -18,14 +19,28 @@ using namespace pxr;
 
 namespace usdhydra {
 
-Engine::Engine(BL::RenderEngine &b_engine, const char* delegateId)
+Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
   : b_engine(b_engine)
   , delegateId(delegateId)
 {
+  HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
+
+  TF_PY_ALLOW_THREADS_IN_SCOPE();
+  renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
+  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {}));
+  freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(
+    renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
+  renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
+    renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
 }
 
 Engine::~Engine()
 {
+  sceneDelegate = nullptr;
+  renderTaskDelegate = nullptr;
+  freeCameraDelegate = nullptr;
+  renderIndex = nullptr;
+  renderDelegate = nullptr;
 }
 
 void Engine::exportScene(BL::Depsgraph& b_depsgraph, BL::Context& b_context)
@@ -225,33 +240,6 @@ static PyObject* get_render_plugins_func(PyObject* /*self*/, PyObject* args)
   return ret;
 }
 
-static PyObject *stage_export_to_str_func(PyObject * /*self*/, PyObject *args)
-{
-  LOG(INFO) << "stage_export_to_str_func";
-
-  PyObject *pyengine;
-  int flatten;
-  if (!PyArg_ParseTuple(args, "Op", &pyengine, &flatten)) {
-    Py_RETURN_NONE;
-  }
-
-  Engine *engine = (Engine *)PyLong_AsVoidPtr(pyengine);
-  UsdStageRefPtr stage = engine->getStage();
-
-  if (!stage) {
-    Py_RETURN_NONE;
-  }
-
-  std::string str;
-  if (flatten) {
-    stage->ExportToString(&str);
-  }
-  else {
-    stage->GetRootLayer()->ExportToString(&str);
-  }
-  return PyUnicode_FromString(str.c_str());
-}
-
 static PyMethodDef methods[] = {
   {"create", create_func, METH_VARARGS, ""},
   {"free", free_func, METH_VARARGS, ""},
@@ -259,7 +247,6 @@ static PyMethodDef methods[] = {
   {"sync", sync_func, METH_VARARGS, ""},
   {"view_draw", view_draw_func, METH_VARARGS, ""},
   {"get_render_plugins", get_render_plugins_func, METH_VARARGS, ""},
-  {"stage_export_to_str", stage_export_to_str_func, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL},
 };
 

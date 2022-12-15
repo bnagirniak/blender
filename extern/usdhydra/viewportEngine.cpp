@@ -428,6 +428,9 @@ pxr::GfCamera ViewSettings::export_camera()
 
 void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings_)
 {
+  // TODO implement with BlenderSceneDelegate
+  return;
+
   renderSettings = renderSettings_;
   if (!imagingGLEngine) {
     stage = UsdStage::CreateInMemory();
@@ -444,6 +447,9 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
 
 void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
+  // TODO implement with BlenderSceneDelegate
+  return;
+
   ViewSettings viewSettings(b_context);
   if (viewSettings.get_width() * viewSettings.get_height() == 0) {
     return;

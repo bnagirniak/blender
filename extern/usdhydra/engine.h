@@ -7,17 +7,23 @@
 
 #include <Python.h>
 
+#include <pxr/imaging/hd/engine.h>
+#include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
+
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
+#include "sceneDelegate/blenderSceneDelegate.h"
+#include "renderTaskDelegate.h"
+
 namespace usdhydra {
 
 class Engine {
 public:
-  Engine(BL::RenderEngine &b_engine, const char* delegateId);
+  Engine(BL::RenderEngine &b_engine, const std::string &delegateId);
   virtual ~Engine();
 
   virtual void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) = 0;
@@ -31,6 +37,14 @@ protected:
 
 protected:
   BL::RenderEngine b_engine;
+
+  HdPluginRenderDelegateUniqueHandle renderDelegate;
+  std::unique_ptr<HdRenderIndex> renderIndex;
+  std::unique_ptr<BlenderSceneDelegate> sceneDelegate;
+  std::unique_ptr<RenderTaskDelegate> renderTaskDelegate;
+  std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
+  HdEngine _engine;
+
   std::string delegateId;
   pxr::HdRenderSettingsMap renderSettings;
   pxr::UsdStageRefPtr stage;

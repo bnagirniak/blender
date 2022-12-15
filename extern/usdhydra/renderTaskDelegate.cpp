@@ -53,11 +53,11 @@ void RenderTask::Sync(HdSceneDelegate* delegate,
     }
 
     if ((*dirtyBits) & HdChangeTracker::DirtyParams) {
-        HdRenderTaskParams params;
+        RenderTaskParams params;
 
         auto value = delegate->Get(GetId(), HdTokens->params);
-        if (TF_VERIFY(value.IsHolding<HdRenderTaskParams>())) {
-            params = value.UncheckedGet<HdRenderTaskParams>();
+        if (TF_VERIFY(value.IsHolding<RenderTaskParams>())) {
+            params = value.UncheckedGet<RenderTaskParams>();
         }
 
         _aovBindings = params.aovBindings;
@@ -125,7 +125,7 @@ TfTokenVector const& RenderTask::GetRenderTags() const
 // VtValue Requirements
 // --------------------------------------------------------------------------- //
 
-std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv)
+std::ostream& operator<<(std::ostream& out, const RenderTaskParams& pv)
 {
     out << "RenderTask Params:\n";
     out << "camera: " << pv.camera << '\n';
@@ -138,14 +138,14 @@ std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv)
     return out;
 }
 
-bool operator==(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs)
+bool operator==(const RenderTaskParams& lhs, const RenderTaskParams& rhs)
 {
     return lhs.aovBindings == rhs.aovBindings &&
            lhs.camera == rhs.camera &&
            lhs.viewport == rhs.viewport;
 }
 
-bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs)
+bool operator!=(const RenderTaskParams& lhs, const RenderTaskParams& rhs)
 {
     return !(lhs == rhs);
 }
@@ -170,7 +170,7 @@ VtValue RenderTaskDelegate::Get(SdfPath const& id, TfToken const& key)
 {
   std::cout << "RenderTaskDelegate::Get - " << id.GetAsString() << " " << key.GetString() << "\n";
   if (key == HdTokens->params) {
-    return VtValue(_renderTaskParams);
+    return VtValue(taskParams);
   }
   if (key == HdTokens->collection) {
     HdRprimCollection rprimCollection(HdTokens->geometry, HdReprSelector(HdReprTokens->smoothHull), false, TfToken());
@@ -184,7 +184,7 @@ HdRenderBufferDescriptor RenderTaskDelegate::GetRenderBufferDescriptor(SdfPath c
 {
   std::cout << "RenderTaskDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
 
-  return aovs[id];
+  return bufferDescriptors[id];
 }
 
 TfTokenVector RenderTaskDelegate::GetTaskRenderTags(SdfPath const& taskId)
@@ -202,20 +202,20 @@ bool RenderTaskDelegate::IsConverged()
 
 void RenderTaskDelegate::SetRendererAov(TfToken const &aovName, HdAovDescriptor &aovDesc)
 {
-  HdRenderBufferDescriptor desc(GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0], _renderTaskParams.viewport[3] - _renderTaskParams.viewport[1], 1),
+  HdRenderBufferDescriptor desc(GfVec3i(taskParams.viewport[2] - taskParams.viewport[0], taskParams.viewport[3] - taskParams.viewport[1], 1),
     aovDesc.format, aovDesc.multiSampled);
 
   SdfPath renderBufferId = GetDelegateID().AppendElementString("aov_" + aovName.GetString());
   GetRenderIndex().InsertBprim(HdPrimTypeTokens->renderBuffer, this, renderBufferId);
   
-  aovs[renderBufferId] = desc;
+  bufferDescriptors[renderBufferId] = desc;
   GetRenderIndex().GetChangeTracker().MarkBprimDirty(renderBufferId, HdRenderBuffer::DirtyDescription);
 
   HdRenderPassAovBinding binding;
   binding.aovName = aovName;
   binding.renderBufferId = renderBufferId;
   binding.aovSettings = aovDesc.aovSettings;
-  _renderTaskParams.aovBindings.push_back(binding);
+  taskParams.aovBindings.push_back(binding);
 
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
 }
@@ -238,8 +238,8 @@ HdTaskSharedPtrVector RenderTaskDelegate::GetTasks()
 
 void RenderTaskDelegate::SetCameraViewport(SdfPath const & cameraId, int width, int height)
 {
-  _renderTaskParams.viewport = GfVec4d(0, 0, width, height);
-  _renderTaskParams.camera = cameraId;
+  taskParams.viewport = GfVec4d(0, 0, width, height);
+  taskParams.camera = cameraId;
   
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
 }

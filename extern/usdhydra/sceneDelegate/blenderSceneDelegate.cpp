@@ -87,8 +87,10 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
   HdPrimvarDescriptorVector primvars;
   if (interpolation == HdInterpolationVertex) {
     primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
+  }
+  if (interpolation == HdInterpolationFaceVarying) {
     primvars.emplace_back(HdTokens->normals, interpolation, HdPrimvarRoleTokens->normal);
-  } 
+  }
   return primvars;
 }
 

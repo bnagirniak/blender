@@ -18,77 +18,78 @@ using namespace pxr;
 namespace usdhydra {
 
 TF_DEFINE_PRIVATE_TOKENS(_tokens,
-    (renderBufferDescriptor)
-    (renderTags));
+  (renderBufferDescriptor)
+  (renderTags));
 
 class RenderTask : public HdTask
 {
 public:
-    RenderTask(HdSceneDelegate* delegate, SdfPath const& id);
-    ~RenderTask() override;
+  RenderTask(HdSceneDelegate* delegate, SdfPath const& id);
+  ~RenderTask() override;
 
-    bool IsConverged() const;
+  bool IsConverged() const;
 
-    /// Sync the render pass resources
-    void Sync(HdSceneDelegate* delegate,
-              HdTaskContext* ctx,
-              HdDirtyBits* dirtyBits) override;
+  /// Sync the render pass resources
+  void Sync(HdSceneDelegate* delegate,
+            HdTaskContext* ctx,
+            HdDirtyBits* dirtyBits) override;
 
-    /// Prepare the tasks resources
-    void Prepare(HdTaskContext* ctx,
-                 HdRenderIndex* renderIndex) override;
+  /// Prepare the tasks resources
+  void Prepare(HdTaskContext* ctx,
+                HdRenderIndex* renderIndex) override;
 
-    /// Execute render pass task
-    void Execute(HdTaskContext* ctx) override;
+  /// Execute render pass task
+  void Execute(HdTaskContext* ctx) override;
 
-    /// Collect Render Tags used by the task.
-    TfTokenVector const& GetRenderTags() const override;
+  /// Collect Render Tags used by the task.
+  TfTokenVector const& GetRenderTags() const override;
 
 private:
-    HdRenderPassSharedPtr _pass;
-    HdRenderPassStateSharedPtr _passState;
+  HdRenderPassSharedPtr _pass;
+  HdRenderPassStateSharedPtr _passState;
 
-    TfTokenVector _renderTags;
-    GfVec4d _viewport;
-    SdfPath _cameraId;
-    HdRenderPassAovBindingVector _aovBindings;
+  TfTokenVector _renderTags;
+  GfVec4d _viewport;
+  SdfPath _cameraId;
+  HdRenderPassAovBindingVector _aovBindings;
 };
 
-struct HdRenderTaskParams
+struct RenderTaskParams
 {
-    // Should not be empty.
-    HdRenderPassAovBindingVector aovBindings;
+  // Should not be empty.
+  HdRenderPassAovBindingVector aovBindings;
 
-    SdfPath camera;
-    GfVec4d viewport = GfVec4d(0.0);
+  SdfPath camera;
+  GfVec4d viewport = GfVec4d(0.0);
 };
 
 // VtValue requirements
-std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv);
-bool operator==(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
-bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
+std::ostream& operator<<(std::ostream& out, const RenderTaskParams& pv);
+bool operator==(const RenderTaskParams& lhs, const RenderTaskParams& rhs);
+bool operator!=(const RenderTaskParams& lhs, const RenderTaskParams& rhs);
 
-class RenderTaskDelegate : public HdSceneDelegate {
+class RenderTaskDelegate : public HdSceneDelegate
+{
 public:
-    RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID);
-    ~RenderTaskDelegate() override = default;
+  RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID);
+  ~RenderTaskDelegate() override = default;
 
-    SdfPath GetTaskID() const;
+  SdfPath GetTaskID() const;
 
-    VtValue Get(SdfPath const& id, TfToken const& key) override;
-    HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const& id) override;
-    TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
+  VtValue Get(SdfPath const& id, TfToken const& key) override;
+  HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const& id) override;
+  TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
 
-    bool IsConverged();
-    void SetRendererAov(TfToken const &aovId, HdAovDescriptor &aovDesc);
-    void GetRendererAov(TfToken const &id, void *buf);
+  bool IsConverged();
+  void SetRendererAov(TfToken const &aovId, HdAovDescriptor &aovDesc);
+  void GetRendererAov(TfToken const &id, void *buf);
 
-    HdTaskSharedPtrVector GetTasks();
-    void SetCameraViewport(SdfPath const& cameraId, int width, int height);
+  HdTaskSharedPtrVector GetTasks();
+  void SetCameraViewport(SdfPath const& cameraId, int width, int height);
 
 private:
-    HdRenderTaskParams _renderTaskParams;
-    TfHashMap<SdfPath, HdRenderBufferDescriptor, SdfPath::Hash> aovs;
+  RenderTaskParams taskParams;
+  TfHashMap<SdfPath, HdRenderBufferDescriptor, SdfPath::Hash> bufferDescriptors;
 };
 
 } // namespace usdhydra

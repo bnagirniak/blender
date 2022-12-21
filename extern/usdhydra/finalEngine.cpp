@@ -97,12 +97,9 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
   GfCamera gfCamera = sceneExport.gfCamera();
   freeCameraDelegate->SetCamera(gfCamera);
-  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), width, height);
-
-  TfToken aov = HdAovTokens->color;
-  HdAovDescriptor aovDesc = renderDelegate->GetDefaultAovDescriptor(aov);
-  renderTaskDelegate->SetRendererAov(aov, aovDesc);
-
+  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, width, height));
+  renderTaskDelegate->SetRendererAov( HdAovTokens->color);
+  
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
   chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;

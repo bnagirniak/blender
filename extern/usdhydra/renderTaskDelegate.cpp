@@ -25,6 +25,11 @@ SdfPath RenderTaskDelegate::GetTaskID() const
   return GetDelegateID().AppendElementString("task");
 }
 
+SdfPath RenderTaskDelegate::GetAovID(TfToken const &aov) const
+{
+  return GetDelegateID().AppendElementString("aov_" + aov.GetString());
+}
+
 VtValue RenderTaskDelegate::Get(SdfPath const& id, TfToken const& key)
 {
   std::cout << "RenderTaskDelegate::Get - " << id.GetAsString() << " " << key.GetString() << "\n";
@@ -39,14 +44,14 @@ VtValue RenderTaskDelegate::Get(SdfPath const& id, TfToken const& key)
   return VtValue();
 }
 
-HdRenderBufferDescriptor RenderTaskDelegate::GetRenderBufferDescriptor(SdfPath const& id)
+HdRenderBufferDescriptor RenderTaskDelegate::GetRenderBufferDescriptor(SdfPath const &id)
 {
   std::cout << "RenderTaskDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
 
   return bufferDescriptors[id];
 }
 
-TfTokenVector RenderTaskDelegate::GetTaskRenderTags(SdfPath const& taskId)
+TfTokenVector RenderTaskDelegate::GetTaskRenderTags(SdfPath const &taskId)
 {
   std::cout << "RenderTaskDelegate::GetTaskRenderTags - " << taskId.GetAsString() << "\n";
 
@@ -59,19 +64,20 @@ bool RenderTaskDelegate::IsConverged()
   return ((HdxRenderTask &)*renderTask).IsConverged();
 }
 
-void RenderTaskDelegate::SetRendererAov(TfToken const &aovName, HdAovDescriptor &aovDesc)
+void RenderTaskDelegate::SetRendererAov(TfToken const &aov)
 {
+  HdAovDescriptor aovDesc = GetRenderIndex().GetRenderDelegate()->GetDefaultAovDescriptor(aov);
   HdRenderBufferDescriptor desc(GfVec3i(taskParams.viewport[2] - taskParams.viewport[0], taskParams.viewport[3] - taskParams.viewport[1], 1),
     aovDesc.format, aovDesc.multiSampled);
 
-  SdfPath renderBufferId = GetDelegateID().AppendElementString("aov_" + aovName.GetString());
+  SdfPath renderBufferId = GetAovID(aov);
   GetRenderIndex().InsertBprim(HdPrimTypeTokens->renderBuffer, this, renderBufferId);
   
   bufferDescriptors[renderBufferId] = desc;
   GetRenderIndex().GetChangeTracker().MarkBprimDirty(renderBufferId, HdRenderBuffer::DirtyDescription);
 
   HdRenderPassAovBinding binding;
-  binding.aovName = aovName;
+  binding.aovName = aov;
   binding.renderBufferId = renderBufferId;
   binding.aovSettings = aovDesc.aovSettings;
   taskParams.aovBindings.push_back(binding);
@@ -79,10 +85,9 @@ void RenderTaskDelegate::SetRendererAov(TfToken const &aovName, HdAovDescriptor 
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
 }
 
-void RenderTaskDelegate::GetRendererAov(TfToken const &aovId, void *buf)
+void RenderTaskDelegate::GetRendererAov(TfToken const &aov, void *buf)
 {
-    SdfPath renderBufferId = GetDelegateID().AppendElementString("aov_" + aovId.GetString());
-    HdRenderBuffer *rBuf = static_cast<HdRenderBuffer*>(GetRenderIndex().GetBprim(HdPrimTypeTokens->renderBuffer, renderBufferId));
+    HdRenderBuffer *rBuf = static_cast<HdRenderBuffer*>(GetRenderIndex().GetBprim(HdPrimTypeTokens->renderBuffer, GetAovID(aov)));
 
     void *data = rBuf->Map();
     memcpy(buf, data, rBuf->GetWidth() * rBuf->GetHeight() * HdDataSizeOfFormat(rBuf->GetFormat()));
@@ -95,9 +100,9 @@ HdTaskSharedPtrVector RenderTaskDelegate::GetTasks()
   return { renderTask };
 }
 
-void RenderTaskDelegate::SetCameraAndViewport(SdfPath const & cameraId, int width, int height)
+void RenderTaskDelegate::SetCameraAndViewport(SdfPath const &cameraId, GfVec4d const &viewport)
 {
-  taskParams.viewport = GfVec4d(0, 0, width, height);
+  taskParams.viewport = viewport;
   taskParams.camera = cameraId;
   
   GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);

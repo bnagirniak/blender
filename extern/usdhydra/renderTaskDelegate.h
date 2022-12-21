@@ -13,21 +13,22 @@ namespace usdhydra {
 class RenderTaskDelegate : public HdSceneDelegate
 {
 public:
-  RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID);
+  RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const &delegateID);
   ~RenderTaskDelegate() override = default;
 
   SdfPath GetTaskID() const;
+  SdfPath GetAovID(TfToken const &aov) const;
 
-  VtValue Get(SdfPath const& id, TfToken const& key) override;
-  HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const& id) override;
-  TfTokenVector GetTaskRenderTags(SdfPath const& taskId) override;
+  VtValue Get(SdfPath const &id, TfToken const &key) override;
+  HdRenderBufferDescriptor GetRenderBufferDescriptor(SdfPath const &id) override;
+  TfTokenVector GetTaskRenderTags(SdfPath const &taskId) override;
 
   bool IsConverged();
-  void SetRendererAov(TfToken const &aovId, HdAovDescriptor &aovDesc);
+  void SetRendererAov(TfToken const &aovId);
   void GetRendererAov(TfToken const &id, void *buf);
 
   HdTaskSharedPtrVector GetTasks();
-  void SetCameraAndViewport(SdfPath const& cameraId, int width, int height);
+  void SetCameraAndViewport(SdfPath const &cameraId, GfVec4d const &viewport);
 
 private:
   HdxRenderTaskParams taskParams;

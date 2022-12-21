@@ -97,7 +97,7 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
 
   GfCamera gfCamera = sceneExport.gfCamera();
   freeCameraDelegate->SetCamera(gfCamera);
-  renderTaskDelegate->SetCameraViewport(freeCameraDelegate->GetCameraId(), width, height);
+  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), width, height);
 
   TfToken aov = HdAovTokens->color;
   HdAovDescriptor aovDesc = renderDelegate->GetDefaultAovDescriptor(aov);

@@ -90,13 +90,17 @@ void RenderTaskDelegate::SetRendererAov(TfToken const &aov)
   }
 }
 
-void RenderTaskDelegate::GetRendererAov(TfToken const &aov, void *buf)
+HdRenderBuffer *RenderTaskDelegate::GetRendererAov(TfToken const &aov)
 {
-    HdRenderBuffer *rBuf = static_cast<HdRenderBuffer*>(GetRenderIndex().GetBprim(HdPrimTypeTokens->renderBuffer, GetAovID(aov)));
+  return (HdRenderBuffer *)(GetRenderIndex().GetBprim(HdPrimTypeTokens->renderBuffer, GetAovID(aov)));
+}
 
-    void *data = rBuf->Map();
-    memcpy(buf, data, rBuf->GetWidth() * rBuf->GetHeight() * HdDataSizeOfFormat(rBuf->GetFormat()));
-    rBuf->Unmap();
+void RenderTaskDelegate::GetRendererAovData(TfToken const &aov, void *data)
+{
+  HdRenderBuffer *buffer = GetRendererAov(aov);
+  void *bufData = buffer->Map();
+  memcpy(data, bufData, buffer->GetWidth() * buffer->GetHeight() * HdDataSizeOfFormat(buffer->GetFormat()));
+  buffer->Unmap();
 }
 
 HdTaskSharedPtrVector RenderTaskDelegate::GetTasks()

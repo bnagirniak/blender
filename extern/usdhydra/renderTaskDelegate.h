@@ -25,7 +25,8 @@ public:
 
   bool IsConverged();
   void SetRendererAov(TfToken const &aovId);
-  void GetRendererAov(TfToken const &id, void *buf);
+  HdRenderBuffer *GetRendererAov(TfToken const &id);
+  void GetRendererAovData(TfToken const &id, void *buf);
 
   HdTaskSharedPtrVector GetTasks();
   void SetCameraAndViewport(SdfPath const &cameraId, GfVec4d const &viewport);

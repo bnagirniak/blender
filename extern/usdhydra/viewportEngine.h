@@ -5,9 +5,21 @@
 
 #include <chrono>
 
+#include <epoxy/gl.h>
+
 #include "engine.h"
 
 namespace usdhydra {
+
+class GLTexture
+{
+public:
+  GLTexture();
+
+private:
+  GLuint textureId;
+  int width, height, channels;
+};
 
 class ViewportEngine : public Engine {
 public:

@@ -133,11 +133,11 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
       break;
     }
 
-    renderTaskDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
+    renderTaskDelegate->GetRendererAovData(HdAovTokens->color, pixels.data());
     updateRenderResult(renderImages, layerName, width, height);
   }
 
-  renderTaskDelegate->GetRendererAov(HdAovTokens->color, pixels.data());
+  renderTaskDelegate->GetRendererAovData(HdAovTokens->color, pixels.data());
   updateRenderResult(renderImages, layerName, width, height);
 }
 

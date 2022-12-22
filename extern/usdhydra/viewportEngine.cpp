@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <epoxy/gl.h>
+
 #include <pxr/base/gf/camera.h>
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usd/usdGeom/camera.h>
-
-//#include <epoxy/gl.h>
 
 #include "BLI_math_matrix.h"
 

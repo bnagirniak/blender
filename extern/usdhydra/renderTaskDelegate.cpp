@@ -69,20 +69,25 @@ void RenderTaskDelegate::SetRendererAov(TfToken const &aov)
   HdAovDescriptor aovDesc = GetRenderIndex().GetRenderDelegate()->GetDefaultAovDescriptor(aov);
   HdRenderBufferDescriptor desc(GfVec3i(taskParams.viewport[2] - taskParams.viewport[0], taskParams.viewport[3] - taskParams.viewport[1], 1),
     aovDesc.format, aovDesc.multiSampled);
+  SdfPath bufferId = GetAovID(aov);
 
-  SdfPath renderBufferId = GetAovID(aov);
-  GetRenderIndex().InsertBprim(HdPrimTypeTokens->renderBuffer, this, renderBufferId);
-  
-  bufferDescriptors[renderBufferId] = desc;
-  GetRenderIndex().GetChangeTracker().MarkBprimDirty(renderBufferId, HdRenderBuffer::DirtyDescription);
+  if (bufferDescriptors.find(bufferId) == bufferDescriptors.end()) {
+    GetRenderIndex().InsertBprim(HdPrimTypeTokens->renderBuffer, this, bufferId);
+    bufferDescriptors[bufferId] = desc;
+    GetRenderIndex().GetChangeTracker().MarkBprimDirty(bufferId, HdRenderBuffer::DirtyDescription);
 
-  HdRenderPassAovBinding binding;
-  binding.aovName = aov;
-  binding.renderBufferId = renderBufferId;
-  binding.aovSettings = aovDesc.aovSettings;
-  taskParams.aovBindings.push_back(binding);
+    HdRenderPassAovBinding binding;
+    binding.aovName = aov;
+    binding.renderBufferId = bufferId;
+    binding.aovSettings = aovDesc.aovSettings;
+    taskParams.aovBindings.push_back(binding);
 
-  GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
+    GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
+  }
+  else if (bufferDescriptors[bufferId] != desc) {
+    bufferDescriptors[bufferId] = desc;
+    GetRenderIndex().GetChangeTracker().MarkBprimDirty(bufferId, HdRenderBuffer::DirtyDescription);
+  }
 }
 
 void RenderTaskDelegate::GetRendererAov(TfToken const &aov, void *buf)
@@ -102,10 +107,11 @@ HdTaskSharedPtrVector RenderTaskDelegate::GetTasks()
 
 void RenderTaskDelegate::SetCameraAndViewport(SdfPath const &cameraId, GfVec4d const &viewport)
 {
-  taskParams.viewport = viewport;
-  taskParams.camera = cameraId;
-  
-  GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
+  if (taskParams.viewport != viewport || taskParams.camera != cameraId) {
+    taskParams.viewport = viewport;
+    taskParams.camera = cameraId;
+    GetRenderIndex().GetChangeTracker().MarkTaskDirty(GetTaskID(), HdChangeTracker::DirtyParams);
+  }
 }
 
 

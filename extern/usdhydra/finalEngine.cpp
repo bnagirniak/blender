@@ -98,7 +98,7 @@ void FinalEngine::renderLite(BL::Depsgraph &b_depsgraph)
   GfCamera gfCamera = sceneExport.gfCamera();
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, width, height));
-  renderTaskDelegate->SetRendererAov( HdAovTokens->color);
+  renderTaskDelegate->SetRendererAov(HdAovTokens->color);
   
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 

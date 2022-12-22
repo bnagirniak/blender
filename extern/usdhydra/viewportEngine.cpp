@@ -5,6 +5,8 @@
 #include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/usd/usdGeom/camera.h>
 
+//#include <epoxy/gl.h>
+
 #include "BLI_math_matrix.h"
 
 #include "glog/logging.h"
@@ -428,28 +430,19 @@ pxr::GfCamera ViewSettings::export_camera()
 
 void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings_)
 {
-  // TODO implement with BlenderSceneDelegate
-  return;
-
-  renderSettings = renderSettings_;
-  if (!imagingGLEngine) {
-    stage = UsdStage::CreateInMemory();
-    exportScene(b_depsgraph, b_context);
-
-    imagingGLEngine = std::make_unique<UsdImagingGLEngine>();
-    imagingGLEngine->SetRendererPlugin(TfToken(delegateId));
+  if (!sceneDelegate) {
+    sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
+      SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
   }
+  sceneDelegate->Populate();
 
-  for (auto const& pair : renderSettings) {
-    imagingGLEngine->SetRendererSetting(pair.first, pair.second);
+  for (auto const& setting : renderSettings) {
+    renderDelegate->SetRenderSetting(setting.first, setting.second);
   }
 }
 
 void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
-  // TODO implement with BlenderSceneDelegate
-  return;
-
   ViewSettings viewSettings(b_context);
   if (viewSettings.get_width() * viewSettings.get_height() == 0) {
     return;
@@ -458,36 +451,53 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   BL::Scene b_scene = b_depsgraph.scene_eval();
   GfCamera gfCamera = viewSettings.export_camera();
 
-  vector<GfVec4f> clipPlanes = gfCamera.GetClippingPlanes();
+  freeCameraDelegate->SetCamera(gfCamera);
+  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), 
+    GfVec4d(viewSettings.border[0][0], viewSettings.border[0][1], viewSettings.border[1][0], viewSettings.border[1][1]));
+  renderTaskDelegate->SetRendererAov(HdAovTokens->color);
+  
+  HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
-  for (int i = 0; i < clipPlanes.size(); i++) {
-    renderParams.clipPlanes.push_back((GfVec4d)clipPlanes[i]);
-  }
-
-  imagingGLEngine->SetCameraState(gfCamera.GetFrustum().ComputeViewMatrix(),
-                                  gfCamera.GetFrustum().ComputeProjectionMatrix());
-  imagingGLEngine->SetRenderViewport(GfVec4d((double)viewSettings.border[0][0], (double)viewSettings.border[0][1],
-                                             (double)viewSettings.border[1][0], (double)viewSettings.border[1][1]));
-
-  b_engine.bind_display_space_shader(b_scene);
-
-  if (getRendererPercentDone(*imagingGLEngine) == 0.0f) {
+  if (getRendererPercentDone(*renderDelegate) == 0.0f) {
     timeBegin = chrono::steady_clock::now();
   }
 
-  imagingGLEngine->Render(stage->GetPseudoRoot(), renderParams);
+  {
+    // Release the GIL before calling into hydra, in case any hydra plugins call into python.
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+    _engine.Execute(renderIndex.get(), &tasks);
+  }
+
+  b_engine.bind_display_space_shader(b_scene);
+
+  //GLuint tex = 0;
+  //glGenTextures(1, &tex);
+  //glBindTexture(GL_TEXTURE_2D, tex);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  //      height, width, channels = self.image.shape
+  //      bgl.glTexImage2D(
+  //          bgl.GL_TEXTURE_2D, 0, bgl.GL_RGBA if platform.system() == 'Darwin' else bgl.GL_RGBA16F,
+  //          width, height, 0,
+  //          bgl.GL_RGBA, bgl.GL_FLOAT,
+  //          bgl.Buffer(bgl.GL_FLOAT, [width, height, channels])
+  //      )
+
 
   b_engine.unbind_display_space_shader();
 
-  glClear(GL_DEPTH_BUFFER_BIT);
+  //glClear(GL_DEPTH_BUFFER_BIT);
 
   chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();
   chrono::milliseconds elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
 
   string formattedTime = formatDuration(elapsedTime);
 
-  if (!imagingGLEngine->IsConverged()) {
-    notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone(*imagingGLEngine))) + "%",
+  if (!renderTaskDelegate->IsConverged()) {
+    notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone(*renderDelegate))) + "%",
                  "Render", true);
   }
   else {

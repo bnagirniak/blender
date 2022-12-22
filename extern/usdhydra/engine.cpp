@@ -14,6 +14,8 @@
 #include "DEG_depsgraph_query.h"
 
 #include "engine.h"
+#include "finalEngine.h"
+#include "viewportEngine.h"
 
 using namespace pxr;
 

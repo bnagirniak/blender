@@ -27,6 +27,9 @@ set(INC
   ../../source/blender/io/usd
   ../../source/blender/io/common
   ../../source/blender/io/usd/intern
+  ../../source/blender/gpu
+  ../../source/blender/gpu/opengl
+  ../../source/blender/gpu/intern
   ${CMAKE_BINARY_DIR}/source/blender/makesrna/intern
 )
 
@@ -37,6 +40,7 @@ set(INC_SYS
   ${TBB_INCLUDE_DIR}
   ${GLOG_INCLUDE_DIRS}
   ${GFLAGS_INCLUDE_DIRS}
+  ${Epoxy_INCLUDE_DIRS}
 )
 
 set(SRC
@@ -44,7 +48,9 @@ set(SRC
 
   engine.h
   engine.cpp
+  finalEngine.h
   finalEngine.cpp
+  viewportEngine.h
   viewportEngine.cpp
 
   utils.h

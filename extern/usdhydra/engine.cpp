@@ -9,11 +9,6 @@
 
 #include "glog/logging.h"
 
-#include "intern/usd_hierarchy_iterator.h"
-#include "BKE_context.h"
-#include "BKE_blender_version.h"
-#include "DEG_depsgraph_query.h"
-
 #include "engine.h"
 #include "finalEngine.h"
 #include "viewportEngine.h"

@@ -31,15 +31,22 @@ void BlenderSceneDelegate::Populate()
   LOG(INFO) << "Populate " << _isPopulated;
 
   if (_isPopulated) {
-    // TODO: check depsgraph updates
-    
-      //GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, 
-      //  HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::AllDirty);
+    for (auto &update : b_depsgraph.updates) {
+      std::cout << "update: " << update.id().name_full() << " " << update.is_updated_transform() << update.is_updated_geometry() << update.is_updated_shading() << "\n";
+      
+      SdfPath objId = GetDelegateID().AppendElementString(update.id().name_full());
+      if (update.is_updated_geometry()) {
+        GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+        continue;
+      }
+      if (update.is_updated_transform()) {
+        GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+      }
+    }
     return;
   }
 
-  auto &instances = b_depsgraph.object_instances;
-  for (auto& inst : instances) {
+  for (auto &inst : b_depsgraph.object_instances) {
     if (inst.is_instance()) {
       continue;
     }

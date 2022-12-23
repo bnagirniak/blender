@@ -487,7 +487,7 @@ void GLTexture::free()
   textureId = 0;
 }
 
-void GLTexture::draw(int x, int y)
+void GLTexture::draw(GLfloat x, GLfloat y)
 {
   // INITIALIZATION
 
@@ -503,7 +503,7 @@ void GLTexture::draw(int x, int y)
   GLint position_location = glGetAttribLocation(shader_program, "pos");
 
   // Generate geometry buffers for drawing textured quad
-  GLfloat position[8] = {x, y, x + width, y, x + width, y + height, x, y + height};
+  GLfloat position[8] = { x, y, x + width, y, x + width, y + height, x, y + height };
   GLfloat texcoord[8] = {0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0};
 
   GLuint vertex_buffer[2];
@@ -538,7 +538,7 @@ void GLTexture::draw(int x, int y)
   glDeleteVertexArrays(1, &vertex_array);
 }
 
-void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings_)
+void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
   if (!sceneDelegate) {
     sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
@@ -568,7 +568,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
-  if (getRendererPercentDone(*renderDelegate) == 0.0f) {
+  if (getRendererPercentDone() == 0.0f) {
     timeBegin = chrono::steady_clock::now();
   }
 
@@ -581,7 +581,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   b_engine.bind_display_space_shader(b_scene);
 
   texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
-  texture.draw(viewSettings.border[0][0], viewSettings.border[0][1]);
+  texture.draw((GLfloat)viewSettings.border[0][0], (GLfloat)viewSettings.border[0][1]);
 
   b_engine.unbind_display_space_shader();
 
@@ -593,21 +593,18 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   string formattedTime = formatDuration(elapsedTime);
 
   if (!renderTaskDelegate->IsConverged()) {
-    notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone(*renderDelegate))) + "%",
-                 "Render", true);
+    notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone())) + "%",
+                 "Render");
+    b_engine.tag_redraw();
   }
   else {
-    notifyStatus(("Time: " + formattedTime).c_str(), "Rendering Done", false);
+    notifyStatus(("Time: " + formattedTime).c_str(), "Rendering Done");
   }
 }
 
-void ViewportEngine::notifyStatus(const string &info, const string &status, bool redraw)
+void ViewportEngine::notifyStatus(const string &info, const string &status)
 {
   b_engine.update_stats(status.c_str(), info.c_str());
-
-  if (redraw) {
-    b_engine.tag_redraw();
-  }
 }
 
 }   // namespace usdhydra

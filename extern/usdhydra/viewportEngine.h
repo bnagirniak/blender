@@ -19,7 +19,7 @@ public:
   GLTexture();
   ~GLTexture();
   void setBuffer(pxr::HdRenderBuffer *buffer);
-  void draw(int x, int y);
+  void draw(GLfloat x, GLfloat y);
 
 private:
   void create(pxr::HdRenderBuffer *buffer);
@@ -36,11 +36,9 @@ public:
   void viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context);
 
 private:
-  void notifyStatus(const std::string &title, const std::string &info, bool redraw);
+  void notifyStatus(const std::string &title, const std::string &info);
 
 private:
-  std::unique_ptr<pxr::UsdImagingGLEngine> imagingGLEngine;
-  pxr::UsdImagingGLRenderParams renderParams;
   std::chrono::time_point<std::chrono::steady_clock> timeBegin;
 
   GLTexture texture;

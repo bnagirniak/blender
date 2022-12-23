@@ -421,11 +421,121 @@ int ViewSettings::get_height()
   return border[1][1];
 }
 
-pxr::GfCamera ViewSettings::export_camera()
+GfCamera ViewSettings::export_camera()
 {
   float tile[4] = {(float)border[0][0] / screen_width, (float)border[0][1] / screen_height,
                    (float)border[1][0] / screen_width, (float)border[1][1] / screen_height};
   return camera_data.export_gf(tile);
+}
+
+GLTexture::GLTexture()
+  : textureId(0)
+  , width(0)
+  , height(0)
+  , channels(4)
+{
+}
+
+GLTexture::~GLTexture()
+{
+  if (textureId) {
+    free();
+  }
+}
+
+void GLTexture::setBuffer(pxr::HdRenderBuffer *buffer)
+{
+  if (!textureId) {
+    create(buffer);
+    return;
+  }
+
+  if (width != buffer->GetWidth() || height != buffer->GetHeight()) {
+    free();
+    create(buffer);
+    return;
+  }
+
+  glBindTexture(GL_TEXTURE_2D, textureId);
+    
+  void *data = buffer->Map();
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT, data);
+  buffer->Unmap();
+}
+
+void GLTexture::create(pxr::HdRenderBuffer *buffer)
+{
+  width = buffer->GetWidth();
+  height = buffer->GetHeight();
+  channels = HdGetComponentCount(buffer->GetFormat());
+
+  glGenTextures(1, &textureId);
+  glBindTexture(GL_TEXTURE_2D, textureId);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  
+  void *data = buffer->Map();
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, data);
+  buffer->Unmap();
+}
+
+void GLTexture::free()
+{
+  glDeleteTextures(1, &textureId);
+  textureId = 0;
+}
+
+void GLTexture::draw(int x, int y)
+{
+  // INITIALIZATION
+
+  // Getting shader program
+  GLint shader_program;
+  glGetIntegerv(GL_CURRENT_PROGRAM, &shader_program);
+
+  // Generate vertex array
+  GLuint vertex_array;
+  glGenVertexArrays(1, &vertex_array);
+
+  GLint texturecoord_location = glGetAttribLocation(shader_program, "texCoord");
+  GLint position_location = glGetAttribLocation(shader_program, "pos");
+
+  // Generate geometry buffers for drawing textured quad
+  GLfloat position[8] = {x, y, x + width, y, x + width, y + height, x, y + height};
+  GLfloat texcoord[8] = {0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0};
+
+  GLuint vertex_buffer[2];
+  glGenBuffers(2, vertex_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[0]);
+  glBufferData(GL_ARRAY_BUFFER, 32, position, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[1]);
+  glBufferData(GL_ARRAY_BUFFER, 32, texcoord, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // DRAWING
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textureId);
+
+  glBindVertexArray(vertex_array);
+  glEnableVertexAttribArray(texturecoord_location);
+  glEnableVertexAttribArray(position_location);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[0]);
+  glVertexAttribPointer(position_location, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[1]);
+  glVertexAttribPointer(texturecoord_location, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  glBindVertexArray(0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // DELETING
+  glDeleteBuffers(2, vertex_buffer);
+  glDeleteVertexArrays(1, &vertex_array);
 }
 
 void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings_)
@@ -470,22 +580,8 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
 
   b_engine.bind_display_space_shader(b_scene);
 
-  //GLuint tex = 0;
-  //glGenTextures(1, &tex);
-  //glBindTexture(GL_TEXTURE_2D, tex);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  //      height, width, channels = self.image.shape
-  //      bgl.glTexImage2D(
-  //          bgl.GL_TEXTURE_2D, 0, bgl.GL_RGBA if platform.system() == 'Darwin' else bgl.GL_RGBA16F,
-  //          width, height, 0,
-  //          bgl.GL_RGBA, bgl.GL_FLOAT,
-  //          bgl.Buffer(bgl.GL_FLOAT, [width, height, channels])
-  //      )
-
+  texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
+  texture.draw(viewSettings.border[0][0], viewSettings.border[0][1]);
 
   b_engine.unbind_display_space_shader();
 

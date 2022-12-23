@@ -7,6 +7,8 @@
 
 #include <epoxy/gl.h>
 
+#include <pxr/imaging/hd/renderBuffer.h>
+
 #include "engine.h"
 
 namespace usdhydra {
@@ -15,8 +17,14 @@ class GLTexture
 {
 public:
   GLTexture();
+  ~GLTexture();
+  void setBuffer(pxr::HdRenderBuffer *buffer);
+  void draw(int x, int y);
 
 private:
+  void create(pxr::HdRenderBuffer *buffer);
+  void free();
+
   GLuint textureId;
   int width, height, channels;
 };
@@ -35,7 +43,7 @@ private:
   pxr::UsdImagingGLRenderParams renderParams;
   std::chrono::time_point<std::chrono::steady_clock> timeBegin;
 
-  //GLuint texture1;
+  GLTexture texture;
 };
 
 }   // namespace usdhydra

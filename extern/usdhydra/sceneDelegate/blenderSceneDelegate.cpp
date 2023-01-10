@@ -63,7 +63,6 @@ void BlenderSceneDelegate::Populate()
       
       if (id.is_a(&RNA_Collection)) {
         BL::Collection &col = (BL::Collection &)id;
-        //std::cout << "Collection: " << col.name() << "\n";
         if (update.is_updated_transform() && update.is_updated_geometry()) {
           //available objects from depsgraph
           std::set<std::string> depsObjects;
@@ -129,8 +128,9 @@ void BlenderSceneDelegate::Populate()
         LOG(WARNING) << "Unsupported light type: " << light->id.name + 2;
         continue;
       }
-      
+
       GetRenderIndex().InsertSprim(lightType, this, objId);
+      objects[objId] = obj.name_full();
       continue;
     }
   }

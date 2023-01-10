@@ -979,8 +979,10 @@ ccl_device_forceinline bool integrate_volume_phase_scatter(
   INTEGRATOR_STATE_WRITE(state, path, throughput) = throughput_phase;
 
   if (kernel_data.kernel_features & KERNEL_FEATURE_LIGHT_PASSES) {
-    INTEGRATOR_STATE_WRITE(state, path, pass_diffuse_weight) = one_spectrum();
-    INTEGRATOR_STATE_WRITE(state, path, pass_glossy_weight) = zero_spectrum();
+    if (INTEGRATOR_STATE(state, path, bounce) == 0) {
+      INTEGRATOR_STATE_WRITE(state, path, pass_diffuse_weight) = one_spectrum();
+      INTEGRATOR_STATE_WRITE(state, path, pass_glossy_weight) = zero_spectrum();
+    }
   }
 
   /* Update path state */
@@ -1030,7 +1032,7 @@ ccl_device VolumeIntegrateEvent volume_integrate(KernelGlobals kg,
   const float3 initial_throughput = INTEGRATOR_STATE(state, path, throughput);
   /* The path throughput used to calculate the throughput for direct light. */
   float3 unlit_throughput = initial_throughput;
-  /* If a new path segment is generated at the direct scatter position.*/
+  /* If a new path segment is generated at the direct scatter position. */
   bool guiding_generated_new_segment = false;
   float rand_phase_guiding = 0.5f;
 #  endif

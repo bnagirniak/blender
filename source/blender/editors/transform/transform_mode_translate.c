@@ -296,47 +296,48 @@ static void headerTranslation(TransInfo *t, const float vec[3], char str[UI_MAX_
     }
   }
   else {
-    if (t->flag & T_2D_EDIT) {
-      ofs += BLI_snprintf_rlen(str + ofs,
-                               UI_MAX_DRAW_STR - ofs,
-                               "Dx: %s   Dy: %s (%s)%s",
-                               dvec_str[0],
-                               dvec_str[1],
-                               dist_str,
-                               t->con.text);
+    if (t->spacetype == SPACE_NODE) {
+      SpaceNode *snode = (SpaceNode *)t->area->spacedata.first;
+      if ((snode->flag & SNODE_SKIP_INSOFFSET) == 0) {
+        const char *str_dir = (snode->insert_ofs_dir == SNODE_INSERTOFS_DIR_RIGHT) ?
+                                  TIP_("right") :
+                                  TIP_("left");
+        char str_dir_km[64];
+        WM_modalkeymap_items_to_string(
+            t->keymap, TFM_MODAL_INSERTOFS_TOGGLE_DIR, true, str_dir_km, sizeof(str_dir_km));
+        ofs += BLI_snprintf_rlen(str,
+                                 UI_MAX_DRAW_STR,
+                                 TIP_("%s: Toggle auto-offset direction (%s)"),
+                                 str_dir_km,
+                                 str_dir);
+      }
+
+      char str_attach_km[64];
+      WM_modalkeymap_items_to_string(
+          t->keymap, TFM_MODAL_NODE_ATTACH_OFF, true, str_attach_km, sizeof(str_attach_km));
+      ofs += BLI_snprintf_rlen(
+          str + ofs, UI_MAX_DRAW_STR - ofs, TIP_(", %s: Toggle auto-attach"), str_attach_km);
     }
     else {
-      ofs += BLI_snprintf_rlen(str + ofs,
-                               UI_MAX_DRAW_STR - ofs,
-                               "Dx: %s   Dy: %s   Dz: %s (%s)%s",
-                               dvec_str[0],
-                               dvec_str[1],
-                               dvec_str[2],
-                               dist_str,
-                               t->con.text);
-    }
-  }
-
-  if (t->spacetype == SPACE_NODE) {
-    SpaceNode *snode = (SpaceNode *)t->area->spacedata.first;
-
-    if ((snode->flag & SNODE_SKIP_INSOFFSET) == 0) {
-      const char *str_old = BLI_strdup(str);
-      const char *str_dir = (snode->insert_ofs_dir == SNODE_INSERTOFS_DIR_RIGHT) ? TIP_("right") :
-                                                                                   TIP_("left");
-      char str_km[64];
-
-      WM_modalkeymap_items_to_string(
-          t->keymap, TFM_MODAL_INSERTOFS_TOGGLE_DIR, true, str_km, sizeof(str_km));
-
-      ofs += BLI_snprintf_rlen(str,
-                               UI_MAX_DRAW_STR,
-                               TIP_("Auto-offset set to %s - press %s to toggle direction  |  %s"),
-                               str_dir,
-                               str_km,
-                               str_old);
-
-      MEM_freeN((void *)str_old);
+      if (t->flag & T_2D_EDIT) {
+        ofs += BLI_snprintf_rlen(str + ofs,
+                                 UI_MAX_DRAW_STR - ofs,
+                                 "Dx: %s   Dy: %s (%s)%s",
+                                 dvec_str[0],
+                                 dvec_str[1],
+                                 dist_str,
+                                 t->con.text);
+      }
+      else {
+        ofs += BLI_snprintf_rlen(str + ofs,
+                                 UI_MAX_DRAW_STR - ofs,
+                                 "Dx: %s   Dy: %s   Dz: %s (%s)%s",
+                                 dvec_str[0],
+                                 dvec_str[1],
+                                 dvec_str[2],
+                                 dist_str,
+                                 t->con.text);
+      }
     }
   }
 }
@@ -397,7 +398,7 @@ static void translate_snap_grid_apply(TransInfo *t,
 
 static bool translate_snap_grid(TransInfo *t, float *val)
 {
-  if (!activeSnap(t)) {
+  if (!transform_snap_is_active(t)) {
     return false;
   }
 
@@ -474,7 +475,7 @@ static void applyTranslationValue(TransInfo *t, const float vec[3])
 
   enum eTranslateRotateMode rotate_mode = TRANSLATE_ROTATE_OFF;
 
-  if (activeSnap(t) && usingSnappingNormal(t) && validSnappingNormal(t)) {
+  if (transform_snap_is_active(t) && usingSnappingNormal(t) && validSnappingNormal(t)) {
     rotate_mode = TRANSLATE_ROTATE_ON;
   }
 
@@ -609,7 +610,7 @@ static void applyTranslation(TransInfo *t, const int UNUSED(mval[2]))
     }
 
     t->tsnap.snapElem = SCE_SNAP_MODE_NONE;
-    applySnappingAsGroup(t, global_dir);
+    transform_snap_mixed_apply(t, global_dir);
     translate_snap_grid(t, global_dir);
 
     if (t->con.mode & CON_APPLY) {
@@ -620,7 +621,7 @@ static void applyTranslation(TransInfo *t, const int UNUSED(mval[2]))
 
     float incr_dir[3];
     copy_v3_v3(incr_dir, global_dir);
-    if (!(activeSnap(t) && validSnap(t)) &&
+    if (!(transform_snap_is_active(t) && validSnap(t)) &&
         transform_snap_increment_ex(t, (t->con.mode & CON_APPLY) != 0, incr_dir)) {
 
       /* Test for mixed snap with grid. */

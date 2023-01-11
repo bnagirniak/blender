@@ -82,19 +82,24 @@ VtValue LightExport::treatAsPoint() {
   return VtValue();
 }
 
-TfToken getLightType(Light *light) {
-  TfToken lightType;
-
+TfToken LightExport::type() {
   if (light->type == LA_AREA) {
-    if (auto it = LIGHT_SHAPE_TYPES.find(light->area_shape); it != LIGHT_SHAPE_TYPES.end())
-      lightType = it->second;
+    switch (light->area_shape) {
+      case LA_AREA_SQUARE: return pxr::HdPrimTypeTokens->rectLight;
+      case LA_AREA_RECT: return pxr::HdPrimTypeTokens->rectLight;
+      case LA_AREA_DISK: return pxr::HdPrimTypeTokens->diskLight;
+      case LA_AREA_ELLIPSE: return pxr::HdPrimTypeTokens->diskLight;
+      default: return pxr::HdPrimTypeTokens->rectLight;
+    }
   }
   else {
-    if (auto it = LIGHT_TYPES.find(light->type); it != LIGHT_TYPES.end())
-      lightType = it->second;
+    switch (light->type) {
+      case LA_SUN: return pxr::HdPrimTypeTokens->distantLight;
+      case LA_LOCAL: return pxr::HdPrimTypeTokens->sphereLight;
+      case LA_SPOT: return pxr::HdPrimTypeTokens->sphereLight;
+      default: return pxr::HdPrimTypeTokens->sphereLight;
+    }
   }
-
-  return lightType;
 }
 
 } // namespace usdhydra

@@ -45,13 +45,35 @@ void BlenderSceneDelegate::Populate()
         
         if (objects.find(objId) == objects.end()) {
           LOG(INFO) << "Add mesh object: " << objId;
-          GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+
+          switch (obj.type()) {
+            case BL::Object::type_MESH:
+              GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+              break;
+            case BL::Object::type_LIGHT:
+              GetRenderIndex().InsertSprim(std::make_unique<ObjectExport>(obj, b_depsgraph)->lightExport().type(), this, objId);
+              break;
+            default:
+              GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+          }
+
           objects[objId] = objName;
           continue;
         }
         if (update.is_updated_geometry()) {
           LOG(INFO) << "Full updated: " << objId;
-          GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+
+          switch (obj.type()) {
+            case BL::Object::type_MESH:
+              GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+              break;
+            case BL::Object::type_LIGHT:
+              GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
+              break;
+            default:
+              GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+          }
+
           continue;
         }
         if (update.is_updated_transform()) {
@@ -111,7 +133,7 @@ void BlenderSceneDelegate::Populate()
     }
     
     BL::Object obj = inst.object();
-    SdfPath objId = GetDelegateID().AppendElementString(obj.name_full());
+    SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(obj.name_full()));
     
     if (obj.type() == BL::Object::type_MESH) {
       LOG(INFO) << "Add mesh object: " << objId;
@@ -121,15 +143,7 @@ void BlenderSceneDelegate::Populate()
       continue;
     }
     if (obj.type() == BL::Object::type_LIGHT) {
-      Light *light = (Light *)((BL::Light &)obj.data()).ptr.data;
-      TfToken lightType = getLightType(light);
-
-      if (lightType.IsEmpty()) {
-        LOG(WARNING) << "Unsupported light type: " << light->id.name + 2;
-        continue;
-      }
-
-      GetRenderIndex().InsertSprim(lightType, this, objId);
+      GetRenderIndex().InsertSprim(std::make_unique<ObjectExport>(obj, b_depsgraph)->lightExport().type(), this, objId);
       objects[objId] = obj.name_full();
       continue;
     }

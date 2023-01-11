@@ -28,24 +28,10 @@ public:
   pxr::VtValue shapingConeAngle();
   pxr::VtValue shapingConeSoftness();
   pxr::VtValue treatAsPoint();
+  pxr::TfToken type();
 
 private:
   Light *light;
-};
-
-pxr::TfToken getLightType(Light *light);
-
-inline std::map<int, pxr::TfToken> LIGHT_TYPES {    
-    { LA_SUN, pxr::HdPrimTypeTokens->distantLight},
-    { LA_LOCAL, pxr::HdPrimTypeTokens->sphereLight},
-    { LA_SPOT, pxr::HdPrimTypeTokens->sphereLight},
-};
-
-inline std::map<int, pxr::TfToken> LIGHT_SHAPE_TYPES {    
-    { LA_AREA_SQUARE, pxr::HdPrimTypeTokens->rectLight},
-    { LA_AREA_RECT, pxr::HdPrimTypeTokens->rectLight},
-    { LA_AREA_DISK, pxr::HdPrimTypeTokens->diskLight},
-    { LA_AREA_ELLIPSE, pxr::HdPrimTypeTokens->diskLight}
 };
 
 } // namespace usdhydra

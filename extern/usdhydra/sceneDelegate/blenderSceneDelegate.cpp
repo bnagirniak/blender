@@ -44,41 +44,36 @@ void BlenderSceneDelegate::Populate()
         SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objName));
         
         if (objects.find(objId) == objects.end()) {
-          LOG(INFO) << "Add mesh object: " << objId;
-
-          switch (obj.type()) {
-            case BL::Object::type_MESH:
-              GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-              break;
-            case BL::Object::type_LIGHT:
-              GetRenderIndex().InsertSprim(std::make_unique<ObjectExport>(obj, b_depsgraph)->lightExport().type(), this, objId);
-              break;
-            default:
-              GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+          if (obj.type() == BL::Object::type_MESH) {
+            LOG(INFO) << "Add mesh object: " << objId;
+            GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+            objects[objId] = objName;
           }
-
-          objects[objId] = objName;
+          else if (obj.type() == BL::Object::type_LIGHT) {
+            LOG(INFO) << "Add light object: " << objId;
+            GetRenderIndex().InsertRprim(ObjectExport(obj, b_depsgraph).lightExport().type(), this, objId);
+            objects[objId] = objName;
+          }
           continue;
         }
         if (update.is_updated_geometry()) {
           LOG(INFO) << "Full updated: " << objId;
-
-          switch (obj.type()) {
-            case BL::Object::type_MESH:
-              GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
-              break;
-            case BL::Object::type_LIGHT:
-              GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
-              break;
-            default:
-              GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+          if (obj.type() == BL::Object::type_MESH) {
+            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
           }
-
+          else if (obj.type() == BL::Object::type_LIGHT) {
+            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+          }
           continue;
         }
         if (update.is_updated_transform()) {
           LOG(INFO) << "Transform updated: " << objId;
-          GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+          if (obj.type() == BL::Object::type_MESH) {
+            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+          }
+          else if (obj.type() == BL::Object::type_LIGHT) {
+            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+          }
         }
         continue;
       }
@@ -93,7 +88,7 @@ void BlenderSceneDelegate::Populate()
               continue;
             }
             BL::Object obj = inst.object();
-            if (obj.type() == BL::Object::type_MESH) {
+            if (obj.type() == BL::Object::type_MESH || obj.type() == BL::Object::type_LIGHT) {
               depsObjects.insert(obj.name_full());
             }
           }
@@ -137,13 +132,13 @@ void BlenderSceneDelegate::Populate()
     
     if (obj.type() == BL::Object::type_MESH) {
       LOG(INFO) << "Add mesh object: " << objId;
-
       GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
       objects[objId] = obj.name_full();
       continue;
     }
     if (obj.type() == BL::Object::type_LIGHT) {
-      GetRenderIndex().InsertSprim(std::make_unique<ObjectExport>(obj, b_depsgraph)->lightExport().type(), this, objId);
+      LOG(INFO) << "Add light object: " << objId;
+      GetRenderIndex().InsertRprim(ObjectExport(obj, b_depsgraph).lightExport().type(), this, objId);
       objects[objId] = obj.name_full();
       continue;
     }

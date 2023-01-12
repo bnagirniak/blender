@@ -20,7 +20,7 @@ BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath c
 
 std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const & id)
 {
-  std::string name = objects[id];
+  std::string name = std::get<0>(objects[id]);
   for (BL::Object &obj : b_depsgraph.objects) {
     if (obj.name_full() == name) {
       return std::make_unique<ObjectExport>(obj, b_depsgraph);
@@ -47,12 +47,13 @@ void BlenderSceneDelegate::Populate()
           if (obj.type() == BL::Object::type_MESH) {
             LOG(INFO) << "Add mesh object: " << objId;
             GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-            objects[objId] = objName;
+            objects[objId] = std::make_tuple(objName, TfToken(0));
           }
           else if (obj.type() == BL::Object::type_LIGHT) {
             LOG(INFO) << "Add light object: " << objId;
-            GetRenderIndex().InsertRprim(ObjectExport(obj, b_depsgraph).lightExport().type(), this, objId);
-            objects[objId] = objName;
+            TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
+            GetRenderIndex().InsertSprim(lightType, this, objId);
+            objects[objId] = std::make_tuple(objName, lightType);
           }
           continue;
         }
@@ -62,7 +63,7 @@ void BlenderSceneDelegate::Populate()
             GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
           }
           else if (obj.type() == BL::Object::type_LIGHT) {
-            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+            GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
           }
           continue;
         }
@@ -72,7 +73,7 @@ void BlenderSceneDelegate::Populate()
             GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
           }
           else if (obj.type() == BL::Object::type_LIGHT) {
-            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+            GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdLight::DirtyTransform);
           }
         }
         continue;
@@ -95,9 +96,14 @@ void BlenderSceneDelegate::Populate()
           
           auto it = objects.begin();
           while (it != objects.end()) {
-            if (depsObjects.find(it->second) == depsObjects.end()) {
+            if (depsObjects.find(std::get<0>(it->second)) == depsObjects.end()) {
               LOG(INFO) << "Removed: " << it->first;
-              GetRenderIndex().RemoveRprim(it->first);
+              if (GetRenderIndex().GetRprim(it->first)) {
+                GetRenderIndex().RemoveRprim(it->first);
+              }
+              else {
+                GetRenderIndex().RemoveSprim(std::get<1>(it->second), it->first);
+              }
               objects.erase(it);
               it = objects.begin();
             }
@@ -108,16 +114,6 @@ void BlenderSceneDelegate::Populate()
         }
         continue;
       }
-
-      //if (id.is_a(&RNA_Scene)) {
-      //  BL::Scene &scene = (BL::Scene &)id;
-      //  std::cout << "Scene: " << scene.name() << "\n";
-
-      //}
-      //else {
-      //  std::cout << "Other: " << id.name() << "\n";
-      //}
-
     }
     return;
   }
@@ -133,13 +129,14 @@ void BlenderSceneDelegate::Populate()
     if (obj.type() == BL::Object::type_MESH) {
       LOG(INFO) << "Add mesh object: " << objId;
       GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-      objects[objId] = obj.name_full();
+      objects[objId] = std::make_tuple(obj.name_full(), TfToken(0));
       continue;
     }
     if (obj.type() == BL::Object::type_LIGHT) {
       LOG(INFO) << "Add light object: " << objId;
-      GetRenderIndex().InsertRprim(ObjectExport(obj, b_depsgraph).lightExport().type(), this, objId);
-      objects[objId] = obj.name_full();
+      TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
+      GetRenderIndex().InsertSprim(lightType, this, objId);
+      objects[objId] = std::make_tuple(obj.name_full(), lightType);
       continue;
     }
   }

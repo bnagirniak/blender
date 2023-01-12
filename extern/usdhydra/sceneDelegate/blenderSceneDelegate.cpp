@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <pxr/imaging/hd/light.h>
+#include <pxr/usd/usdLux/tokens.h>
+
 #include "glog/logging.h"
 
 #include "blenderSceneDelegate.h"
@@ -17,7 +20,7 @@ BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath c
 
 std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const & id)
 {
-  std::string name = objects[id];
+  std::string name = std::get<0>(objects[id]);
   for (BL::Object &obj : b_depsgraph.objects) {
     if (obj.name_full() == name) {
       return std::make_unique<ObjectExport>(obj, b_depsgraph);
@@ -41,26 +44,43 @@ void BlenderSceneDelegate::Populate()
         SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objName));
         
         if (objects.find(objId) == objects.end()) {
-          LOG(INFO) << "Add mesh object: " << objId;
-          GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-          objects[objId] = objName;
+          if (obj.type() == BL::Object::type_MESH) {
+            LOG(INFO) << "Add mesh object: " << objId;
+            GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+            objects[objId] = std::make_tuple(objName, TfToken(0));
+          }
+          else if (obj.type() == BL::Object::type_LIGHT) {
+            LOG(INFO) << "Add light object: " << objId;
+            TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
+            GetRenderIndex().InsertSprim(lightType, this, objId);
+            objects[objId] = std::make_tuple(objName, lightType);
+          }
           continue;
         }
         if (update.is_updated_geometry()) {
           LOG(INFO) << "Full updated: " << objId;
-          GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+          if (obj.type() == BL::Object::type_MESH) {
+            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+          }
+          else if (obj.type() == BL::Object::type_LIGHT) {
+            GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
+          }
           continue;
         }
         if (update.is_updated_transform()) {
           LOG(INFO) << "Transform updated: " << objId;
-          GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+          if (obj.type() == BL::Object::type_MESH) {
+            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+          }
+          else if (obj.type() == BL::Object::type_LIGHT) {
+            GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdLight::DirtyTransform);
+          }
         }
         continue;
       }
       
       if (id.is_a(&RNA_Collection)) {
         BL::Collection &col = (BL::Collection &)id;
-        //std::cout << "Collection: " << col.name() << "\n";
         if (update.is_updated_transform() && update.is_updated_geometry()) {
           //available objects from depsgraph
           std::set<std::string> depsObjects;
@@ -69,16 +89,21 @@ void BlenderSceneDelegate::Populate()
               continue;
             }
             BL::Object obj = inst.object();
-            if (obj.type() == BL::Object::type_MESH) {
+            if (obj.type() == BL::Object::type_MESH || obj.type() == BL::Object::type_LIGHT) {
               depsObjects.insert(obj.name_full());
             }
           }
           
           auto it = objects.begin();
           while (it != objects.end()) {
-            if (depsObjects.find(it->second) == depsObjects.end()) {
+            if (depsObjects.find(std::get<0>(it->second)) == depsObjects.end()) {
               LOG(INFO) << "Removed: " << it->first;
-              GetRenderIndex().RemoveRprim(it->first);
+              if (GetRenderIndex().GetRprim(it->first)) {
+                GetRenderIndex().RemoveRprim(it->first);
+              }
+              else {
+                GetRenderIndex().RemoveSprim(std::get<1>(it->second), it->first);
+              }
               objects.erase(it);
               it = objects.begin();
             }
@@ -89,16 +114,6 @@ void BlenderSceneDelegate::Populate()
         }
         continue;
       }
-
-      //if (id.is_a(&RNA_Scene)) {
-      //  BL::Scene &scene = (BL::Scene &)id;
-      //  std::cout << "Scene: " << scene.name() << "\n";
-
-      //}
-      //else {
-      //  std::cout << "Other: " << id.name() << "\n";
-      //}
-
     }
     return;
   }
@@ -109,17 +124,19 @@ void BlenderSceneDelegate::Populate()
     }
     
     BL::Object obj = inst.object();
-    SdfPath objId = GetDelegateID().AppendElementString(obj.name_full());
+    SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(obj.name_full()));
     
     if (obj.type() == BL::Object::type_MESH) {
       LOG(INFO) << "Add mesh object: " << objId;
-
       GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-      objects[objId] = obj.name_full();
+      objects[objId] = std::make_tuple(obj.name_full(), TfToken(0));
       continue;
     }
     if (obj.type() == BL::Object::type_LIGHT) {
-      //GetRenderIndex().InsertSprim(HdPrimTypeTokens->sphereLight, this, objId);
+      LOG(INFO) << "Add light object: " << objId;
+      TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
+      GetRenderIndex().InsertSprim(lightType, this, objId);
+      objects[objId] = std::make_tuple(obj.name_full(), lightType);
       continue;
     }
   }
@@ -176,6 +193,43 @@ VtValue BlenderSceneDelegate::GetCameraParamValue(SdfPath const& id, TfToken con
 VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken const& key)
 {
   LOG(INFO) << "GetLightParamValue: " << id.GetAsString() << " [" << key.GetString() << "]";
+
+  if (key == HdLightTokens->intensity) {
+    return objectExport(id)->lightExport().intensity();
+  }
+
+  if (key == HdLightTokens->width) {
+    return objectExport(id)->lightExport().width();
+  }
+
+  if (key == HdLightTokens->height) {
+    return objectExport(id)->lightExport().height();
+  }
+
+  if (key == HdLightTokens->radius) {
+    return objectExport(id)->lightExport().radius();
+  }
+  
+  if (key == HdLightTokens->color) {
+    return objectExport(id)->lightExport().color();
+  }  
+
+  if (key == HdLightTokens->angle) {
+    return objectExport(id)->lightExport().angle();
+  }
+
+  if (key == HdLightTokens->shapingConeAngle) {
+    return objectExport(id)->lightExport().shapingConeAngle();
+  }
+
+  if (key == HdLightTokens->shapingConeSoftness) {
+    return objectExport(id)->lightExport().shapingConeSoftness();
+  }
+  
+  if (key == UsdLuxTokens->treatAsPoint) {
+    return objectExport(id)->lightExport().treatAsPoint();
+  }
+
   return VtValue();
 }
 

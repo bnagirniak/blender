@@ -14,6 +14,7 @@ def get_panels():
         'DATA_PT_shadow',
         'DATA_PT_spot',
         'DATA_PT_sunsky',
+        'DATA_PT_light',
         'MATERIAL_PT_diffuse',
         'MATERIAL_PT_flare',
         'MATERIAL_PT_halo',
@@ -53,6 +54,7 @@ def get_panels():
         'WORLD_PT_mist',
         'WORLD_PT_preview',
         'WORLD_PT_world',
+        'NODE_DATA_PT_light',
     }
     include_eevee_panels = {
         'MATERIAL_PT_preview',

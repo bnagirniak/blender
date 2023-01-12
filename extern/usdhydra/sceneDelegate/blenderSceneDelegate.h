@@ -41,7 +41,7 @@ private:
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
 
-  std::map<SdfPath, std::string> objects;
+  std::map<SdfPath, std::tuple<std::string, TfToken>> objects;
 };
 
 } // namespace usdhydra

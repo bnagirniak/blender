@@ -12,4 +12,5 @@ register, unregister = bpy.utils.register_classes_factory((
     engine.StormHydraRenderEngine,
     properties.SceneProperties,
     ui.STORM_HYDRA_RENDER_PT_render_settings,
+    ui.STORM_HYDRA_LIGHT_PT_light,
 ))

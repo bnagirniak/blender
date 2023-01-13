@@ -31,9 +31,9 @@ public:
   HdMeshTopology GetMeshTopology(SdfPath const& id) override;
   GfMatrix4d GetTransform(SdfPath const& id) override;
   VtValue Get(SdfPath const& id, TfToken const& key) override;
-  VtValue GetCameraParamValue(SdfPath const& id, TfToken const& key) override;
   VtValue GetLightParamValue(SdfPath const& id, TfToken const& key) override;
   HdPrimvarDescriptorVector GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation) override;
+  SdfPath GetMaterialId(SdfPath const &rprimId) override;
 
 private:
   BL::Depsgraph b_depsgraph;

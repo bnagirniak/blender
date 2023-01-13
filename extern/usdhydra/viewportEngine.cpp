@@ -542,8 +542,27 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
 {
   if (!sceneDelegate) {
     sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
-      SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
+      SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
   }
+
+  if (!materialDelegate) {
+    materialStage = UsdStage::CreateInMemory();
+
+    UsdPrim over = materialStage->OverridePrim(SdfPath::AbsoluteRootPath().AppendElementString("Material"));
+    over.GetReferences().AddReference("D:/amd/usd/a/Material.mtlx", SdfPath::AbsoluteRootPath().AppendElementString("MaterialX"));
+
+    std::string str;
+    materialStage->ExportToString(&str);
+    std::cout << str << "\n\n";
+
+    materialStage->GetRootLayer()->ExportToString(&str);
+    std::cout << str << "\n\n";
+
+    materialDelegate = std::make_unique<UsdImagingDelegate>(renderIndex.get(), 
+      SdfPath::AbsoluteRootPath().AppendElementString("materials"));
+    materialDelegate->Populate(materialStage->GetPseudoRoot());
+  }
+  
   sceneDelegate->Populate();
 
   for (auto const& setting : renderSettings) {

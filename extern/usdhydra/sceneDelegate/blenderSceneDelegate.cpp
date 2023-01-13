@@ -178,16 +178,19 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
   return primvars;
 }
 
+SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
+{
+  LOG(INFO) << "GetMaterialId: " << rprimId.GetAsString();
+  if (rprimId == GetDelegateID().AppendElementString("Cube")) {
+    return SdfPath::AbsoluteRootPath().AppendElementString("materials").AppendElementString("Material").AppendElementString("Materials").AppendElementString("surfacematerial_2");
+  }
+  return SdfPath();
+}
+
 GfMatrix4d BlenderSceneDelegate::GetTransform(SdfPath const& id)
 {
   LOG(INFO) << "GetTransform: " << id.GetAsString();
   return objectExport(id)->transform();
-}
-
-VtValue BlenderSceneDelegate::GetCameraParamValue(SdfPath const& id, TfToken const& key)
-{
-  LOG(INFO) << "GetCameraParamValue: " << id.GetAsString() << " [" << key.GetString() << "]";
-  return VtValue();
 }
 
 VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken const& key)

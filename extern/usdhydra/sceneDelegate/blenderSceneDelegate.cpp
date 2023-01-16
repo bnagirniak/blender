@@ -2,6 +2,7 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <pxr/imaging/hd/light.h>
+#include <pxr/imaging/hd/material.h>
 #include <pxr/usd/usdLux/tokens.h>
 
 #include "glog/logging.h"
@@ -32,6 +33,7 @@ std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const &
 void BlenderSceneDelegate::Populate()
 {
   LOG(INFO) << "Populate " << isPopulated;
+  HdRenderIndex& index = GetRenderIndex();
 
   if (isPopulated) {
     for (auto &update : b_depsgraph.updates) {
@@ -46,13 +48,13 @@ void BlenderSceneDelegate::Populate()
         if (objects.find(objId) == objects.end()) {
           if (obj.type() == BL::Object::type_MESH) {
             LOG(INFO) << "Add mesh object: " << objId;
-            GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+            index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
             objects[objId] = std::make_tuple(objName, TfToken(0));
           }
           else if (obj.type() == BL::Object::type_LIGHT) {
             LOG(INFO) << "Add light object: " << objId;
             TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
-            GetRenderIndex().InsertSprim(lightType, this, objId);
+            index.InsertSprim(lightType, this, objId);
             objects[objId] = std::make_tuple(objName, lightType);
           }
           continue;
@@ -60,20 +62,20 @@ void BlenderSceneDelegate::Populate()
         if (update.is_updated_geometry()) {
           LOG(INFO) << "Full updated: " << objId;
           if (obj.type() == BL::Object::type_MESH) {
-            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
+            index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
           }
           else if (obj.type() == BL::Object::type_LIGHT) {
-            GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
+            index.GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
           }
           continue;
         }
         if (update.is_updated_transform()) {
           LOG(INFO) << "Transform updated: " << objId;
           if (obj.type() == BL::Object::type_MESH) {
-            GetRenderIndex().GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
+            index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
           }
           else if (obj.type() == BL::Object::type_LIGHT) {
-            GetRenderIndex().GetChangeTracker().MarkSprimDirty(objId, HdLight::DirtyTransform);
+            index.GetChangeTracker().MarkSprimDirty(objId, HdLight::DirtyTransform);
           }
         }
         continue;
@@ -98,11 +100,11 @@ void BlenderSceneDelegate::Populate()
           while (it != objects.end()) {
             if (depsObjects.find(std::get<0>(it->second)) == depsObjects.end()) {
               LOG(INFO) << "Removed: " << it->first;
-              if (GetRenderIndex().GetRprim(it->first)) {
-                GetRenderIndex().RemoveRprim(it->first);
+              if (index.GetRprim(it->first)) {
+                index.RemoveRprim(it->first);
               }
               else {
-                GetRenderIndex().RemoveSprim(std::get<1>(it->second), it->first);
+                index.RemoveSprim(std::get<1>(it->second), it->first);
               }
               objects.erase(it);
               it = objects.begin();
@@ -128,18 +130,24 @@ void BlenderSceneDelegate::Populate()
     
     if (obj.type() == BL::Object::type_MESH) {
       LOG(INFO) << "Add mesh object: " << objId;
-      GetRenderIndex().InsertRprim(HdPrimTypeTokens->mesh, this, objId);
+      index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
       objects[objId] = std::make_tuple(obj.name_full(), TfToken(0));
+      //index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyMaterialId);
+
       continue;
     }
     if (obj.type() == BL::Object::type_LIGHT) {
       LOG(INFO) << "Add light object: " << objId;
       TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
-      GetRenderIndex().InsertSprim(lightType, this, objId);
+      index.InsertSprim(lightType, this, objId);
       objects[objId] = std::make_tuple(obj.name_full(), lightType);
       continue;
     }
   }
+
+  index.InsertSprim(HdPrimTypeTokens->material, this, GetDelegateID().AppendElementString("Material"));
+  //index.GetChangeTracker().MarkSprimDirty(GetDelegateID().AppendElementString("Material"), HdMaterial::DirtyResource);
+  
   isPopulated = true;
 }
 
@@ -162,6 +170,9 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     VtVec3fArray normals = objectExport(id)->meshExport().normals();
     return VtValue(normals);
   }
+  if (key.GetString() == "MaterialXFilename") {
+    return VtValue(SdfAssetPath("D:\\amd\\usd\\a\\Material.mtlx"));
+  }
   return VtValue();
 }
 
@@ -180,11 +191,21 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
 
 SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
 {
-  LOG(INFO) << "GetMaterialId: " << rprimId.GetAsString();
+  SdfPath ret;
   if (rprimId == GetDelegateID().AppendElementString("Cube")) {
-    return SdfPath::AbsoluteRootPath().AppendElementString("materials").AppendElementString("Material").AppendElementString("Materials").AppendElementString("surfacematerial_2");
+    ret = SdfPath::AbsoluteRootPath().AppendElementString("materials").AppendElementString("Material").AppendElementString("Materials").AppendElementString("surfacematerial_2");
   }
-  return SdfPath();
+  else {
+    ret = GetDelegateID().AppendElementString("Material");
+  }
+  LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
+  return ret;
+}
+
+VtValue BlenderSceneDelegate::GetMaterialResource(SdfPath const& materialId)
+{
+  LOG(INFO) << "GetMaterialResource: " << materialId.GetAsString();
+  return VtValue();
 }
 
 GfMatrix4d BlenderSceneDelegate::GetTransform(SdfPath const& id)

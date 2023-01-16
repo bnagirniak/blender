@@ -34,6 +34,7 @@ public:
   VtValue GetLightParamValue(SdfPath const& id, TfToken const& key) override;
   HdPrimvarDescriptorVector GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation) override;
   SdfPath GetMaterialId(SdfPath const &rprimId) override;
+  VtValue GetMaterialResource(SdfPath const &materialId) override;
 
 private:
   BL::Depsgraph b_depsgraph;

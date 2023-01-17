@@ -2,6 +2,7 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <pxr/imaging/hd/rendererPluginRegistry.h>
+#include <pxr/imaging/hgi/tokens.h>
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
 #include <pxr/usd/usdGeom/tokens.h>
@@ -18,13 +19,15 @@ using namespace pxr;
 namespace usdhydra {
 
 Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
-  : b_engine(b_engine)
+  : b_engine(b_engine),
+    _hgi(Hgi::CreatePlatformDefaultHgi()),
+    _hgiDriver({HgiTokens->renderDriver, VtValue(_hgi.get())})
 {
   HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
   TF_PY_ALLOW_THREADS_IN_SCOPE();
   renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
-  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {}));
+  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {&_hgiDriver}));    
   freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(

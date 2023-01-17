@@ -2,6 +2,7 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <pxr/imaging/hd/light.h>
+#include <pxr/imaging/hdSt/tokens.h>
 #include <pxr/usd/usdLux/tokens.h>
 
 #include "glog/logging.h"
@@ -162,6 +163,11 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     VtVec3fArray normals = objectExport(id)->meshExport().normals();
     return VtValue(normals);
   }
+
+  if (key == HdStRenderBufferTokens->stormMsaaSampleCount) {
+    return VtValue(100);
+  }
+
   return VtValue();
 }
 
@@ -229,6 +235,10 @@ VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken cons
   if (key == UsdLuxTokens->treatAsPoint) {
     return objectExport(id)->lightExport().treatAsPoint();
   }
+
+  if (key == HdLightTokens->exposure) {
+    return VtValue(1.0f);
+  } 
 
   return VtValue();
 }

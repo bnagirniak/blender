@@ -67,6 +67,9 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
   pFunc = PyDict_GetItemString(pDict, "export"); 
   pValue = Py_BuildValue("ss", "Material", "D:\\amd\\tmp\\1\\m.mtlx");
   pResult = PyObject_CallObject(pFunc, pValue);
+  bool b = PyLong_AsLong(pResult);
+  std::cout << "MatX export: " << b << "\n";
+
   PyErr_Print();
 
   PyObject *b_pyengine;

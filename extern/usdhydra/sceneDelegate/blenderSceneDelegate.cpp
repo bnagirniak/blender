@@ -171,7 +171,8 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     return VtValue(normals);
   }
   if (key.GetString() == "MaterialXFilename") {
-    return VtValue(SdfAssetPath("D:\\amd\\usd\\a\\Material.mtlx"));
+    return VtValue(SdfAssetPath("D:\\amd\\blender-git\\material\\Material.mtlx", 
+      "D:\\amd\\blender-git\\material\\Material.mtlx"));
   }
   return VtValue();
 }
@@ -193,7 +194,7 @@ SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
 {
   SdfPath ret;
   if (rprimId == GetDelegateID().AppendElementString("Cube")) {
-    ret = SdfPath::AbsoluteRootPath().AppendElementString("materials").AppendElementString("Material").AppendElementString("Materials").AppendElementString("surfacematerial_2");
+    ret = SdfPath::AbsoluteRootPath().AppendElementString("materials").AppendElementString("Material").AppendElementString("Materials").AppendElementString("surface");
   }
   else {
     ret = GetDelegateID().AppendElementString("Material");

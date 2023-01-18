@@ -549,7 +549,7 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
     materialStage = UsdStage::CreateInMemory();
 
     UsdPrim over = materialStage->OverridePrim(SdfPath::AbsoluteRootPath().AppendElementString("Material"));
-    over.GetReferences().AddReference("D:/amd/usd/a/Material.mtlx", SdfPath::AbsoluteRootPath().AppendElementString("MaterialX"));
+    over.GetReferences().AddReference("D:/amd/blender-git/material/Material.mtlx", SdfPath::AbsoluteRootPath().AppendElementString("MaterialX"));
 
     std::string str;
     materialStage->ExportToString(&str);

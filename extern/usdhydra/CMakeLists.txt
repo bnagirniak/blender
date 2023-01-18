@@ -69,6 +69,8 @@ set(SRC
   sceneDelegate/light.cpp
   sceneDelegate/scene.h
   sceneDelegate/scene.cpp
+  sceneDelegate/material.h
+  sceneDelegate/material.cpp
 )
 
 set(LIB
@@ -83,6 +85,7 @@ set(ADDON_FILES
   addon/logger.py
   addon/preferences.py
   addon/ui.py
+  addon/matx.py
 )
 
 set(ADDON_STORM_FILES

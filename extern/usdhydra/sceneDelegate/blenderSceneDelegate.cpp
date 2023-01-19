@@ -163,9 +163,8 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     VtVec3fArray normals = objectExport(id)->meshExport().normals();
     return VtValue(normals);
   }
-
   if (key == HdStRenderBufferTokens->stormMsaaSampleCount) {
-    return VtValue(100);
+    return VtValue(16);
   }
 
   return VtValue();
@@ -203,43 +202,33 @@ VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken cons
   if (key == HdLightTokens->intensity) {
     return objectExport(id)->lightExport().intensity();
   }
-
   if (key == HdLightTokens->width) {
     return objectExport(id)->lightExport().width();
   }
-
   if (key == HdLightTokens->height) {
     return objectExport(id)->lightExport().height();
   }
-
   if (key == HdLightTokens->radius) {
     return objectExport(id)->lightExport().radius();
   }
-  
   if (key == HdLightTokens->color) {
     return objectExport(id)->lightExport().color();
   }  
-
   if (key == HdLightTokens->angle) {
     return objectExport(id)->lightExport().angle();
   }
-
   if (key == HdLightTokens->shapingConeAngle) {
     return objectExport(id)->lightExport().shapingConeAngle();
   }
-
   if (key == HdLightTokens->shapingConeSoftness) {
     return objectExport(id)->lightExport().shapingConeSoftness();
   }
-  
   if (key == UsdLuxTokens->treatAsPoint) {
     return objectExport(id)->lightExport().treatAsPoint();
   }
-
   if (key == HdLightTokens->exposure) {
     return VtValue(1.0f);
   } 
-
   return VtValue();
 }
 

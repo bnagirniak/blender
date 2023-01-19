@@ -19,15 +19,20 @@ using namespace pxr;
 namespace usdhydra {
 
 Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
-  : b_engine(b_engine),
-    _hgi(Hgi::CreatePlatformDefaultHgi()),
-    _hgiDriver({HgiTokens->renderDriver, VtValue(_hgi.get())})
+  : b_engine(b_engine)
 {
   HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
   TF_PY_ALLOW_THREADS_IN_SCOPE();
   renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
-  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {&_hgiDriver}));    
+
+  if (isStormRenderDelegate()) {
+    hgi = Hgi::CreatePlatformDefaultHgi();
+    hgiDriver.name = HgiTokens->renderDriver; 
+    hgiDriver.driver = VtValue(hgi.get());
+  }
+
+  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {&hgiDriver}));
   freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
@@ -51,6 +56,11 @@ float Engine::getRendererPercentDone()
     return 0.0;
   }
   return (float)it->second.UncheckedGet<double>();
+}
+
+bool Engine::isStormRenderDelegate()
+{
+  return renderDelegate.GetPluginId().GetString() == "HdStormRendererPlugin";
 }
 
 /* ------------------------------------------------------------------------- */

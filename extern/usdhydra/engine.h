@@ -31,6 +31,7 @@ public:
 
 protected:
   float getRendererPercentDone();
+  bool isStormRenderDelegate();
 
 protected:
   BL::RenderEngine b_engine;
@@ -42,9 +43,9 @@ protected:
   std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
   HdEngine _engine;
 
-  HgiUniquePtr _hgi;
+  HgiUniquePtr hgi;
   // Similar for HdDriver.
-  HdDriver _hgiDriver;
+  HdDriver hgiDriver;
 };
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);

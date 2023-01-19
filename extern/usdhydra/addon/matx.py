@@ -9,19 +9,21 @@ from . import logger
 log = logger.Log('matx')
 
 
-def export(material_name, file_path):
+def export(material_name):
     try:
         import materialx.utils as mx_utils
 
         material = bpy.data.materials[material_name]
         doc = mx_utils.export(material, None)
         if not doc:
-            return False
+            return ""
 
-        mx_utils.export_to_file(doc, file_path, False)
-        return True
+        mtlx_file = mx_utils.get_temp_file(
+            ".mtlx", f'{material.name}_{material.node_tree.name if material.node_tree else ""}')
+        mx_utils.export_to_file(doc, mtlx_file, False)
+        return str(mtlx_file)
 
     except Exception as e:
         log.error(e)
 
-    return False
+    return ""

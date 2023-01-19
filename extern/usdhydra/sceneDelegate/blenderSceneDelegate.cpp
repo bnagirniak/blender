@@ -145,10 +145,12 @@ void BlenderSceneDelegate::Populate()
       MaterialExport matExport = objExport.materialExport();
       if (matExport) {
         SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
-        LOG(INFO) << "Add material: " << matId;
-        index.InsertSprim(HdPrimTypeTokens->material, this, matId);
-        materials[matId] = MaterialData(matExport.name());
-        objData.data["materialId"] = matId;
+        if (materials.find(matId) == materials.end()) {
+          LOG(INFO) << "Add material: " << matId;
+          index.InsertSprim(HdPrimTypeTokens->material, this, matId);
+          materials[matId] = MaterialData(matExport.name());
+          objData.data["materialId"] = matId;
+        }
       }
       continue;
     }
@@ -161,9 +163,6 @@ void BlenderSceneDelegate::Populate()
       continue;
     }
   }
-
-  index.InsertSprim(HdPrimTypeTokens->material, this, GetDelegateID().AppendElementString("Material"));
-  //index.GetChangeTracker().MarkSprimDirty(GetDelegateID().AppendElementString("Material"), HdMaterial::DirtyResource);
   
   isPopulated = true;
 }
@@ -188,6 +187,13 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     return VtValue(normals);
   }
   if (key.GetString() == "MaterialXFilename") {
+    MaterialData &matData = materials[id];
+    if (!matData.mtlxPath.GetAssetPath().empty()) {
+      return VtValue(matData.mtlxPath);
+    }
+
+
+
     return VtValue(SdfAssetPath("D:\\amd\\blender-git\\material\\Material.mtlx", 
       "D:\\amd\\blender-git\\material\\Material.mtlx"));
   }
@@ -210,12 +216,12 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
 SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
 {
   SdfPath ret;
-  if (rprimId == GetDelegateID().AppendElementString("Cube")) {
-    ret = SdfPath::AbsoluteRootPath().AppendElementString("materials").AppendElementString("Material").AppendElementString("Materials").AppendElementString("surface");
+  ObjectData &objData = objects[rprimId];
+  auto it = objData.data.find("materialId");
+  if (it != objData.data.end()) {
+    ret = it->second.Get<SdfPath>();
   }
-  else {
-    ret = GetDelegateID().AppendElementString("Material");
-  }
+
   LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
   return ret;
 }

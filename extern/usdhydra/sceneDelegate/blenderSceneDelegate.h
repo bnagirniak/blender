@@ -61,8 +61,7 @@ private:
       : name(name)
     { }
     std::string name;
-    std::map<std::string, VtValue> data;
-
+    SdfAssetPath mtlxPath;
   };
 
   std::map<SdfPath, ObjectData> objects;

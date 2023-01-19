@@ -545,7 +545,6 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
       SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
   }
   sceneDelegate->Populate();
-  
   for (auto const& setting : renderSettings) {
     renderDelegate->SetRenderSetting(setting.first, setting.second);
   }

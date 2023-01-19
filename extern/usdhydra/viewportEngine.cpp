@@ -545,7 +545,6 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
       SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
   }
   sceneDelegate->Populate();
-
   for (auto const& setting : renderSettings) {
     renderDelegate->SetRenderSetting(setting.first, setting.second);
   }
@@ -564,7 +563,10 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), 
     GfVec4d(viewSettings.border[0][0], viewSettings.border[0][1], viewSettings.border[1][0], viewSettings.border[1][1]));
-  renderTaskDelegate->SetRendererAov(HdAovTokens->color);
+
+  if (!b_engine.bl_use_gpu_context()) {
+    renderTaskDelegate->SetRendererAov(HdAovTokens->color);
+  }
   
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
@@ -580,8 +582,10 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
 
   b_engine.bind_display_space_shader(b_scene);
 
-  texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
-  texture.draw((GLfloat)viewSettings.border[0][0], (GLfloat)viewSettings.border[0][1]);
+  if (!b_engine.bl_use_gpu_context()) {
+    texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
+    texture.draw((GLfloat)viewSettings.border[0][0], (GLfloat)viewSettings.border[0][1]);
+  }
 
   b_engine.unbind_display_space_shader();
 

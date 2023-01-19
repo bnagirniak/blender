@@ -9,7 +9,10 @@
 
 #include <pxr/imaging/hd/engine.h>
 #include <pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h>
+#include <pxr/imaging/hd/driver.h>
 #include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
+#include <pxr/imaging/hgi/hgi.h>
+
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -38,6 +41,10 @@ protected:
   std::unique_ptr<RenderTaskDelegate> renderTaskDelegate;
   std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
   HdEngine _engine;
+
+  HgiUniquePtr hgi;
+  // Similar for HdDriver.
+  HdDriver hgiDriver;
 };
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);

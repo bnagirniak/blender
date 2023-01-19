@@ -42,7 +42,31 @@ private:
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
 
-  std::map<SdfPath, std::tuple<std::string, TfToken>> objects;
+private:
+  struct ObjectData {
+    ObjectData()
+    { }
+    ObjectData(std::string name, TfToken type)
+      : name(name)
+      , type(type)
+    { }
+    std::string name;
+    TfToken type;
+    std::map<std::string, VtValue> data;
+  };
+  struct MaterialData {
+    MaterialData()
+    { }
+    MaterialData(std::string name)
+      : name(name)
+    { }
+    std::string name;
+    std::map<std::string, VtValue> data;
+
+  };
+
+  std::map<SdfPath, ObjectData> objects;
+  std::map<SdfPath, MaterialData> materials;
 };
 
 } // namespace usdhydra

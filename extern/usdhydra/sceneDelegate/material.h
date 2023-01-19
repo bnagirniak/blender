@@ -18,7 +18,9 @@ namespace usdhydra {
 class MaterialExport
 {
 public:
-  MaterialExport(BL::Material &b_material);
+  MaterialExport(BL::Object &b_object);
+  operator bool();
+  std::string name();
 
 private:
   Material *material;

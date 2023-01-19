@@ -11,9 +11,26 @@ using namespace pxr;
 
 namespace usdhydra {
 
-MaterialExport::MaterialExport(BL::Material &b_material)
-  : material((Material *)b_material.ptr.data)
+MaterialExport::MaterialExport(BL::Object &b_object)
+  : material(nullptr)
 {
+  if (b_object.material_slots.empty()) {
+    return;
+  }
+    
+  BL::Material b_material = b_object.material_slots[0].material();
+  if (!b_material) {
+    return;
+  }
+  material = (Material *)b_material.ptr.data;
+}
+
+MaterialExport::operator bool() {
+  return bool(material);
+}
+
+std::string MaterialExport::name() {
+  return material->id.name + 2;
 }
 
 } // namespace usdhydra

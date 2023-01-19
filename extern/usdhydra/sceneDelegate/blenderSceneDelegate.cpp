@@ -21,7 +21,7 @@ BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath c
 
 std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const & id)
 {
-  std::string name = std::get<0>(objects[id]);
+  std::string name = objects[id].name;
   for (BL::Object &obj : b_depsgraph.objects) {
     if (obj.name_full() == name) {
       return std::make_unique<ObjectExport>(obj, b_depsgraph);
@@ -41,41 +41,49 @@ void BlenderSceneDelegate::Populate()
       LOG(INFO) << "Update: " << id.name_full() << " " << update.is_updated_transform() << update.is_updated_geometry() << update.is_updated_shading();
 
       if (id.is_a(&RNA_Object)) {
-        BL::Object &obj = (BL::Object &)id;
-        std::string objName = obj.name_full();
-        SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objName));
-        
+        ObjectExport objExport((BL::Object &)id, b_depsgraph);
+        SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
+
         if (objects.find(objId) == objects.end()) {
-          if (obj.type() == BL::Object::type_MESH) {
+          if (objExport.type() == BL::Object::type_MESH) {
             LOG(INFO) << "Add mesh object: " << objId;
             index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-            objects[objId] = std::make_tuple(objName, TfToken(0));
+            objects[objId] = ObjectData(objExport.name(), HdPrimTypeTokens->mesh);
           }
-          else if (obj.type() == BL::Object::type_LIGHT) {
+          else if (objExport.type() == BL::Object::type_LIGHT) {
             LOG(INFO) << "Add light object: " << objId;
-            TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
+            TfToken lightType = objExport.lightExport().type();
             index.InsertSprim(lightType, this, objId);
-            objects[objId] = std::make_tuple(objName, lightType);
+            objects[objId] = ObjectData(objExport.name(), lightType);
           }
           continue;
         }
+
         if (update.is_updated_geometry()) {
           LOG(INFO) << "Full updated: " << objId;
-          if (obj.type() == BL::Object::type_MESH) {
+          if (objExport.type() == BL::Object::type_MESH) {
             index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
           }
-          else if (obj.type() == BL::Object::type_LIGHT) {
-            index.GetChangeTracker().MarkSprimDirty(objId, HdChangeTracker::AllDirty);
+          else if (objExport.type() == BL::Object::type_LIGHT) {
+            index.GetChangeTracker().MarkSprimDirty(objId, HdLight::AllDirty);
           }
           continue;
         }
+
         if (update.is_updated_transform()) {
           LOG(INFO) << "Transform updated: " << objId;
-          if (obj.type() == BL::Object::type_MESH) {
+          if (objExport.type() == BL::Object::type_MESH) {
             index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
           }
-          else if (obj.type() == BL::Object::type_LIGHT) {
+          else if (objExport.type() == BL::Object::type_LIGHT) {
             index.GetChangeTracker().MarkSprimDirty(objId, HdLight::DirtyTransform);
+          }
+        }
+
+        if (update.is_updated_shading()) {
+          LOG(INFO) << "Shading updated: " << objId;
+          if (objExport.type() == BL::Object::type_MESH) {
+            index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyMaterialId);
           }
         }
         continue;
@@ -84,7 +92,7 @@ void BlenderSceneDelegate::Populate()
       if (id.is_a(&RNA_Collection)) {
         BL::Collection &col = (BL::Collection &)id;
         if (update.is_updated_transform() && update.is_updated_geometry()) {
-          //available objects from depsgraph
+          // get available objects from depsgraph
           std::set<std::string> depsObjects;
           for (auto &inst : b_depsgraph.object_instances) {
             if (inst.is_instance()) {
@@ -98,13 +106,13 @@ void BlenderSceneDelegate::Populate()
           
           auto it = objects.begin();
           while (it != objects.end()) {
-            if (depsObjects.find(std::get<0>(it->second)) == depsObjects.end()) {
+            if (depsObjects.find(it->second.name) == depsObjects.end()) {
               LOG(INFO) << "Removed: " << it->first;
               if (index.GetRprim(it->first)) {
                 index.RemoveRprim(it->first);
               }
               else {
-                index.RemoveSprim(std::get<1>(it->second), it->first);
+                index.RemoveSprim(it->second.type, it->first);
               }
               objects.erase(it);
               it = objects.begin();
@@ -125,22 +133,31 @@ void BlenderSceneDelegate::Populate()
       continue;
     }
     
-    BL::Object obj = inst.object();
-    SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(obj.name_full()));
+    ObjectExport objExport(inst.object(), b_depsgraph);
+    SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
     
-    if (obj.type() == BL::Object::type_MESH) {
+    if (objExport.type() == BL::Object::type_MESH) {
       LOG(INFO) << "Add mesh object: " << objId;
       index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-      objects[objId] = std::make_tuple(obj.name_full(), TfToken(0));
-      //index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyMaterialId);
+      objects[objId] = ObjectData(objExport.name(), HdPrimTypeTokens->mesh);
+      ObjectData &objData = objects[objId];
 
+      MaterialExport matExport = objExport.materialExport();
+      if (matExport) {
+        SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
+        LOG(INFO) << "Add material: " << matId;
+        index.InsertSprim(HdPrimTypeTokens->material, this, matId);
+        materials[matId] = MaterialData(matExport.name());
+        objData.data["materialId"] = matId;
+      }
       continue;
     }
-    if (obj.type() == BL::Object::type_LIGHT) {
+    
+    if (objExport.type() == BL::Object::type_LIGHT) {
       LOG(INFO) << "Add light object: " << objId;
-      TfToken lightType = ObjectExport(obj, b_depsgraph).lightExport().type();
+      TfToken lightType = objExport.lightExport().type();
       index.InsertSprim(lightType, this, objId);
-      objects[objId] = std::make_tuple(obj.name_full(), lightType);
+      objects[objId] = ObjectData(objExport.name(), lightType);
       continue;
     }
   }

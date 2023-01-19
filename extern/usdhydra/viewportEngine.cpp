@@ -564,8 +564,9 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), 
     GfVec4d(viewSettings.border[0][0], viewSettings.border[0][1], viewSettings.border[1][0], viewSettings.border[1][1]));
 
-  if (!b_engine.bl_use_gpu_context())
+  if (!b_engine.bl_use_gpu_context()) {
     renderTaskDelegate->SetRendererAov(HdAovTokens->color);
+  }
   
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 

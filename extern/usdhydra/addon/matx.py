@@ -3,6 +3,8 @@
 
 # <pep8 compliant>
 
+import traceback
+
 import bpy
 
 from . import logger
@@ -18,12 +20,11 @@ def export(material_name):
         if not doc:
             return ""
 
-        mtlx_file = mx_utils.get_temp_file(
-            ".mtlx", f'{material.name}_{material.node_tree.name if material.node_tree else ""}')
+        mtlx_file = mx_utils.get_temp_file(".mtlx", material.name, True)
         mx_utils.export_to_file(doc, mtlx_file, False)
         return str(mtlx_file)
 
     except Exception as e:
-        log.error(e)
+        log.error(e, 'EXCEPTION:', traceback.format_exc())
 
     return ""

@@ -146,10 +146,13 @@ void BlenderSceneDelegate::Populate()
       if (matExport) {
         SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
         if (materials.find(matId) == materials.end()) {
-          LOG(INFO) << "Add material: " << matId;
           index.InsertSprim(HdPrimTypeTokens->material, this, matId);
-          materials[matId] = MaterialData(matExport.name());
+          MaterialData matData(matExport.name());
+          matData.mtlxPath = matExport.exportMX();
+          materials[matId] = matData;
           objData.data["materialId"] = matId;
+
+          LOG(INFO) << "Add material: " << matId << ", mtlx=" << matData.mtlxPath.GetResolvedPath();
         }
       }
       continue;
@@ -178,26 +181,21 @@ HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)
 VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
 {
   LOG(INFO) << "Get: " << id.GetAsString() << " [" << key.GetString() << "]";
+  
+  VtValue ret;
   if (key == HdTokens->points) {
-    VtVec3fArray points = objectExport(id)->meshExport().vertices();
-    return VtValue(points);
+    ret = objectExport(id)->meshExport().vertices();
   }
-  if (key == HdTokens->normals) {
-    VtVec3fArray normals = objectExport(id)->meshExport().normals();
-    return VtValue(normals);
+  else if (key == HdTokens->normals) {
+    ret = objectExport(id)->meshExport().normals();
   }
-  if (key.GetString() == "MaterialXFilename") {
+  else if (key.GetString() == "MaterialXFilename") {
     MaterialData &matData = materials[id];
-    if (!matData.mtlxPath.GetAssetPath().empty()) {
-      return VtValue(matData.mtlxPath);
+    if (!matData.mtlxPath.GetResolvedPath().empty()) {
+      ret = matData.mtlxPath;
     }
-
-
-
-    return VtValue(SdfAssetPath("D:\\amd\\blender-git\\material\\Material.mtlx", 
-      "D:\\amd\\blender-git\\material\\Material.mtlx"));
   }
-  return VtValue();
+  return ret;
 }
 
 HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation)

@@ -3,10 +3,7 @@
 
 #pragma once
 
-#include <map>
-
-#include <pxr/base/vt/value.h>
-#include <pxr/imaging/hd/tokens.h>
+#include <pxr/usd/sdf/assetPath.h>
 
 #include "DNA_material_types.h"
 
@@ -21,6 +18,7 @@ public:
   MaterialExport(BL::Object &b_object);
   operator bool();
   std::string name();
+  pxr::SdfAssetPath exportMX();
 
 private:
   Material *material;

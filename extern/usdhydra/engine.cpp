@@ -26,13 +26,17 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
   TF_PY_ALLOW_THREADS_IN_SCOPE();
   renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
 
-  if (isStormRenderDelegate()) {
+  HdDriverVector hdDrivers;
+
+  if (b_engine.bl_use_gpu_context()) {
     hgi = Hgi::CreatePlatformDefaultHgi();
     hgiDriver.name = HgiTokens->renderDriver; 
     hgiDriver.driver = VtValue(hgi.get());
+
+    hdDrivers.push_back(&hgiDriver);
   }
 
-  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {&hgiDriver}));
+  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), hdDrivers));
   freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
@@ -56,11 +60,6 @@ float Engine::getRendererPercentDone()
     return 0.0;
   }
   return (float)it->second.UncheckedGet<double>();
-}
-
-bool Engine::isStormRenderDelegate()
-{
-  return renderDelegate.GetPluginId().GetString() == "HdStormRendererPlugin";
 }
 
 /* ------------------------------------------------------------------------- */

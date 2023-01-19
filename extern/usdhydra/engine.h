@@ -31,7 +31,6 @@ public:
 
 protected:
   float getRendererPercentDone();
-  bool isStormRenderDelegate();
 
 protected:
   BL::RenderEngine b_engine;

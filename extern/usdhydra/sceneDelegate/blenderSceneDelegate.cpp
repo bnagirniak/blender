@@ -164,6 +164,7 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     return VtValue(normals);
   }
   if (key == HdStRenderBufferTokens->stormMsaaSampleCount) {
+    // TODO: temporary value, it should be delivered through Python UI
     return VtValue(16);
   }
 
@@ -227,6 +228,7 @@ VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken cons
     return objectExport(id)->lightExport().treatAsPoint();
   }
   if (key == HdLightTokens->exposure) {
+    // TODO: temporary value, it should be delivered through Python UI
     return VtValue(1.0f);
   } 
   return VtValue();

@@ -41,6 +41,8 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
+
+  _engine = std::make_unique<HdEngine>();
 }
 
 Engine::~Engine()
@@ -50,6 +52,8 @@ Engine::~Engine()
   freeCameraDelegate = nullptr;
   renderIndex = nullptr;
   renderDelegate = nullptr;
+  _engine = nullptr;
+  hgi = nullptr;
 }
 
 float Engine::getRendererPercentDone()
@@ -102,6 +106,7 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 
   delete (Engine *)PyLong_AsVoidPtr(pyengine);
   Py_RETURN_NONE;
+  
 }
 
 static PyObject *sync_func(PyObject * /*self*/, PyObject *args)

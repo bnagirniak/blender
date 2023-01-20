@@ -14,6 +14,7 @@ public:
   using Engine::Engine;
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) override;
   void render(BL::Depsgraph &b_depsgraph);
+  void renderGL(BL::Depsgraph& b_depsgraph);
 
 private:
   void getResolution(BL::RenderSettings b_render, int &width, int &height);

@@ -30,8 +30,109 @@ void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::
   }
 }
 
+void FinalEngine::renderGL(BL::Depsgraph& b_depsgraph) {
+  SceneExport sceneExport(b_depsgraph);
+  auto resolution = sceneExport.resolution();
+  int width = resolution.first, height = resolution.second;
+
+  GfCamera gfCamera = sceneExport.gfCamera();
+  freeCameraDelegate->SetCamera(gfCamera);
+  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, width, height));
+  
+  HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
+
+  chrono::time_point<chrono::steady_clock> timeBegin = chrono::steady_clock::now(), timeCurrent;
+  chrono::milliseconds elapsedTime;
+
+  float percentDone = 0.0;
+  string sceneName = sceneExport.sceneName(), layerName = sceneExport.layerName();
+
+  map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
+  vector<float> &pixels = renderImages["Combined"];
+
+  GLuint FramebufferName = 0;
+  glGenFramebuffers(1, &FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+
+  // The texture we're going to render to
+  GLuint renderedTexture;
+  glGenTextures(1, &renderedTexture);
+
+  // "Bind" the newly created texture : all future texture functions will modify this texture
+  glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+  // Give an empty image to OpenGL ( the last "0" )
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, 0);
+
+  // Poor filtering. Needed !
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+  // The depth buffer
+  GLuint depthrenderbuffer;
+  glGenRenderbuffers(1, &depthrenderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+  // Set "renderedTexture" as our colour attachement #0
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+
+  // Set the list of draw buffers.
+  GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+  glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers    
+
+  // Render to our framebuffer
+  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glViewport(0,0,width,height); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+
+  glClearColor(1.0, 0, 0, 1.0);
+  glClearDepth(1.0);
+
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  {
+    // Release the GIL before calling into hydra, in case any hydra plugins call into python.
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+    _engine->Execute(renderIndex.get(), &tasks);
+  }
+
+  glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+  while (true) {
+    if (b_engine.test_break()) {
+      break;
+    }
+
+    percentDone = getRendererPercentDone();
+    timeCurrent = chrono::steady_clock::now();
+    elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
+
+    notifyStatus(percentDone / 100.0, sceneName + ": " + layerName,
+      "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
+
+    if (renderTaskDelegate->IsConverged()) {
+      break;
+    }
+
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+    //glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
+    updateRenderResult(renderImages, layerName, width, height);
+  }
+
+  
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+  //glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
+  updateRenderResult(renderImages, layerName, width, height);
+}
+
 void FinalEngine::render(BL::Depsgraph &b_depsgraph)
 {
+  if (b_engine.bl_use_gpu_context()) {
+    renderGL(b_depsgraph);
+    return;
+  }
+
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();
   int width = resolution.first, height = resolution.second;
@@ -55,7 +156,7 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
     TF_PY_ALLOW_THREADS_IN_SCOPE();
-    _engine.Execute(renderIndex.get(), &tasks);
+    _engine->Execute(renderIndex.get(), &tasks);
   }
 
   while (true) {

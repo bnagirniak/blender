@@ -77,19 +77,62 @@ void FinalEngine::renderGL(BL::Depsgraph& b_depsgraph) {
 
   // Set "renderedTexture" as our colour attachement #0
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
-
+  
   // Set the list of draw buffers.
   GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
   glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers    
 
+  GLint shader_program;
+  glGetIntegerv(GL_CURRENT_PROGRAM, &shader_program);
+
+    // Generate vertex array
+  GLuint vertex_array;
+  glGenVertexArrays(1, &vertex_array);
+
+  GLint texturecoord_location = glGetAttribLocation(shader_program, "texCoord");
+  GLint position_location = glGetAttribLocation(shader_program, "pos");
+
+  // Generate geometry buffers for drawing textured quad
+  GLfloat position[8] = { 0, 0, width, 0, width, height, 0, height };
+  GLfloat texcoord[8] = {0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0};
+
+  GLfloat vertices[] = {
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+     0.0f,  0.5f, 0.0f
+  };  
+
+  GLuint VBO;
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO); 
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(position_location, 2, GL_FLOAT, GL_FALSE, 0, nullptr); 
+
+  GLuint vertex_buffer[2];
+  glGenBuffers(2, vertex_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[0]);
+  glBufferData(GL_ARRAY_BUFFER, 32, position, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[1]);
+  glBufferData(GL_ARRAY_BUFFER, 32, texcoord, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  glBindVertexArray(vertex_array);
+  glEnableVertexAttribArray(texturecoord_location);
+  glEnableVertexAttribArray(position_location);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[0]);
+  glVertexAttribPointer(position_location, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[1]);
+  glVertexAttribPointer(texturecoord_location, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
   // Render to our framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-  glViewport(0,0,width,height); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+  glViewport(0, 0, width, height);
 
   glClearColor(1.0, 0, 0, 1.0);
   glClearDepth(1.0);
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.

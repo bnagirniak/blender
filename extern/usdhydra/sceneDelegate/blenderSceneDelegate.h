@@ -41,6 +41,7 @@ private:
   bool isPopulated;
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
+  void updateMaterial(ObjectExport &objExport);
 
 private:
   struct ObjectData {

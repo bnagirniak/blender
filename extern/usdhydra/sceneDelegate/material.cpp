@@ -23,6 +23,11 @@ MaterialExport::MaterialExport(BL::Object &b_object)
   material = (Material *)b_material.ptr.data;
 }
 
+MaterialExport::MaterialExport(BL::Material& b_material)
+  : material((Material *)b_material.ptr.data)
+{
+}
+
 MaterialExport::operator bool()
 {
   return bool(material);
@@ -42,7 +47,7 @@ SdfAssetPath MaterialExport::exportMX()
   params = Py_BuildValue("(s)", name().c_str());
   result = PyObject_CallObject(func, params);
 
-  path = PyUnicode_AsUTF8(result);
+  std::string path = PyUnicode_AsUTF8(result);
   return SdfAssetPath(path, path);
 }
 

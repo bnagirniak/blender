@@ -31,6 +31,28 @@ std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const &
   return nullptr;
 }
 
+void BlenderSceneDelegate::updateMaterial(ObjectExport & objExport)
+{
+  HdRenderIndex& index = GetRenderIndex();
+  SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
+  ObjectData &objData = objects[objId];
+  MaterialExport matExport = objExport.materialExport();
+  if (matExport) {
+    SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
+    if (materials.find(matId) == materials.end()) {
+      index.InsertSprim(HdPrimTypeTokens->material, this, matId);
+      MaterialData matData(matExport.name());
+      matData.mtlxPath = matExport.exportMX();
+      materials[matId] = matData;
+      LOG(INFO) << "Add material: " << matId << ", mtlx=" << matData.mtlxPath.GetResolvedPath();
+    }
+    objData.data["materialId"] = matId;
+  }
+  else {
+    objData.data.erase("materialId");
+  }
+}
+
 void BlenderSceneDelegate::Populate()
 {
   LOG(INFO) << "Populate " << isPopulated;
@@ -50,6 +72,7 @@ void BlenderSceneDelegate::Populate()
             LOG(INFO) << "Add mesh object: " << objId;
             index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
             objects[objId] = ObjectData(objExport.name(), HdPrimTypeTokens->mesh);
+            updateMaterial(objExport);
           }
           else if (objExport.type() == BL::Object::type_LIGHT) {
             LOG(INFO) << "Add light object: " << objId;
@@ -63,6 +86,7 @@ void BlenderSceneDelegate::Populate()
         if (update.is_updated_geometry()) {
           LOG(INFO) << "Full updated: " << objId;
           if (objExport.type() == BL::Object::type_MESH) {
+            updateMaterial(objExport);
             index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
           }
           else if (objExport.type() == BL::Object::type_LIGHT) {
@@ -88,6 +112,23 @@ void BlenderSceneDelegate::Populate()
           }
         }
         continue;
+      }
+
+      if (id.is_a(&RNA_Material)) {
+        if (update.is_updated_shading()) {
+          MaterialExport matExport((BL::Material &)id);
+          SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
+
+          auto it = materials.find(matId);
+          if (it == materials.end()) {
+
+          }
+          else {
+            it->second.mtlxPath = matExport.exportMX();
+            LOG(INFO) << "Update material: " << matId << ", mtlx=" << it->second.mtlxPath.GetResolvedPath();
+            index.GetChangeTracker().MarkSprimDirty(matId, HdMaterial::AllDirty);
+          }
+        }
       }
       
       if (id.is_a(&RNA_Collection)) {
@@ -122,6 +163,8 @@ void BlenderSceneDelegate::Populate()
               ++it;
             }
           }
+
+          // TODO: remove unused materials
         }
         continue;
       }
@@ -141,21 +184,7 @@ void BlenderSceneDelegate::Populate()
       LOG(INFO) << "Add mesh object: " << objId;
       index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
       objects[objId] = ObjectData(objExport.name(), HdPrimTypeTokens->mesh);
-      ObjectData &objData = objects[objId];
-
-      MaterialExport matExport = objExport.materialExport();
-      if (matExport) {
-        SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
-        if (materials.find(matId) == materials.end()) {
-          index.InsertSprim(HdPrimTypeTokens->material, this, matId);
-          MaterialData matData(matExport.name());
-          matData.mtlxPath = matExport.exportMX();
-          materials[matId] = matData;
-          objData.data["materialId"] = matId;
-
-          LOG(INFO) << "Add material: " << matId << ", mtlx=" << matData.mtlxPath.GetResolvedPath();
-        }
-      }
+      updateMaterial(objExport);
       continue;
     }
     

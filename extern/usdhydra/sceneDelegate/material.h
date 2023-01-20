@@ -16,6 +16,8 @@ class MaterialExport
 {
 public:
   MaterialExport(BL::Object &b_object);
+  MaterialExport(BL::Material &b_material);
+
   operator bool();
   std::string name();
   pxr::SdfAssetPath exportMX();

@@ -4,6 +4,7 @@
 #include <pxr/imaging/hd/light.h>
 #include <pxr/imaging/hd/material.h>
 #include <pxr/usd/usdLux/tokens.h>
+#include <pxr/imaging/hdSt/tokens.h>
 
 #include "glog/logging.h"
 
@@ -189,6 +190,10 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
   else if (key == HdTokens->normals) {
     ret = objectExport(id)->meshExport().normals();
   }
+  else if (key == HdStRenderBufferTokens->stormMsaaSampleCount) {
+    // TODO: temporary value, it should be delivered through Python UI
+    ret = 16;
+  }
   else if (key.GetString() == "MaterialXFilename") {
     MaterialData &matData = materials[id];
     if (!matData.mtlxPath.GetResolvedPath().empty()) {
@@ -243,39 +248,34 @@ VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken cons
   if (key == HdLightTokens->intensity) {
     return objectExport(id)->lightExport().intensity();
   }
-
   if (key == HdLightTokens->width) {
     return objectExport(id)->lightExport().width();
   }
-
   if (key == HdLightTokens->height) {
     return objectExport(id)->lightExport().height();
   }
-
   if (key == HdLightTokens->radius) {
     return objectExport(id)->lightExport().radius();
   }
-  
   if (key == HdLightTokens->color) {
     return objectExport(id)->lightExport().color();
   }  
-
   if (key == HdLightTokens->angle) {
     return objectExport(id)->lightExport().angle();
   }
-
   if (key == HdLightTokens->shapingConeAngle) {
     return objectExport(id)->lightExport().shapingConeAngle();
   }
-
   if (key == HdLightTokens->shapingConeSoftness) {
     return objectExport(id)->lightExport().shapingConeSoftness();
   }
-  
   if (key == UsdLuxTokens->treatAsPoint) {
     return objectExport(id)->lightExport().treatAsPoint();
   }
-
+  if (key == HdLightTokens->exposure) {
+    // TODO: temporary value, it should be delivered through Python UI
+    return VtValue(1.0f);
+  } 
   return VtValue();
 }
 

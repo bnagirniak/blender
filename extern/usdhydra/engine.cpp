@@ -2,6 +2,7 @@
  * Copyright 2011-2022 Blender Foundation */
 
 #include <pxr/imaging/hd/rendererPluginRegistry.h>
+#include <pxr/imaging/hgi/tokens.h>
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
 #include <pxr/usd/usdGeom/tokens.h>
@@ -24,7 +25,18 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
 
   TF_PY_ALLOW_THREADS_IN_SCOPE();
   renderDelegate = registry.CreateRenderDelegate(TfToken(delegateId));
-  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), {}));
+
+  HdDriverVector hdDrivers;
+
+  if (b_engine.bl_use_gpu_context()) {
+    hgi = Hgi::CreatePlatformDefaultHgi();
+    hgiDriver.name = HgiTokens->renderDriver; 
+    hgiDriver.driver = VtValue(hgi.get());
+
+    hdDrivers.push_back(&hgiDriver);
+  }
+
+  renderIndex.reset(HdRenderIndex::New(renderDelegate.Get(), hdDrivers));
   freeCameraDelegate = std::make_unique<HdxFreeCameraSceneDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(

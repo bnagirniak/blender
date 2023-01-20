@@ -9,9 +9,12 @@
 
 #include <pxr/imaging/hd/engine.h>
 #include <pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h>
+#include <pxr/imaging/hd/driver.h>
 #include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
+#include <pxr/imaging/hgi/hgi.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
 #include <pxr/usd/usd/stage.h>
+
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -44,6 +47,10 @@ protected:
   UsdStageRefPtr materialStage;
 
   HdEngine _engine;
+
+  HgiUniquePtr hgi;
+  // Similar for HdDriver.
+  HdDriver hgiDriver;
 };
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);

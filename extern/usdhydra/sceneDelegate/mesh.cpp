@@ -72,4 +72,10 @@ VtVec3fArray MeshExport::normals()
   return ret;
 }
 
+VtVec2fArray MeshExport::uvs()
+{
+
+  return VtVec2fArray();
+}
+
 } // namespace usdhydra

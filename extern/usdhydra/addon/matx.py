@@ -20,7 +20,7 @@ def export(material_name):
         if not doc:
             return ""
 
-        mtlx_file = mx_utils.get_temp_file(".mtlx", material.name, True)
+        mtlx_file = mx_utils.get_temp_file(".mtlx", material.name)
         mx_utils.export_to_file(doc, mtlx_file)
         return str(mtlx_file)
 

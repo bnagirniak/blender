@@ -224,11 +224,14 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
   LOG(INFO) << "Get: " << id.GetAsString() << " [" << key.GetString() << "]";
   
   VtValue ret;
-  if (key == HdTokens->points) {
+  if (key == HdPrimvarRoleTokens->point) {
     ret = objectExport(id)->meshExport().vertices();
   }
-  else if (key == HdTokens->normals) {
+  else if (key == HdPrimvarRoleTokens->normal) {
     ret = objectExport(id)->meshExport().normals();
+  }
+  else if (key == HdPrimvarRoleTokens->textureCoordinate) {
+    ret = objectExport(id)->meshExport().uvs();
   }
   else if (key == HdStRenderBufferTokens->stormMsaaSampleCount) {
     // TODO: temporary value, it should be delivered through Python UI
@@ -248,10 +251,11 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
   LOG(INFO) << "GetPrimvarDescriptors: " << id.GetAsString() << " " << interpolation;
   HdPrimvarDescriptorVector primvars;
   if (interpolation == HdInterpolationVertex) {
-    primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
+    primvars.emplace_back(HdPrimvarRoleTokens->point, interpolation, HdPrimvarRoleTokens->point);
   }
   if (interpolation == HdInterpolationFaceVarying) {
-    primvars.emplace_back(HdTokens->normals, interpolation, HdPrimvarRoleTokens->normal);
+    primvars.emplace_back(HdPrimvarRoleTokens->normal, interpolation, HdPrimvarRoleTokens->normal);
+    primvars.emplace_back(HdPrimvarRoleTokens->textureCoordinate, interpolation, HdPrimvarRoleTokens->textureCoordinate);
   }
   return primvars;
 }

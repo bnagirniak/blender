@@ -544,24 +544,6 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
     sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
       SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
   }
-
-  //if (!materialDelegate) {
-  //  materialStage = UsdStage::CreateInMemory();
-
-  //  UsdPrim over = materialStage->OverridePrim(SdfPath::AbsoluteRootPath().AppendElementString("Material"));
-  //  over.GetReferences().AddReference("D:/amd/blender-git/material/Material.mtlx", SdfPath::AbsoluteRootPath().AppendElementString("MaterialX"));
-
-  //  std::string str;
-  //  materialStage->ExportToString(&str);
-  //  std::cout << str << "\n\n";
-
-  //  materialStage->GetRootLayer()->ExportToString(&str);
-  //  std::cout << str << "\n\n";
-
-  //  materialDelegate = std::make_unique<UsdImagingDelegate>(renderIndex.get(), 
-  //    SdfPath::AbsoluteRootPath().AppendElementString("materials"));
-  //  materialDelegate->Populate(materialStage->GetPseudoRoot());
-  //}
   
   sceneDelegate->Populate();
   for (auto const& setting : renderSettings) {
@@ -598,7 +580,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
     TF_PY_ALLOW_THREADS_IN_SCOPE();
-    _engine.Execute(renderIndex.get(), &tasks);
+    engine.Execute(renderIndex.get(), &tasks);
 
     if (!b_engine.bl_use_gpu_context()) {
       texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
@@ -607,8 +589,6 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   }
 
   b_engine.unbind_display_space_shader();
-
-  //glClear(GL_DEPTH_BUFFER_BIT);
 
   chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();
   chrono::milliseconds elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);

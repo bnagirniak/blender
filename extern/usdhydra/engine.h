@@ -12,9 +12,6 @@
 #include <pxr/imaging/hd/driver.h>
 #include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
 #include <pxr/imaging/hgi/hgi.h>
-#include <pxr/usdImaging/usdImaging/delegate.h>
-#include <pxr/usd/usd/stage.h>
-
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -42,11 +39,7 @@ protected:
   std::unique_ptr<BlenderSceneDelegate> sceneDelegate;
   std::unique_ptr<RenderTaskDelegate> renderTaskDelegate;
   std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
-
-  std::unique_ptr<UsdImagingDelegate> materialDelegate;
-  UsdStageRefPtr materialStage;
-
-  HdEngine _engine;
+  HdEngine engine;
 
   HgiUniquePtr hgi;
   // Similar for HdDriver.

@@ -45,9 +45,6 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
 
 Engine::~Engine()
 {
-  materialDelegate = nullptr;
-  materialStage = nullptr;
-
   sceneDelegate = nullptr;
   renderTaskDelegate = nullptr;
   freeCameraDelegate = nullptr;

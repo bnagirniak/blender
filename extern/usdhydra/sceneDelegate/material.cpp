@@ -4,6 +4,7 @@
 #include <Python.h>
 
 #include "material.h"
+#include "BKE_material.h"
 
 using namespace pxr;
 
@@ -12,15 +13,12 @@ namespace usdhydra {
 MaterialExport::MaterialExport(BL::Object &b_object)
   : material(nullptr)
 {
-  if (b_object.material_slots.empty()) {
+  Object *object = (Object *)b_object.ptr.data;
+  if (BKE_object_material_count_eval(object) == 0) {
     return;
   }
     
-  BL::Material b_material = b_object.material_slots[0].material();
-  if (!b_material) {
-    return;
-  }
-  material = (Material *)b_material.ptr.data;
+  material = BKE_object_material_get_eval(object, object->actcol);
 }
 
 MaterialExport::MaterialExport(BL::Material& b_material)

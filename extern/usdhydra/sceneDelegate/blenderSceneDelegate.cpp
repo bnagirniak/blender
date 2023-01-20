@@ -48,7 +48,7 @@ void BlenderSceneDelegate::updateMaterial(ObjectExport & objExport)
     }
     objData.data["materialId"] = matId;
   }
-  else {
+  else if (objData.data.find("materialId") != objData.data.end()) {
     objData.data.erase("materialId");
   }
 }
@@ -134,37 +134,48 @@ void BlenderSceneDelegate::Populate()
       if (id.is_a(&RNA_Collection)) {
         BL::Collection &col = (BL::Collection &)id;
         if (update.is_updated_transform() && update.is_updated_geometry()) {
-          // get available objects from depsgraph
-          std::set<std::string> depsObjects;
+          // remove unused objects
+          std::set<std::string> availableObjects;
           for (auto &inst : b_depsgraph.object_instances) {
             if (inst.is_instance()) {
               continue;
             }
             BL::Object obj = inst.object();
             if (obj.type() == BL::Object::type_MESH || obj.type() == BL::Object::type_LIGHT) {
-              depsObjects.insert(obj.name_full());
+              availableObjects.insert(obj.name_full());
             }
           }
-          
-          auto it = objects.begin();
-          while (it != objects.end()) {
-            if (depsObjects.find(it->second.name) == depsObjects.end()) {
-              LOG(INFO) << "Removed: " << it->first;
-              if (index.GetRprim(it->first)) {
-                index.RemoveRprim(it->first);
-              }
-              else {
-                index.RemoveSprim(it->second.type, it->first);
-              }
-              objects.erase(it);
-              it = objects.begin();
+          for (auto it = objects.begin(); it != objects.end(); ++it) {
+            if (availableObjects.find(it->second.name) != availableObjects.end()) {
+              continue;
+            }
+            LOG(INFO) << "Remove: " << it->first;
+            if (index.GetRprim(it->first)) {
+              index.RemoveRprim(it->first);
             }
             else {
-              ++it;
+              index.RemoveSprim(it->second.type, it->first);
             }
+            objects.erase(it);
+            it = objects.begin();
           }
 
-          // TODO: remove unused materials
+          // remove unused materials
+          std::set<SdfPath> availableMaterials;
+          for (auto &obj : objects) {
+            if (obj.second.data.find("materialId") != obj.second.data.end()) {
+              availableMaterials.insert(obj.second.data["materialId"].Get<SdfPath>());
+            }
+          }
+          for (auto it = materials.begin(); it != materials.end(); ++it) {
+            if (availableMaterials.find(it->first) != availableMaterials.end()) {
+              continue;
+            }
+            LOG(INFO) << "Remove material: " << it->first;
+            index.RemoveSprim(HdPrimTypeTokens->material, it->first);
+            materials.erase(it);
+            it = materials.begin(); 
+          }
         }
         continue;
       }

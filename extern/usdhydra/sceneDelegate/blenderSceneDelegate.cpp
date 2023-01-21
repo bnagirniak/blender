@@ -120,10 +120,7 @@ void BlenderSceneDelegate::Populate()
           SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
 
           auto it = materials.find(matId);
-          if (it == materials.end()) {
-
-          }
-          else {
+          if (it != materials.end()) {
             it->second.mtlxPath = matExport.exportMX();
             LOG(INFO) << "Update material: " << matId << ", mtlx=" << it->second.mtlxPath.GetResolvedPath();
             index.GetChangeTracker().MarkSprimDirty(matId, HdMaterial::AllDirty);
@@ -224,10 +221,10 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
   LOG(INFO) << "Get: " << id.GetAsString() << " [" << key.GetString() << "]";
   
   VtValue ret;
-  if (key == HdPrimvarRoleTokens->point) {
+  if (key == HdTokens->points) {
     ret = objectExport(id)->meshExport().vertices();
   }
-  else if (key == HdPrimvarRoleTokens->normal) {
+  else if (key == HdTokens->normals) {
     ret = objectExport(id)->meshExport().normals();
   }
   else if (key == HdPrimvarRoleTokens->textureCoordinate) {
@@ -251,10 +248,10 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
   LOG(INFO) << "GetPrimvarDescriptors: " << id.GetAsString() << " " << interpolation;
   HdPrimvarDescriptorVector primvars;
   if (interpolation == HdInterpolationVertex) {
-    primvars.emplace_back(HdPrimvarRoleTokens->point, interpolation, HdPrimvarRoleTokens->point);
+    primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
   }
   if (interpolation == HdInterpolationFaceVarying) {
-    primvars.emplace_back(HdPrimvarRoleTokens->normal, interpolation, HdPrimvarRoleTokens->normal);
+    primvars.emplace_back(HdTokens->normals, interpolation, HdPrimvarRoleTokens->normal);
     primvars.emplace_back(HdPrimvarRoleTokens->textureCoordinate, interpolation, HdPrimvarRoleTokens->textureCoordinate);
   }
   return primvars;

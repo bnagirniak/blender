@@ -74,8 +74,18 @@ VtVec3fArray MeshExport::normals()
 
 VtVec2fArray MeshExport::uvs()
 {
+  const float(*luvs)[2] = (float(*)[2])CustomData_get_layer(&mesh->ldata, CD_MLOOPUV);
+  blender::Span<MLoopTri> loopTris = mesh->looptris();
 
-  return VtVec2fArray();
+  VtVec2fArray ret;
+  if (luvs) {
+    for (MLoopTri lt : loopTris) {
+      ret.push_back(pxr::GfVec2f(luvs[lt.tri[0]]));
+      ret.push_back(pxr::GfVec2f(luvs[lt.tri[1]]));
+      ret.push_back(pxr::GfVec2f(luvs[lt.tri[2]]));
+    }
+  }
+  return ret;
 }
 
 } // namespace usdhydra

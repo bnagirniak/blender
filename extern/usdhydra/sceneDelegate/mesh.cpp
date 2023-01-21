@@ -74,7 +74,7 @@ VtVec3fArray MeshExport::normals()
 
 VtVec2fArray MeshExport::uvs()
 {
-  const float(*luvs)[2] = (float(*)[2])CustomData_get_layer(&mesh->ldata, CD_MLOOPUV);
+  const float(*luvs)[2] = (float(*)[2])CustomData_get_layer(&mesh->ldata, CD_PROP_FLOAT2);
   blender::Span<MLoopTri> loopTris = mesh->looptris();
 
   VtVec2fArray ret;

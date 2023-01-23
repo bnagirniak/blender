@@ -581,16 +581,13 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
     TF_PY_ALLOW_THREADS_IN_SCOPE();
     engine->Execute(renderIndex.get(), &tasks);
-  }
-
-  b_engine.bind_display_space_shader(b_scene);
 
     if (!b_engine.bl_use_gpu_context()) {
       texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
       texture.draw((GLfloat)viewSettings.border[0][0], (GLfloat)viewSettings.border[0][1]);
     }
   }
-
+  
   b_engine.unbind_display_space_shader();
 
   chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();

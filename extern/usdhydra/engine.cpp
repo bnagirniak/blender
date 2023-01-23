@@ -12,6 +12,7 @@
 
 #include "engine.h"
 #include "finalEngine.h"
+#include "finalEngineGL.h"
 #include "viewportEngine.h"
 
 using namespace pxr;
@@ -42,7 +43,7 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
 
-  _engine = std::make_unique<HdEngine>();
+  engine = std::make_unique<HdEngine>();
 }
 
 Engine::~Engine()
@@ -52,7 +53,7 @@ Engine::~Engine()
   freeCameraDelegate = nullptr;
   renderIndex = nullptr;
   renderDelegate = nullptr;
-  _engine = nullptr;
+  engine = nullptr;
   hgi = nullptr;
 }
 
@@ -89,7 +90,12 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
     engine = new ViewportEngine(b_engine, delegateId);
   }
   else {
-    engine = new FinalEngine(b_engine, delegateId);
+    if (b_engine.bl_use_gpu_context()) {
+      engine = new FinalEngineGL(b_engine, delegateId);
+    }
+    else {
+      engine = new FinalEngine(b_engine, delegateId);
+    }
   }
 
   return PyLong_FromVoidPtr(engine);
@@ -106,7 +112,6 @@ static PyObject *free_func(PyObject * /*self*/, PyObject *args)
 
   delete (Engine *)PyLong_AsVoidPtr(pyengine);
   Py_RETURN_NONE;
-  
 }
 
 static PyObject *sync_func(PyObject * /*self*/, PyObject *args)

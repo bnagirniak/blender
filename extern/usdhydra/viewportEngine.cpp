@@ -577,7 +577,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
     TF_PY_ALLOW_THREADS_IN_SCOPE();
-    _engine->Execute(renderIndex.get(), &tasks);
+    engine->Execute(renderIndex.get(), &tasks);
   }
 
   b_engine.bind_display_space_shader(b_scene);

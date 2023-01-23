@@ -13,13 +13,15 @@ class FinalEngine : public Engine {
 public:
   using Engine::Engine;
   void sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings) override;
-  void render(BL::Depsgraph &b_depsgraph);
-  void renderGL(BL::Depsgraph& b_depsgraph);
+  virtual void render(BL::Depsgraph &b_depsgraph);
 
-private:
+protected:
   void getResolution(BL::RenderSettings b_render, int &width, int &height);
   void updateRenderResult(std::map<std::string, std::vector<float>> &render_images, const std::string &layerName, int width, int height);
   void notifyStatus(float progress, const std::string &title, const std::string &info);
+
+protected:
+  HdRenderSettingsMap renderSettings;
 };
 
 }   // namespace usdhydra

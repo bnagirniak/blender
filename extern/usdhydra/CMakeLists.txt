@@ -50,6 +50,8 @@ set(SRC
   engine.cpp
   finalEngine.h
   finalEngine.cpp
+  finalEngineGL.h
+  finalEngineGL.cpp
   viewportEngine.h
   viewportEngine.cpp
 

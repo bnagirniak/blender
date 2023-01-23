@@ -5,6 +5,7 @@
 
 #include <pxr/base/vt/array.h>
 #include <pxr/base/gf/vec3f.h>
+#include <pxr/base/gf/vec2f.h>
 
 #include "DNA_mesh_types.h"
 
@@ -21,6 +22,7 @@ public:
   pxr::VtIntArray faceVertexIndices();
   pxr::VtVec3fArray vertices();
   pxr::VtVec3fArray normals();
+  pxr::VtVec2fArray uvs();
 
 private:
   Mesh *mesh;

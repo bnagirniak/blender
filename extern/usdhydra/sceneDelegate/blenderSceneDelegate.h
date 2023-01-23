@@ -31,17 +31,42 @@ public:
   HdMeshTopology GetMeshTopology(SdfPath const& id) override;
   GfMatrix4d GetTransform(SdfPath const& id) override;
   VtValue Get(SdfPath const& id, TfToken const& key) override;
-  VtValue GetCameraParamValue(SdfPath const& id, TfToken const& key) override;
   VtValue GetLightParamValue(SdfPath const& id, TfToken const& key) override;
   HdPrimvarDescriptorVector GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation) override;
+  SdfPath GetMaterialId(SdfPath const &rprimId) override;
+  VtValue GetMaterialResource(SdfPath const &materialId) override;
 
 private:
   BL::Depsgraph b_depsgraph;
   bool isPopulated;
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
+  void updateMaterial(ObjectExport &objExport);
 
-  std::map<SdfPath, std::tuple<std::string, TfToken>> objects;
+private:
+  struct ObjectData {
+    ObjectData()
+    { }
+    ObjectData(std::string name, TfToken type)
+      : name(name)
+      , type(type)
+    { }
+    std::string name;
+    TfToken type;
+    std::map<std::string, VtValue> data;
+  };
+  struct MaterialData {
+    MaterialData()
+    { }
+    MaterialData(std::string name)
+      : name(name)
+    { }
+    std::string name;
+    SdfAssetPath mtlxPath;
+  };
+
+  std::map<SdfPath, ObjectData> objects;
+  std::map<SdfPath, MaterialData> materials;
 };
 
 } // namespace usdhydra

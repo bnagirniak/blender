@@ -7,6 +7,8 @@
 #include <pxr/imaging/hd/renderDelegate.h>
 #include <pxr/imaging/hdx/renderTask.h>
 
+#include "glog/logging.h"
+
 #include "renderTaskDelegate.h"
 
 namespace usdhydra {
@@ -32,7 +34,7 @@ SdfPath RenderTaskDelegate::GetAovID(TfToken const &aov) const
 
 VtValue RenderTaskDelegate::Get(SdfPath const& id, TfToken const& key)
 {
-  std::cout << "RenderTaskDelegate::Get - " << id.GetAsString() << " " << key.GetString() << "\n";
+  LOG(INFO) << "RenderTaskDelegate::Get - " << id.GetAsString() << " " << key.GetString() << "\n";
   if (key == HdTokens->params) {
     return VtValue(taskParams);
   }
@@ -46,15 +48,13 @@ VtValue RenderTaskDelegate::Get(SdfPath const& id, TfToken const& key)
 
 HdRenderBufferDescriptor RenderTaskDelegate::GetRenderBufferDescriptor(SdfPath const &id)
 {
-  std::cout << "RenderTaskDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
-
+  LOG(INFO) << "RenderTaskDelegate::GetRenderBufferDescriptor - " << id.GetAsString() << "\n";
   return bufferDescriptors[id];
 }
 
 TfTokenVector RenderTaskDelegate::GetTaskRenderTags(SdfPath const &taskId)
 {
-  std::cout << "RenderTaskDelegate::GetTaskRenderTags - " << taskId.GetAsString() << "\n";
-
+  LOG(INFO) << "RenderTaskDelegate::GetTaskRenderTags - " << taskId.GetAsString() << "\n";
   return { HdRenderTagTokens->geometry };
 }
 

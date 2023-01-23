@@ -15,6 +15,11 @@ LightExport ObjectExport::lightExport()
   return LightExport((BL::Light &)b_object.data());
 }
 
+MaterialExport ObjectExport::materialExport()
+{
+  return MaterialExport(b_object);
+}
+
 pxr::GfMatrix4d ObjectExport::transform()
 {
   auto m = b_object.matrix_world();
@@ -23,6 +28,16 @@ pxr::GfMatrix4d ObjectExport::transform()
     m[4], m[5], m[6], m[7],
     m[8], m[9], m[10], m[11],
     m[12], m[13], m[14], m[15]);
+}
+
+std::string ObjectExport::name()
+{
+  return b_object.name_full();
+}
+
+BL::Object::type_enum ObjectExport::type()
+{
+  return b_object.type();
 }
 
 } // namespace usdhydra

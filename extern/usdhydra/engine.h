@@ -13,7 +13,6 @@
 #include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
 #include <pxr/imaging/hgi/hgi.h>
 
-
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 

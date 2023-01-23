@@ -10,23 +10,27 @@
 
 #include "mesh.h"
 #include "light.h"
+#include "material.h"
 
 namespace usdhydra {
 
 class ObjectExport
 {
 public:
-  ObjectExport(BL::Object &b_object, BL::Depsgraph &b_depsgraph)
+  ObjectExport(BL::Object b_object, BL::Depsgraph &b_depsgraph)
     : b_object(b_object)
     , b_depsgraph(b_depsgraph)
   {}
   MeshExport meshExport();
   LightExport lightExport();
+  MaterialExport materialExport();
 
   pxr::GfMatrix4d transform();
+  std::string name();
+  BL::Object::type_enum type();
 
 private:
-  BL::Object &b_object;
+  BL::Object b_object;
   BL::Depsgraph &b_depsgraph;
 };
 

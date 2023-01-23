@@ -40,6 +40,10 @@ class STORM_HYDRA_LIGHT_PT_light(Panel):
     bl_label = "Light"
     bl_context = 'data'
 
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.light
+
     def draw(self, context):
         layout = self.layout
 

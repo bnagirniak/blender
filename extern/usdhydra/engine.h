@@ -13,7 +13,6 @@
 #include <pxr/imaging/hdx/freeCameraSceneDelegate.h>
 #include <pxr/imaging/hgi/hgi.h>
 
-
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
@@ -40,7 +39,7 @@ protected:
   std::unique_ptr<BlenderSceneDelegate> sceneDelegate;
   std::unique_ptr<RenderTaskDelegate> renderTaskDelegate;
   std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
-  HdEngine _engine;
+  HdEngine engine;
 
   HgiUniquePtr hgi;
   // Similar for HdDriver.

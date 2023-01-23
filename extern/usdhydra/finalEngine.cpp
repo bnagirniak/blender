@@ -55,7 +55,7 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
     TF_PY_ALLOW_THREADS_IN_SCOPE();
-    _engine.Execute(renderIndex.get(), &tasks);
+    engine.Execute(renderIndex.get(), &tasks);
   }
 
   while (true) {

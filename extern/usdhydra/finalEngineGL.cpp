@@ -22,7 +22,7 @@ namespace usdhydra {
 void FinalEngineGL::render(BL::Depsgraph& b_depsgraph)
 {
   sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
-    SdfPath::AbsoluteRootPath().AppendElementString("blenderScene"), b_depsgraph);
+    SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
   sceneDelegate->Populate();
 
   for (auto const& setting : renderSettings) {

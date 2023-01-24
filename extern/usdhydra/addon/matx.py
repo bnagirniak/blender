@@ -21,7 +21,7 @@ def export(material_name):
             return ""
 
         mtlx_file = mx_utils.get_temp_file(".mtlx", material.name)
-        mx_utils.export_to_file(doc, mtlx_file)
+        mx_utils.export_to_file(doc, mtlx_file, export_deps=True, copy_deps=False)
         return str(mtlx_file)
 
     except Exception as e:

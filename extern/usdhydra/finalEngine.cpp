@@ -19,12 +19,7 @@ using namespace pxr;
 
 namespace usdhydra {
 
-void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &hdRrenderSettings)
-{
-  renderSettings = hdRrenderSettings;
-}
-
-void FinalEngine::render(BL::Depsgraph &b_depsgraph)
+void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
   sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
     SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
@@ -33,7 +28,10 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   for (auto const& setting : renderSettings) {
     renderDelegate->SetRenderSetting(setting.first, setting.second);
   }
+}
 
+void FinalEngine::render(BL::Depsgraph &b_depsgraph)
+{
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();
   int width = resolution.first, height = resolution.second;

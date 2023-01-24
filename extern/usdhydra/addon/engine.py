@@ -34,20 +34,25 @@ class HydraRenderEngine(bpy.types.RenderEngine):
 
     # final render
     def update(self, data, depsgraph):
-        if not self.engine_ptr:
-            return
-
         engine_type = 'PREVIEW' if self.is_preview else 'FINAL'
         log("update", self, engine_type)
 
+        if self.bl_use_gpu_context:
+            return
+
+        self.engine_ptr = _usdhydra.engine.create(self.as_pointer(), engine_type, self.delegate_id)
         delegate_settings = self.get_delegate_settings(engine_type)
         _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), bpy.context.as_pointer(), delegate_settings)
 
     def render(self, depsgraph):
-        log("render", self)
-
         engine_type = 'PREVIEW' if self.is_preview else 'FINAL'
-        self.engine_ptr = _usdhydra.engine.create(self.as_pointer(), engine_type, self.delegate_id)
+        log("render", self, engine_type)
+
+        if self.bl_use_gpu_context:
+            self.engine_ptr = _usdhydra.engine.create(self.as_pointer(), engine_type, self.delegate_id)
+            delegate_settings = self.get_delegate_settings(engine_type)
+            _usdhydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), bpy.context.as_pointer(), delegate_settings)
+
         _usdhydra.engine.render(self.engine_ptr, depsgraph.as_pointer())
 
     # viewport render

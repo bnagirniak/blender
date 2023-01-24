@@ -39,14 +39,21 @@ std::string MaterialExport::name()
 SdfAssetPath MaterialExport::exportMX()
 {
   PyObject *module, *dict, *func, *params, *result;
-  module = PyImport_Import(PyUnicode_FromString("usdhydra.matx"));
+  PyGILState_STATE gstate;
+
+  gstate = PyGILState_Ensure();
+  
+  module = PyImport_ImportModule("usdhydra.matx");
   dict = PyModule_GetDict(module);
   func = PyDict_GetItemString(dict, "export");
   params = Py_BuildValue("(s)", name().c_str());
   result = PyObject_CallObject(func, params);
 
   std::string path = PyUnicode_AsUTF8(result);
-  return SdfAssetPath(path, path);
+
+  PyGILState_Release(gstate);
+
+  return SdfAssetPath(path, path);  
 }
 
 } // namespace usdhydra

@@ -16,20 +16,19 @@ add_definitions(-DBLENDER_GFLAGS_NAMESPACE=${GFLAGS_NAMESPACE})
 add_definitions(-DBOOST_ALL_NO_LIB)
 
 set(INC
-  ../gflags/src
-  ../../intern/glew-mx
-  ../../intern/guardedalloc
-  ../../source/blender/makesdna
-  ../../source/blender/makesrna
-  ../../source/blender/blenlib
-  ../../source/blender/depsgraph
-  ../../source/blender/blenkernel
-  ../../source/blender/io/usd
-  ../../source/blender/io/common
-  ../../source/blender/io/usd/intern
-  ../../source/blender/gpu
-  ../../source/blender/gpu/opengl
-  ../../source/blender/gpu/intern
+  ../../../../intern/glew-mx
+  ../../../../intern/guardedalloc
+  ../../makesdna
+  ../../makesrna
+  ../../blenlib
+  ../../depsgraph
+  ../../blenkernel
+  ../../io/usd
+  ../../io/common
+  ../../io/usd/intern
+  ../../gpu
+  ../../gpu/opengl
+  ../../gpu/intern
   ${CMAKE_BINARY_DIR}/source/blender/makesrna/intern
 )
 
@@ -97,10 +96,10 @@ set(ADDON_STORM_FILES
   addon/storm/ui.py
 )
 
-blender_add_lib(extern_usdhydra "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
+blender_add_lib(bf_render_hydra "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 
-add_dependencies(extern_usdhydra bf_rna)
+#add_dependencies(extern_usdhydra bf_rna)
 
-set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${USDHYDRA_INSTALL_PATH})
-delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_STORM_FILES}" ${USDHYDRA_INSTALL_PATH}/storm)
+#set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
+#delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${USDHYDRA_INSTALL_PATH})
+#delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_STORM_FILES}" ${USDHYDRA_INSTALL_PATH}/storm)

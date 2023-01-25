@@ -95,7 +95,3 @@ endif()
 if(WITH_VULKAN_BACKEND)
   add_subdirectory(vulkan_memory_allocator)
 endif()
-
-if(WITH_USDHYDRA)
-  add_subdirectory(usdhydra)
-endif()

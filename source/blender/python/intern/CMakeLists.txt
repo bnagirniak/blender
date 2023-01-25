@@ -383,7 +383,7 @@ endif()
 
 if(WITH_USDHYDRA)
   list(APPEND LIB
-    extern_usdhydra
+    bf_render_hydra
   )
   add_definitions(-DWITH_USDHYDRA)
 endif()

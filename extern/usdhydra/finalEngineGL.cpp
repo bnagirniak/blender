@@ -10,7 +10,7 @@
 
 #include "glog/logging.h"
 
-#include "finalEngine.h"
+#include "finalEngineGL.h"
 #include "utils.h"
 #include "sceneDelegate/scene.h"
 
@@ -19,18 +19,7 @@ using namespace pxr;
 
 namespace usdhydra {
 
-void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
-{
-  sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
-    SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
-  sceneDelegate->Populate();
-
-  for (auto const& setting : renderSettings) {
-    renderDelegate->SetRenderSetting(setting.first, setting.second);
-  }
-}
-
-void FinalEngine::render(BL::Depsgraph &b_depsgraph)
+void FinalEngineGL::render(BL::Depsgraph& b_depsgraph)
 {
   SceneExport sceneExport(b_depsgraph);
   auto resolution = sceneExport.resolution();
@@ -39,7 +28,6 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   GfCamera gfCamera = sceneExport.gfCamera();
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, width, height));
-  renderTaskDelegate->SetRendererAov(HdAovTokens->color);
   
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
@@ -51,6 +39,32 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
 
   map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
   vector<float> &pixels = renderImages["Combined"];
+
+  GLuint FramebufferName = 0;
+  glGenFramebuffers(1, &FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+
+  // The texture we're going to render to
+  GLuint renderedTexture;
+  glGenTextures(1, &renderedTexture);
+
+  // "Bind" the newly created texture : all future texture functions will modify this texture
+  glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+  // Give an empty image to OpenGL ( the last "0" )
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, 0);
+
+  // Poor filtering. Needed !
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+  // Set "renderedTexture" as our colour attachement #0
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+
+  // Generate vertex array
+  GLuint VAO;
+  glGenVertexArrays(1, &VAO);
+  glBindVertexArray(VAO);
 
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
@@ -74,45 +88,12 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
       break;
     }
 
-    renderTaskDelegate->GetRendererAovData(HdAovTokens->color, pixels.data());
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
     updateRenderResult(renderImages, layerName, width, height);
   }
 
-  renderTaskDelegate->GetRendererAovData(HdAovTokens->color, pixels.data());
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
   updateRenderResult(renderImages, layerName, width, height);
-}
-
-void FinalEngine::getResolution(BL::RenderSettings b_render, int &width, int &height)
-{
-  float border_w = 1.0, border_h = 1.0;
-  if (b_render.use_border()) {
-    border_w = b_render.border_max_x() - b_render.border_min_x();
-    border_h = b_render.border_max_y() - b_render.border_min_y();
-  }
-
-  width = int(b_render.resolution_x() * border_w * b_render.resolution_percentage() / 100);
-  height = int(b_render.resolution_y() * border_h * b_render.resolution_percentage() / 100);
-}
-
-void FinalEngine::updateRenderResult(map<string, vector<float>>& renderImages, const string &layerName, int width, int height)
-{
-  BL::RenderResult b_result = b_engine.begin_result(0, 0, width, height, layerName.c_str(), NULL);
-  BL::CollectionRef b_passes = b_result.layers[0].passes;
-
-  for (BL::RenderPass b_pass : b_passes) {
-    auto it_image = renderImages.find(b_pass.name());
-    if (it_image == renderImages.end()) {
-      continue;
-    }
-    b_pass.rect(it_image->second.data());
-  }
-  b_engine.end_result(b_result, false, false, false);
-}
-
-void FinalEngine::notifyStatus(float progress, const string &title, const string &info)
-{
-  b_engine.update_progress(progress);
-  b_engine.update_stats(title.c_str(), info.c_str());
 }
 
 }   // namespace usdhydra

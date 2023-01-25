@@ -544,7 +544,7 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
     sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
       SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
   }
-  
+
   sceneDelegate->Populate();
   for (auto const& setting : renderSettings) {
     renderDelegate->SetRenderSetting(setting.first, setting.second);
@@ -580,14 +580,14 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   {
     // Release the GIL before calling into hydra, in case any hydra plugins call into python.
     TF_PY_ALLOW_THREADS_IN_SCOPE();
-    engine.Execute(renderIndex.get(), &tasks);
+    engine->Execute(renderIndex.get(), &tasks);
 
     if (!b_engine.bl_use_gpu_context()) {
       texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
       texture.draw((GLfloat)viewSettings.border[0][0], (GLfloat)viewSettings.border[0][1]);
     }
   }
-
+  
   b_engine.unbind_display_space_shader();
 
   chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();

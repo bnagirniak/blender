@@ -39,7 +39,7 @@ protected:
   std::unique_ptr<BlenderSceneDelegate> sceneDelegate;
   std::unique_ptr<RenderTaskDelegate> renderTaskDelegate;
   std::unique_ptr<HdxFreeCameraSceneDelegate> freeCameraDelegate;
-  HdEngine engine;
+  std::unique_ptr<HdEngine> engine;
 
   HgiUniquePtr hgi;
   // Similar for HdDriver.

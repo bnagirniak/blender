@@ -12,6 +12,7 @@
 
 #include "engine.h"
 #include "finalEngine.h"
+#include "finalEngineGL.h"
 #include "viewportEngine.h"
 
 using namespace pxr;
@@ -41,6 +42,8 @@ Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("freeCamera"));
   renderTaskDelegate = std::make_unique<RenderTaskDelegate>(
     renderIndex.get(), SdfPath::AbsoluteRootPath().AppendElementString("renderTask"));
+
+  engine = std::make_unique<HdEngine>();
 }
 
 Engine::~Engine()
@@ -50,6 +53,8 @@ Engine::~Engine()
   freeCameraDelegate = nullptr;
   renderIndex = nullptr;
   renderDelegate = nullptr;
+  engine = nullptr;
+  hgi = nullptr;
 }
 
 float Engine::getRendererPercentDone()
@@ -85,7 +90,12 @@ static PyObject *create_func(PyObject * /*self*/, PyObject *args)
     engine = new ViewportEngine(b_engine, delegateId);
   }
   else {
-    engine = new FinalEngine(b_engine, delegateId);
+    if (b_engine.bl_use_gpu_context()) {
+      engine = new FinalEngineGL(b_engine, delegateId);
+    }
+    else {
+      engine = new FinalEngine(b_engine, delegateId);
+    }
   }
 
   return PyLong_FromVoidPtr(engine);

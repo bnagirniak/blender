@@ -7,9 +7,6 @@ import traceback
 
 import bpy
 
-from . import logger
-log = logger.Log('matx')
-
 
 def export(material_name):
     try:
@@ -24,7 +21,10 @@ def export(material_name):
         mx_utils.export_to_file(doc, mtlx_file, export_deps=True, copy_deps=False)
         return str(mtlx_file)
 
+    except ImportError:
+        print("ERROR: no MaterialX addon available")
+
     except Exception as e:
-        log.error(e, 'EXCEPTION:', traceback.format_exc())
+        print("ERROR:", e, traceback.format_exc())
 
     return ""

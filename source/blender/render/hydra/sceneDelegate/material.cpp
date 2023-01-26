@@ -43,9 +43,9 @@ SdfAssetPath MaterialExport::exportMX()
 
   gstate = PyGILState_Ensure();
   
-  module = PyImport_ImportModule("usdhydra.matx");
+  module = PyImport_ImportModule("hydra");
   dict = PyModule_GetDict(module);
-  func = PyDict_GetItemString(dict, "export");
+  func = PyDict_GetItemString(dict, "export_mtlx");
   params = Py_BuildValue("(s)", name().c_str());
   result = PyObject_CallObject(func, params);
 

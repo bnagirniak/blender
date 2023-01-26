@@ -3,43 +3,6 @@
 
 # <pep8 compliant>
 
-bl_info = {
-    "name": "Hydra render engine",
-    "author": "AMD",
-    "version": (1, 0, 0),
-    "blender": (3, 5, 0),
-    "location": "Info header > Render engine menu",
-    "description": "Hydra renderer integration",
-    "tracker_url": "",
-    "doc_url": "",
-    "community": "",
-    "downloads": "",
-    "main_web": "",
-    "support": 'TESTING',
-    "category": "Render"
-}
-
-import _usdhydra
-
-from . import logger
-log = logger.Log('init')
-
-from . import preferences, engine
-
-
-def register():
-    log("register")
-
-    preferences.register()
-    engine.register()
-
-    _usdhydra.init()
-
-
-def unregister():
-    log("unregister")
-
-    _usdhydra.exit()
-
-    engine.unregister()
-    preferences.unregister()
+from _hydra import register_plugins
+from .engine import HydraRenderEngine
+from .matx import export as export_mtlx

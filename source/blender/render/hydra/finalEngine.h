@@ -7,7 +7,7 @@
 
 #include "engine.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class FinalEngine : public Engine {
 public:
@@ -24,4 +24,4 @@ protected:
   HdRenderSettingsMap renderSettings;
 };
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

@@ -12,7 +12,7 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class MeshExport
 {
@@ -28,4 +28,4 @@ private:
   Mesh *mesh;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

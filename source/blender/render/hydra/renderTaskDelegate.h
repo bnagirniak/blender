@@ -8,7 +8,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class RenderTaskDelegate : public HdSceneDelegate
 {
@@ -36,4 +36,4 @@ private:
   TfHashMap<SdfPath, HdRenderBufferDescriptor, SdfPath::Hash> bufferDescriptors;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

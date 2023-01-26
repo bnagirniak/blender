@@ -14,7 +14,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 MeshExport::MeshExport(BL::Mesh &b_mesh)
   : mesh((Mesh *)b_mesh.ptr.data)
@@ -88,4 +88,4 @@ VtVec2fArray MeshExport::uvs()
   return ret;
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

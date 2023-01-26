@@ -11,7 +11,7 @@
 #include "blenderSceneDelegate.h"
 #include "object.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID, BL::Depsgraph &b_depsgraph)
   : HdSceneDelegate(parentIndex, delegateID)
@@ -320,4 +320,4 @@ VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken cons
   return VtValue();
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

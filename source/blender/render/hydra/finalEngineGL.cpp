@@ -17,7 +17,7 @@
 using namespace std;
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 void FinalEngineGL::render(BL::Depsgraph& b_depsgraph)
 {
@@ -96,4 +96,4 @@ void FinalEngineGL::render(BL::Depsgraph& b_depsgraph)
   updateRenderResult(renderImages, layerName, width, height);
 }
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

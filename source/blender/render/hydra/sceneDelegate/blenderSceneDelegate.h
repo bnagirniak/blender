@@ -18,7 +18,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class BlenderSceneDelegate : public HdSceneDelegate {
 public:
@@ -69,4 +69,4 @@ private:
   std::map<SdfPath, MaterialData> materials;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

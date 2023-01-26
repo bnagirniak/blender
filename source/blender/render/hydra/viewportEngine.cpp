@@ -17,7 +17,7 @@
 using namespace std;
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 struct CameraData {
   static CameraData init_from_camera(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2]);
@@ -610,4 +610,4 @@ void ViewportEngine::notifyStatus(const string &info, const string &status)
   b_engine.update_stats(status.c_str(), info.c_str());
 }
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

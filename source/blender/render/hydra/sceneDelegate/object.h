@@ -12,7 +12,7 @@
 #include "light.h"
 #include "material.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class ObjectExport
 {
@@ -34,4 +34,4 @@ private:
   BL::Depsgraph &b_depsgraph;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

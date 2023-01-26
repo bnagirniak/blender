@@ -10,7 +10,7 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class MaterialExport
 {
@@ -26,4 +26,4 @@ private:
   Material *material;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

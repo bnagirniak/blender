@@ -6,8 +6,8 @@
 #include <chrono>
 #include <string>
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 std::string formatDuration(std::chrono::milliseconds secs);
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

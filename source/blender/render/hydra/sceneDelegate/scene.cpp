@@ -6,7 +6,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 GfCamera SceneExport::gfCamera(BL::Object &b_cameraObj)
 {
@@ -55,4 +55,4 @@ std::string SceneExport::layerName()
   return b_depsgraph.view_layer().name();
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

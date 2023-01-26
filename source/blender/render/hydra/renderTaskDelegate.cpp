@@ -11,7 +11,7 @@
 
 #include "renderTaskDelegate.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 RenderTaskDelegate::RenderTaskDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
     : HdSceneDelegate(parentIndex, delegateID)
@@ -119,4 +119,4 @@ void RenderTaskDelegate::SetCameraAndViewport(SdfPath const &cameraId, GfVec4d c
 }
 
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

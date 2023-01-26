@@ -9,7 +9,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 LightExport::LightExport(BL::Light &b_light)
   : light((Light *)b_light.ptr.data)
@@ -102,4 +102,4 @@ TfToken LightExport::type() {
   }
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

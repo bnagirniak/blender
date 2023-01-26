@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 string formatDuration(chrono::milliseconds millisecs)
 {
@@ -33,4 +33,4 @@ string formatDuration(chrono::milliseconds millisecs)
   return ss.str();
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

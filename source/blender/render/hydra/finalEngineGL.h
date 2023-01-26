@@ -6,7 +6,7 @@
 #include "finalEngine.h"
 #include "finalEngineGL.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class FinalEngineGL : public FinalEngine {
 public:
@@ -14,4 +14,4 @@ public:
   void render(BL::Depsgraph& b_depsgraph) override;
 };
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

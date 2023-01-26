@@ -13,7 +13,7 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class LightExport
 {
@@ -34,4 +34,4 @@ private:
   Light *light;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

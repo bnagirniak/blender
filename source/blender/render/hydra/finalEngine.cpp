@@ -17,7 +17,7 @@
 using namespace std;
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
@@ -115,4 +115,4 @@ void FinalEngine::notifyStatus(float progress, const string &title, const string
   b_engine.update_stats(title.c_str(), info.c_str());
 }
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

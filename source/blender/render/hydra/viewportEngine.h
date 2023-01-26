@@ -11,7 +11,7 @@
 
 #include "engine.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class GLTexture
 {
@@ -44,4 +44,4 @@ private:
   GLTexture texture;
 };
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

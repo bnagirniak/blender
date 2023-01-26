@@ -17,7 +17,7 @@
 
 using namespace std;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
@@ -94,8 +94,8 @@ static PyMethodDef methods[] = {
 
 static struct PyModuleDef module = {
   PyModuleDef_HEAD_INIT,
-  "_usdhydra",
-  "USDHydra render integration",
+  "_hydra",
+  "Hydra render API",
   -1,
   methods,
   NULL,
@@ -104,16 +104,16 @@ static struct PyModuleDef module = {
   NULL,
 };
 
-}   // namespace usdhydra
+} // namespace blender::render::hydra
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PyObject *USDHydra_initPython(void)
+PyObject *Hydra_initPython(void)
 {
-  PyObject *mod = PyModule_Create(&usdhydra::module);
-  usdhydra::addPythonSubmodule_engine(mod);
+  PyObject *mod = PyModule_Create(&blender::render::hydra::module);
+  blender::render::hydra::addPythonSubmodule_engine(mod);
 
   return mod;
 }

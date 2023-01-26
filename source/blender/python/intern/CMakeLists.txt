@@ -381,11 +381,11 @@ if(WITH_HARU)
   add_definitions(-DWITH_HARU)
 endif()
 
-if(WITH_USDHYDRA)
+if(WITH_HYDRA)
   list(APPEND LIB
     bf_render_hydra
   )
-  add_definitions(-DWITH_USDHYDRA)
+  add_definitions(-DWITH_HYDRA)
 endif()
 
 blender_add_lib(bf_python "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")

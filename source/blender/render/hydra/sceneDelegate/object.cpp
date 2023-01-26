@@ -3,7 +3,7 @@
 
 #include "object.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 MeshExport ObjectExport::meshExport()
 {
@@ -40,4 +40,4 @@ BL::Object::type_enum ObjectExport::type()
   return b_object.type();
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

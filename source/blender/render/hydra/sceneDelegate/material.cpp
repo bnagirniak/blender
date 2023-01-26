@@ -8,7 +8,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 MaterialExport::MaterialExport(BL::Object &b_object)
   : material(nullptr)
@@ -56,4 +56,4 @@ SdfAssetPath MaterialExport::exportMX()
   return SdfAssetPath(path, path);  
 }
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

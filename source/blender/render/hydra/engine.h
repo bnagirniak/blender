@@ -19,7 +19,7 @@
 #include "sceneDelegate/blenderSceneDelegate.h"
 #include "renderTaskDelegate.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class Engine {
 public:
@@ -48,4 +48,4 @@ protected:
 
 PyObject *addPythonSubmodule_engine(PyObject *mod);
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

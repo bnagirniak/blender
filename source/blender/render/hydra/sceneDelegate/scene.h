@@ -8,7 +8,7 @@
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 class SceneExport
 {
@@ -28,4 +28,4 @@ private:
   BL::Scene b_scene;
 };
 
-} // namespace usdhydra
+} // namespace blender::render::hydra

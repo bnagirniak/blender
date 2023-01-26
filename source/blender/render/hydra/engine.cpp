@@ -17,7 +17,7 @@
 
 using namespace pxr;
 
-namespace usdhydra {
+namespace blender::render::hydra {
 
 Engine::Engine(BL::RenderEngine &b_engine, const std::string &delegateId)
   : b_engine(b_engine)
@@ -258,4 +258,4 @@ PyObject *addPythonSubmodule_engine(PyObject *mod)
   return submodule;
 }
 
-}   // namespace usdhydra
+}   // namespace blender::render::hydra

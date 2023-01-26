@@ -15,7 +15,6 @@
 #include "BKE_appdir.h"
 
 #include "finalEngine.h"
-#include "finalEngineGL.h"
 #include "viewportEngine.h"
 
 using namespace std;

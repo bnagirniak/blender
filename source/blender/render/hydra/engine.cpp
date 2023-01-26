@@ -10,9 +10,6 @@
 #include "glog/logging.h"
 
 #include "engine.h"
-#include "finalEngine.h"
-#include "finalEngineGL.h"
-#include "viewportEngine.h"
 
 using namespace pxr;
 

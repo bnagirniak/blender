@@ -24,4 +24,10 @@ protected:
   HdRenderSettingsMap renderSettings;
 };
 
+class FinalEngineGL : public FinalEngine {
+ public:
+  using FinalEngine::FinalEngine;
+  void render(BL::Depsgraph &b_depsgraph) override;
+};
+
 }   // namespace blender::render::hydra

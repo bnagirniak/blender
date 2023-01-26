@@ -15,7 +15,7 @@ class HydraRenderEngine(bpy.types.RenderEngine):
         if not self.engine_ptr:
             return
 
-        _hydra.engine.free(self.engine_ptr)
+        _hydra.engine_free(self.engine_ptr)
 
     @classmethod
     def register(cls):
@@ -35,22 +35,22 @@ class HydraRenderEngine(bpy.types.RenderEngine):
     def render(self, depsgraph):
         engine_type = 'PREVIEW' if self.is_preview else 'FINAL'
 
-        self.engine_ptr = _hydra.engine.create(self.as_pointer(), engine_type, self.delegate_id)
+        self.engine_ptr = _hydra.engine_create(self.as_pointer(), engine_type, self.delegate_id)
         delegate_settings = self.get_delegate_settings(engine_type)
 
-        _hydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), bpy.context.as_pointer(), delegate_settings)
-        _hydra.engine.render(self.engine_ptr, depsgraph.as_pointer())
+        _hydra.engine_sync(self.engine_ptr, depsgraph.as_pointer(), bpy.context.as_pointer(), delegate_settings)
+        _hydra.engine_render(self.engine_ptr, depsgraph.as_pointer())
 
     # viewport render
     def view_update(self, context, depsgraph):
         if not self.engine_ptr:
-            self.engine_ptr = _hydra.engine.create(self.as_pointer(), 'VIEWPORT', self.delegate_id)
+            self.engine_ptr = _hydra.engine_create(self.as_pointer(), 'VIEWPORT', self.delegate_id)
 
         delegate_settings = self.get_delegate_settings('VIEWPORT')
-        _hydra.engine.sync(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer(), delegate_settings)
+        _hydra.engine_sync(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer(), delegate_settings)
 
     def view_draw(self, context, depsgraph):
         if not self.engine_ptr:
             return
 
-        _hydra.engine.view_draw(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer())
+        _hydra.engine_view_draw(self.engine_ptr, depsgraph.as_pointer(), context.as_pointer())

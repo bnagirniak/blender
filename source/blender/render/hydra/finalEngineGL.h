@@ -4,7 +4,6 @@
 #pragma once
 
 #include "finalEngine.h"
-#include "finalEngineGL.h"
 
 namespace blender::render::hydra {
 

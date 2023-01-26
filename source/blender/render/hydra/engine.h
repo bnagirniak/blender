@@ -42,10 +42,7 @@ protected:
   std::unique_ptr<HdEngine> engine;
 
   HgiUniquePtr hgi;
-  // Similar for HdDriver.
   HdDriver hgiDriver;
 };
-
-PyObject *addPythonSubmodule_engine(PyObject *mod);
 
 }   // namespace blender::render::hydra

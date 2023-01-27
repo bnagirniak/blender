@@ -12,6 +12,9 @@ from _hydra import register_plugins, get_render_plugins
 
 
 class HydraRenderEngine(bpy.types.RenderEngine):
+    bl_use_preview = True
+    bl_use_shading_nodes_custom = False
+
     delegate_id = ''
     engine_ptr = None
 

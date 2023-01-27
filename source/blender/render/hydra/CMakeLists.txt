@@ -78,26 +78,4 @@ set(LIB
   ${BOOST_LIBRARIES}
 )
 
-set(ADDON_FILES
-  addon/__init__.py
-  addon/engine.py
-  addon/logger.py
-  addon/preferences.py
-  addon/ui.py
-  addon/matx.py
-)
-
-set(ADDON_STORM_FILES
-  addon/storm/__init__.py
-  addon/storm/engine.py
-  addon/storm/properties.py
-  addon/storm/ui.py
-)
-
 blender_add_lib(bf_render_hydra "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
-
-#add_dependencies(extern_usdhydra bf_rna)
-
-#set(USDHYDRA_INSTALL_PATH "scripts/addons/usdhydra")
-#delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_FILES}" ${USDHYDRA_INSTALL_PATH})
-#delayed_install(${CMAKE_CURRENT_SOURCE_DIR} "${ADDON_STORM_FILES}" ${USDHYDRA_INSTALL_PATH}/storm)

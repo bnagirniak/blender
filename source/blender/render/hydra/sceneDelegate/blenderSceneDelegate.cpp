@@ -129,9 +129,8 @@ void BlenderSceneDelegate::Populate()
       }
       
       if (id.is_a(&RNA_Collection)) {
-        BL::Collection &col = (BL::Collection &)id;
         if (update.is_updated_transform() && update.is_updated_geometry()) {
-          // remove unused objects
+          /* remove unused objects */
           std::set<std::string> availableObjects;
           for (auto &inst : b_depsgraph.object_instances) {
             if (inst.is_instance()) {
@@ -157,7 +156,7 @@ void BlenderSceneDelegate::Populate()
             it = objects.begin();
           }
 
-          // remove unused materials
+          /* remove unused materials */
           std::set<SdfPath> availableMaterials;
           for (auto &obj : objects) {
             if (obj.second.data.find("materialId") != obj.second.data.end()) {

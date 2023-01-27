@@ -39,8 +39,8 @@ std::string MaterialExport::name()
 SdfAssetPath MaterialExport::exportMX()
 {
   PyObject *module, *dict, *func, *params, *result;
-  PyGILState_STATE gstate;
 
+  PyGILState_STATE gstate;
   gstate = PyGILState_Ensure();
   
   module = PyImport_ImportModule("hydra");
@@ -50,6 +50,10 @@ SdfAssetPath MaterialExport::exportMX()
   result = PyObject_CallObject(func, params);
 
   std::string path = PyUnicode_AsUTF8(result);
+
+  Py_DECREF(result);
+  Py_DECREF(params);
+  Py_DECREF(module);
 
   PyGILState_Release(gstate);
 

@@ -20,7 +20,7 @@ public:
 
   operator bool();
   std::string name();
-  pxr::SdfAssetPath exportMX();
+  pxr::SdfAssetPath export_mtlx();
 
 private:
   Material *material;

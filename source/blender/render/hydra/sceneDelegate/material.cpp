@@ -36,9 +36,9 @@ std::string MaterialExport::name()
   return material->id.name + 2;
 }
 
-SdfAssetPath MaterialExport::exportMX()
+SdfAssetPath MaterialExport::export_mtlx()
 {
-  PyObject *module, *dict, *func, *params, *result;
+  PyObject *module, *dict, *func, *result;
 
   PyGILState_STATE gstate;
   gstate = PyGILState_Ensure();
@@ -46,13 +46,11 @@ SdfAssetPath MaterialExport::exportMX()
   module = PyImport_ImportModule("hydra");
   dict = PyModule_GetDict(module);
   func = PyDict_GetItemString(dict, "export_mtlx");
-  params = Py_BuildValue("(s)", name().c_str());
-  result = PyObject_CallObject(func, params);
+  result = PyObject_CallFunction(func, "s", name().c_str());
 
   std::string path = PyUnicode_AsUTF8(result);
 
   Py_DECREF(result);
-  Py_DECREF(params);
   Py_DECREF(module);
 
   PyGILState_Release(gstate);

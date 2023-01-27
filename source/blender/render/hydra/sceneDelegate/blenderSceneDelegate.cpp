@@ -42,7 +42,7 @@ void BlenderSceneDelegate::updateMaterial(ObjectExport & objExport)
     if (materials.find(matId) == materials.end()) {
       index.InsertSprim(HdPrimTypeTokens->material, this, matId);
       MaterialData matData(matExport.name());
-      matData.mtlxPath = matExport.exportMX();
+      matData.mtlxPath = matExport.export_mtlx();
       materials[matId] = matData;
       LOG(INFO) << "Add material: " << matId << ", mtlx=" << matData.mtlxPath.GetResolvedPath();
     }
@@ -121,7 +121,7 @@ void BlenderSceneDelegate::Populate()
 
           auto it = materials.find(matId);
           if (it != materials.end()) {
-            it->second.mtlxPath = matExport.exportMX();
+            it->second.mtlxPath = matExport.export_mtlx();
             LOG(INFO) << "Update material: " << matId << ", mtlx=" << it->second.mtlxPath.GetResolvedPath();
             index.GetChangeTracker().MarkSprimDirty(matId, HdMaterial::AllDirty);
           }

@@ -81,25 +81,53 @@ static PyObject *register_plugins_func(PyObject * /*self*/, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static PyObject *exit_func(PyObject * /*self*/, PyObject * /*args*/)
+static PyObject *get_render_plugins_func(PyObject * /*self*/, PyObject *args)
 {
-  LOG(INFO) << "exit_func";
-  Py_RETURN_NONE;
+  LOG(INFO) << "get_render_plugins_func";
+
+  PlugRegistry &registry = PlugRegistry::GetInstance();
+  TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
+  PyObject *ret = PyTuple_New(pluginsIds.size());
+  PyObject *val;
+  for (int i = 0; i < pluginsIds.size(); ++i) {
+    PyObject *descr = PyDict_New();
+
+    PyDict_SetItemString(descr, "id", val = PyUnicode_FromString(pluginsIds[i].GetText()));
+    Py_DECREF(val);
+
+    PyDict_SetItemString(descr, "name", 
+      val = PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
+    Py_DECREF(val);
+
+    std::string plugin_name = pluginsIds[i];
+    plugin_name = plugin_name.substr(0, plugin_name.size() - 6);
+    plugin_name[0] = tolower(plugin_name[0]);
+    std::string path = "";
+    PlugPluginPtr plugin = registry.GetPluginWithName(plugin_name);
+    if (plugin) {
+      path = plugin->GetPath();
+    }
+    PyDict_SetItemString(descr, "path", val = PyUnicode_FromString(path.c_str()));
+    Py_DECREF(val);
+
+    PyTuple_SetItem(ret, i, descr);
+  }
+  return ret;
 }
 
 static PyObject *engine_create_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "create_func";
 
-  PyObject *b_pyengine;
+  PyObject *pyengine;
   char *engineType, *delegateId;
-  if (!PyArg_ParseTuple(args, "Oss", &b_pyengine, &engineType, &delegateId)) {
+  if (!PyArg_ParseTuple(args, "Oss", &pyengine, &engineType, &delegateId)) {
     Py_RETURN_NONE;
   }
 
-  PointerRNA b_engineptr;
-  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(b_pyengine), &b_engineptr);
-  BL::RenderEngine b_engine(b_engineptr);
+  PointerRNA engineptr;
+  RNA_pointer_create(NULL, &RNA_RenderEngine, (void *)PyLong_AsVoidPtr(pyengine), &engineptr);
+  BL::RenderEngine b_engine(engineptr);
 
   Engine *engine;
   if (std::string(engineType) == "VIEWPORT") {
@@ -154,6 +182,7 @@ static PyObject *engine_sync_func(PyObject * /*self*/, PyObject *args)
     while (pykey = PyIter_Next(pyiter)) {
       TfToken key(PyUnicode_AsUTF8(pykey));
       pyval = PyDict_GetItem(pysettings, pykey);
+
       if (PyLong_Check(pyval)) {
         settings[key] = PyLong_AsLong(pyval);
       }
@@ -184,9 +213,6 @@ static PyObject *engine_render_func(PyObject * /*self*/, PyObject *args)
   PointerRNA depsgraphptr;
   RNA_pointer_create(NULL, &RNA_Depsgraph, (ID *)PyLong_AsVoidPtr(pydepsgraph), &depsgraphptr);
   BL::Depsgraph depsgraph(depsgraphptr);
-
-  Py_DECREF(pyengine);
-  Py_DECREF(pydepsgraph);
 
   /* Allow Blender to execute other Python scripts. */
   Py_BEGIN_ALLOW_THREADS
@@ -219,36 +245,6 @@ static PyObject *engine_view_draw_func(PyObject * /*self*/, PyObject *args)
   Py_END_ALLOW_THREADS
 
   Py_RETURN_NONE;
-}
-
-static PyObject *get_render_plugins_func(PyObject * /*self*/, PyObject *args)
-{
-  LOG(INFO) << "get_render_plugins_func";
-
-  PlugRegistry &registry = PlugRegistry::GetInstance();
-  TfTokenVector pluginsIds = UsdImagingGLEngine::GetRendererPlugins();
-  PyObject *ret = PyTuple_New(pluginsIds.size());
-  for (int i = 0; i < pluginsIds.size(); ++i) {
-    PyObject *descr = PyDict_New();
-    PyDict_SetItemString(descr, "id", PyUnicode_FromString(pluginsIds[i].GetText()));
-    PyDict_SetItemString(
-        descr,
-        "name",
-        PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
-
-    std::string plugin_name = pluginsIds[i];
-    plugin_name = plugin_name.substr(0, plugin_name.size() - 6);
-    plugin_name[0] = tolower(plugin_name[0]);
-    std::string path = "";
-    PlugPluginPtr plugin = registry.GetPluginWithName(plugin_name);
-    if (plugin) {
-      path = plugin->GetPath();
-    }
-    PyDict_SetItemString(descr, "path", PyUnicode_FromString(path.c_str()));
-
-    PyTuple_SetItem(ret, i, descr);
-  }
-  return ret;
 }
 
 static PyMethodDef methods[] = {

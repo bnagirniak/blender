@@ -83,5 +83,5 @@ if(NOT APPLE)
 endif()
 
 if(WIN32)
-  set(WITH_USDHYDRA            ON  CACHE BOOL "" FORCE)
+  set(WITH_HYDRA            ON  CACHE BOOL "" FORCE)
 endif()

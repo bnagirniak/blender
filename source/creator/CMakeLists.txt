@@ -1554,7 +1554,7 @@ if(LIBDIR AND TARGETDIR_LIB)
   endif()
 endif()
 
-if(WITH_USD AND WITH_USDHYDRA)
+if(WITH_USD AND WITH_HYDRA)
   install(DIRECTORY
     ${LIBDIR}/usd/plugin/usd/hdStorm
     ${LIBDIR}/usd/plugin/usd/usdShaders

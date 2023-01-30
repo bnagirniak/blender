@@ -11,10 +11,8 @@
 #include "BLI_utildefines.h"
 
 #include "DNA_curves_types.h"
-#include "DNA_customdata_types.h"
 
 #include "BKE_curves.hh"
-#include "BKE_geometry_set.hh"
 
 #include "GPU_batch.h"
 #include "GPU_capabilities.h"
@@ -334,7 +332,7 @@ DRWShadingGroup *DRW_shgroup_curves_create_sub(Object *object,
   if (curves.curves_num() >= 1) {
     blender::VArray<float> radii = curves.attributes().lookup_or_default(
         "radius", ATTR_DOMAIN_POINT, 0.005f);
-    const blender::IndexRange first_curve_points = curves.points_for_curve(0);
+    const blender::IndexRange first_curve_points = curves.points_by_curve()[0];
     const float first_radius = radii[first_curve_points.first()];
     const float last_radius = radii[first_curve_points.last()];
     const float middle_radius = radii[first_curve_points.size() / 2];
@@ -492,7 +490,7 @@ void DRW_curves_update()
     GPUFrameBuffer *temp_fb = nullptr;
     GPUFrameBuffer *prev_fb = nullptr;
     if (GPU_type_matches_ex(GPU_DEVICE_ANY, GPU_OS_MAC, GPU_DRIVER_ANY, GPU_BACKEND_METAL)) {
-      if (!GPU_compute_shader_support()) {
+      if (!(GPU_compute_shader_support() && GPU_shader_storage_buffer_objects_support())) {
         prev_fb = GPU_framebuffer_active_get();
         char errorOut[256];
         /* if the frame-buffer is invalid we need a dummy frame-buffer to be bound. */

@@ -25,7 +25,7 @@ static PyObject *init_func(PyObject * /*self*/, PyObject *args)
 {
   LOG(INFO) << "init_func";
 
-  pxr::PlugRegistry::GetInstance().RegisterPlugins(std::string(BKE_appdir_program_dir()) + "/blender.shared/usd");
+  pxr::PlugRegistry::GetInstance().RegisterPlugins(string(BKE_appdir_program_dir()) + "/blender.shared/usd");
 
   Py_RETURN_NONE;
 }
@@ -99,10 +99,10 @@ static PyObject *get_render_plugins_func(PyObject * /*self*/, PyObject *args)
       val = PyUnicode_FromString(UsdImagingGLEngine::GetRendererDisplayName(pluginsIds[i]).c_str()));
     Py_DECREF(val);
 
-    std::string plugin_name = pluginsIds[i];
+    string plugin_name = pluginsIds[i];
     plugin_name = plugin_name.substr(0, plugin_name.size() - 6);
     plugin_name[0] = tolower(plugin_name[0]);
-    std::string path = "";
+    string path = "";
     PlugPluginPtr plugin = registry.GetPluginWithName(plugin_name);
     if (plugin) {
       path = plugin->GetPath();
@@ -130,7 +130,7 @@ static PyObject *engine_create_func(PyObject * /*self*/, PyObject *args)
   BL::RenderEngine b_engine(engineptr);
 
   Engine *engine;
-  if (std::string(engineType) == "VIEWPORT") {
+  if (string(engineType) == "VIEWPORT") {
     engine = new ViewportEngine(b_engine, delegateId);
   }
   else {

@@ -43,33 +43,33 @@ set(INC_SYS
 )
 
 set(SRC
-  python.cpp
+  python.cc
 
   engine.h
-  engine.cpp
+  engine.cc
   finalEngine.h
-  finalEngine.cpp
+  finalEngine.cc
   viewportEngine.h
-  viewportEngine.cpp
+  viewportEngine.cc
 
   utils.h
-  utils.cpp
+  utils.cc
 
-  renderTaskDelegate.cpp
+  renderTaskDelegate.cc
   renderTaskDelegate.h
 
   sceneDelegate/blenderSceneDelegate.h
-  sceneDelegate/blenderSceneDelegate.cpp
+  sceneDelegate/blenderSceneDelegate.cc
   sceneDelegate/object.h
-  sceneDelegate/object.cpp
+  sceneDelegate/object.cc
   sceneDelegate/mesh.h
-  sceneDelegate/mesh.cpp
+  sceneDelegate/mesh.cc
   sceneDelegate/light.h
-  sceneDelegate/light.cpp
+  sceneDelegate/light.cc
   sceneDelegate/scene.h
-  sceneDelegate/scene.cpp
+  sceneDelegate/scene.cc
   sceneDelegate/material.h
-  sceneDelegate/material.cpp
+  sceneDelegate/material.cc
 )
 
 set(LIB

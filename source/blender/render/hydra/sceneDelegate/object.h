@@ -42,6 +42,7 @@ public:
   ObjectData(Object *object);
 
   std::string name();
+  int type();
   pxr::TfToken prim_type();
   pxr::GfMatrix4d transform();
   std::string path_name();

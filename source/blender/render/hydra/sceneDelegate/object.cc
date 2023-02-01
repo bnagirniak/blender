@@ -1,7 +1,13 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <pxr/imaging/hd/light.h>
+#include <pxr/usd/usdLux/tokens.h>
+
 #include "BKE_object.h"
+#include "BKE_lib_id.h"
+#include "BKE_mesh.h"
+#include "BKE_mesh_runtime.h"
 
 #include "object.h"
 
@@ -11,6 +17,9 @@ namespace blender::render::hydra {
 
 MeshExport ObjectExport::meshExport()
 {
+  Object *object = (Object *)b_object.ptr.data;
+  ObjectData objData(object);
+
   return MeshExport((BL::Mesh &)b_object.data());
 }
 
@@ -24,10 +33,10 @@ MaterialExport ObjectExport::materialExport()
   return MaterialExport(b_object);
 }
 
-pxr::GfMatrix4d ObjectExport::transform()
+GfMatrix4d ObjectExport::transform()
 {
   auto m = b_object.matrix_world();
-  return pxr::GfMatrix4d(
+  return GfMatrix4d(
     m[0], m[1], m[2], m[3],
     m[4], m[5], m[6], m[7],
     m[8], m[9], m[10], m[11],
@@ -47,12 +56,36 @@ BL::Object::type_enum ObjectExport::type()
 ObjectData::ObjectData(Object *object)
   : object(object)
 {
+  switch (object->type) {
+    case OB_MESH:
+      set_as_mesh();
+      break;
 
+    case OB_MBALL:
+    case OB_SURF:
+    case OB_FONT:
+      set_as_meshable();
+      break;
+
+    case OB_LAMP:
+      set_as_light();
+      break;
+
+    default:
+      break;
+  }
 }
 
 std::string ObjectData::name()
 {
-  return object->id.name + 2;
+  char str[MAX_ID_FULL_NAME];
+  BKE_id_full_name_get(str, (ID *)object, 0);
+  return str;
+}
+
+int ObjectData::type()
+{
+  return object->type;
 }
 
 TfToken ObjectData::prim_type()
@@ -70,34 +103,34 @@ TfToken ObjectData::prim_type()
     case OB_LAMP:
       light = (Light *)object->data;
       switch (light->type) {
+        case LA_LOCAL:
+        case LA_SPOT:
+          ret = HdPrimTypeTokens->sphereLight;
+          break;
+
+        case LA_SUN:
+          ret = HdPrimTypeTokens->distantLight;
+          break;
+
         case LA_AREA:
           switch (light->area_shape) {
             case LA_AREA_SQUARE:
             case LA_AREA_RECT:
-              ret = pxr::HdPrimTypeTokens->rectLight;
+              ret = HdPrimTypeTokens->rectLight;
               break;
 
             case LA_AREA_DISK:
             case LA_AREA_ELLIPSE:
-              ret = pxr::HdPrimTypeTokens->diskLight;
+              ret = HdPrimTypeTokens->diskLight;
               break;
 
             default:
-              ret = pxr::HdPrimTypeTokens->rectLight;
+              ret = HdPrimTypeTokens->rectLight;
           }
           break;
 
-        case LA_SUN:
-          ret = pxr::HdPrimTypeTokens->distantLight;
-          break;
-
-        case LA_LOCAL:
-        case LA_SPOT:
-          ret = pxr::HdPrimTypeTokens->sphereLight;
-          break;
-
         default:
-          ret = pxr::HdPrimTypeTokens->sphereLight;
+          ret = HdPrimTypeTokens->sphereLight;
       }
       break;
 
@@ -110,7 +143,7 @@ TfToken ObjectData::prim_type()
 GfMatrix4d ObjectData::transform()
 {
   float *m = (float *)object->object_to_world;
-  return pxr::GfMatrix4d(
+  return GfMatrix4d(
     m[0], m[1], m[2], m[3],
     m[4], m[5], m[6], m[7],
     m[8], m[9], m[10], m[11],
@@ -136,6 +169,59 @@ bool ObjectData::has_data(const TfToken &key)
 
 void ObjectData::set_as_mesh()
 {
+  Mesh *mesh = (Mesh *)object->data;
+  BKE_mesh_calc_normals_split(mesh);
+  int tris_len = BKE_mesh_runtime_looptri_len(mesh);
+  blender::Span<MLoopTri> loopTris = mesh->looptris();
+
+  /* faceVertexCounts */
+  data[TfToken("faceCounts")] = VtIntArray(tris_len, 3);
+
+  /* faceVertexIndices */
+  VtIntArray faceVertexIndices;
+  blender::Span<MLoop> loops = mesh->loops();
+  faceVertexIndices.reserve(loopTris.size() * 3);
+  for (MLoopTri lt : loopTris) {
+    faceVertexIndices.push_back(loops[lt.tri[0]].v);
+    faceVertexIndices.push_back(loops[lt.tri[1]].v);
+    faceVertexIndices.push_back(loops[lt.tri[2]].v);
+  }
+  data[HdTokens->pointsIndices] = faceVertexIndices;
+
+  /* vertices */
+  VtVec3fArray vertices;
+  vertices.reserve(mesh->totvert);
+  blender::Span<blender::float3> verts = mesh->vert_positions();
+  for (blender::float3 v : verts) {
+    vertices.push_back(GfVec3f(v.x, v.y, v.z));
+  }
+  data[HdTokens->points] = vertices;
+
+  /* normals */
+  const float(*lnors)[3] = (float(*)[3])CustomData_get_layer(&mesh->ldata, CD_NORMAL);
+  if (lnors) {
+    VtVec3fArray normals;
+    normals.reserve(loopTris.size() * 3);
+    for (MLoopTri lt : loopTris) {
+      normals.push_back(GfVec3f(lnors[lt.tri[0]]));
+      normals.push_back(GfVec3f(lnors[lt.tri[1]]));
+      normals.push_back(GfVec3f(lnors[lt.tri[2]]));
+    }
+    data[HdTokens->normals] = normals;
+  }
+
+  /* UVs*/
+  const float(*luvs)[2] = (float(*)[2])CustomData_get_layer(&mesh->ldata, CD_PROP_FLOAT2);
+  if (luvs) {
+    VtVec2fArray uvs;
+    uvs.reserve(loopTris.size() * 3);
+    for (MLoopTri lt : loopTris) {
+      uvs.push_back(GfVec2f(luvs[lt.tri[0]]));
+      uvs.push_back(GfVec2f(luvs[lt.tri[1]]));
+      uvs.push_back(GfVec2f(luvs[lt.tri[2]]));
+    }
+    data[HdPrimvarRoleTokens->textureCoordinate] = uvs;
+  }
 }
 
 void ObjectData::set_as_meshable()
@@ -144,6 +230,52 @@ void ObjectData::set_as_meshable()
 
 void ObjectData::set_as_light()
 {
+  Light *light = (Light *)object->data;
+  data[HdLightTokens->intensity] = light->energy;
+  data[HdLightTokens->color] = GfVec3f(light->r, light->g, light->b);
+
+  switch (light->type) {
+    case LA_LOCAL:
+      data[HdLightTokens->radius] = light->area_size / 2;
+      break;
+
+    case LA_SUN:
+      data[HdLightTokens->angle] = light->sun_angle * 180.0 / M_PI;
+      break;
+
+    case LA_SPOT:
+      data[HdLightTokens->shapingConeAngle] = light->spotsize / 2;
+      data[HdLightTokens->shapingConeSoftness] = light->spotblend;
+      data[UsdLuxTokens->treatAsPoint] = 1;
+      break;
+
+    case LA_AREA:
+      switch (light->area_shape) {
+        case LA_AREA_SQUARE:
+          data[HdLightTokens->width] = light->area_size;
+          data[HdLightTokens->height] = light->area_size;
+          break;
+        case LA_AREA_RECT:
+          data[HdLightTokens->width] = light->area_size;
+          data[HdLightTokens->height] = light->area_sizey;
+          break;
+
+        case LA_AREA_DISK:
+          data[HdLightTokens->radius] = light->area_size / 2;
+          break;
+
+        case LA_AREA_ELLIPSE:
+          data[HdLightTokens->radius] = (light->area_size + light->area_sizey) / 4;
+          break;
+
+        default:
+          break;
+      }
+      break;
+
+    default:
+      break;
+  }
 }
 
 }  // namespace blender::render::hydra

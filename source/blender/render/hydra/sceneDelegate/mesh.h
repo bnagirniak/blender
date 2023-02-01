@@ -28,4 +28,14 @@ private:
   Mesh *mesh;
 };
 
+
+struct MeshData {
+  MeshData(Mesh *mesh);
+
+  pxr::VtIntArray faceVertexCounts;
+  pxr::VtIntArray faceVertexIndices;
+  pxr::VtVec3fArray vertices;
+  pxr::VtVec3fArray normals;
+  pxr::VtVec2fArray uvs;
+};
 } // namespace blender::render::hydra

@@ -88,4 +88,54 @@ VtVec2fArray MeshExport::uvs()
   return ret;
 }
 
-} // namespace blender::render::hydra
+MeshData::MeshData(Mesh *mesh)
+{
+  /* faceVertexCounts */
+  int tris_len = BKE_mesh_runtime_looptri_len(mesh);
+  faceVertexCounts.reserve(tris_len);
+  for (int i = 0; i < tris_len; ++i) {
+    faceVertexCounts.push_back(3);
+  }
+
+  /* faceVertexIndices */
+  blender::Span<MLoopTri> loopTris = mesh->looptris();
+  blender::Span<MLoop> loops = mesh->loops();
+  faceVertexIndices.reserve(loopTris.size() * 3);
+  for (MLoopTri lt : loopTris) {
+    faceVertexIndices.push_back(loops[lt.tri[0]].v);
+    faceVertexIndices.push_back(loops[lt.tri[1]].v);
+    faceVertexIndices.push_back(loops[lt.tri[2]].v);
+  }
+
+  /* vertices */
+  vertices.reserve(mesh->totvert);
+  blender::Span<blender::float3> verts = mesh->vert_positions();
+  for (blender::float3 v : verts) {
+    vertices.push_back(GfVec3f(v.x, v.y, v.z));
+  }
+
+  /* normals */
+  BKE_mesh_calc_normals_split(mesh);
+  const float(*lnors)[3] = (float(*)[3])CustomData_get_layer(&mesh->ldata, CD_NORMAL);
+  normals.reserve(loopTris.size() * 3);
+  if (lnors) {
+    for (MLoopTri lt : loopTris) {
+      normals.push_back(pxr::GfVec3f(lnors[lt.tri[0]]));
+      normals.push_back(pxr::GfVec3f(lnors[lt.tri[1]]));
+      normals.push_back(pxr::GfVec3f(lnors[lt.tri[2]]));
+    }
+  }
+
+  /* UVs*/
+  const float(*luvs)[2] = (float(*)[2])CustomData_get_layer(&mesh->ldata, CD_PROP_FLOAT2);
+  uvs.reserve(loopTris.size() * 3);
+  if (luvs) {
+    for (MLoopTri lt : loopTris) {
+      uvs.push_back(pxr::GfVec2f(luvs[lt.tri[0]]));
+      uvs.push_back(pxr::GfVec2f(luvs[lt.tri[1]]));
+      uvs.push_back(pxr::GfVec2f(luvs[lt.tri[2]]));
+    }
+  }
+}
+
+}  // namespace blender::render::hydra

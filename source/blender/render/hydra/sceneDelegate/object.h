@@ -39,6 +39,7 @@ private:
 
 class ObjectData {
 public:
+  ObjectData();
   ObjectData(Object *object);
 
   std::string name();
@@ -49,7 +50,7 @@ public:
 
   pxr::VtValue &get_data(const pxr::TfToken &key);
   template<class T>
-  T &get_data(const pxr::TfToken &key);
+  const T &get_data(const pxr::TfToken &key);
   bool has_data(const pxr::TfToken &key);
 
 private:
@@ -62,7 +63,7 @@ private:
 };
 
 template<class T>
-T &ObjectData::get_data(const pxr::TfToken &key)
+const T &ObjectData::get_data(const pxr::TfToken &key)
 {
   return get_data(key).Get<T>();
 }

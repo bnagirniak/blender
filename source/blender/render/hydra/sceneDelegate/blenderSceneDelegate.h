@@ -42,12 +42,13 @@ private:
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
   void updateMaterial(ObjectExport &objExport);
+  ObjectData *get_object_data(SdfPath const &id);
 
 private:
-  struct ObjectData {
-    ObjectData()
+  struct __ObjectData {
+    __ObjectData()
     { }
-    ObjectData(std::string name, TfToken type)
+    __ObjectData(std::string name, TfToken type)
       : name(name)
       , type(type)
     { }

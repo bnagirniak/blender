@@ -17,9 +17,6 @@ namespace blender::render::hydra {
 
 MeshExport ObjectExport::meshExport()
 {
-  Object *object = (Object *)b_object.ptr.data;
-  ObjectData objData(object);
-
   return MeshExport((BL::Mesh &)b_object.data());
 }
 
@@ -51,6 +48,11 @@ std::string ObjectExport::name()
 BL::Object::type_enum ObjectExport::type()
 {
   return b_object.type();
+}
+
+ObjectData::ObjectData()
+  : object(nullptr)
+{
 }
 
 ObjectData::ObjectData(Object *object)
@@ -153,7 +155,7 @@ GfMatrix4d ObjectData::transform()
 std::string ObjectData::path_name()
 {
   char str[32];
-  snprintf(str, 32, "%016llX", (uint64_t)object);
+  snprintf(str, 32, "%c%016llX", (prim_type() == HdPrimTypeTokens->mesh) ? 'R' : 'S', (uint64_t)object);
   return str;
 }
 

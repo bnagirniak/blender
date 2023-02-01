@@ -6,6 +6,7 @@
 
 #include "BKE_object.h"
 #include "BKE_lib_id.h"
+#include "BKE_material.h"
 #include "BKE_mesh.h"
 #include "BKE_mesh_runtime.h"
 
@@ -161,7 +162,10 @@ std::string ObjectData::path_name()
 
 Material *ObjectData::material()
 {
-  return nullptr;
+  if (BKE_object_material_count_eval(object) == 0) {
+    return nullptr;
+  }
+  return BKE_object_material_get_eval(object, object->actcol);
 }
 
 VtValue &ObjectData::get_data(const TfToken &key)
@@ -176,12 +180,11 @@ bool ObjectData::has_data(const TfToken &key)
 
 void ObjectData::set_material_id(SdfPath const &id)
 {
-  TfToken matId("materialId");
   if (id.IsEmpty()) {
-    data.erase(matId);
+    data.erase(TfToken("materialId"));
   }
   else {
-    data[matId] = id;
+    data[TfToken("materialId")] = id;
   }
 }
 

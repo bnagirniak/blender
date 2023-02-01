@@ -34,22 +34,20 @@ std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const &
 
 void BlenderSceneDelegate::updateMaterial(ObjectData &obj_data)
 {
-  //HdRenderIndex& index = GetRenderIndex();
-  //Material *material = obj_data.material();
-  //if (material) {
-  //  SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
-  //  if (materials.find(matId) == materials.end()) {
-  //    index.InsertSprim(HdPrimTypeTokens->material, this, matId);
-  //    MaterialData matData(matExport.name());
-  //    matData.mtlxPath = matExport.export_mtlx();
-  //    materials[matId] = matData;
-  //    LOG(INFO) << "Add material: " << matId << ", mtlx=" << matData.mtlxPath.GetResolvedPath();
-  //  }
-  //  objData.data["materialId"] = matId;
-  //}
-  //else if (objData.data.find("materialId") != objData.data.end()) {
-  //  objData.data.erase("materialId");
-  //}
+  HdRenderIndex& index = GetRenderIndex();
+  Material *material = obj_data.material();
+  SdfPath matId;
+  if (material) {
+    MaterialData mat_data(material);
+    matId = GetDelegateID().AppendElementString(mat_data.path_name());
+    if (materials.find(matId) == materials.end()) {
+      index.InsertSprim(HdPrimTypeTokens->material, this, matId);
+      mat_data.export_mtlx();
+      materials[matId] = mat_data;
+      LOG(INFO) << "Add material: " << matId << ", mtlx=" << mat_data.mtlx_path.GetResolvedPath();
+    }
+  }
+  obj_data.set_material_id(matId);
 }
 
 ObjectData *BlenderSceneDelegate::object_data(SdfPath const &id)
@@ -204,8 +202,8 @@ void BlenderSceneDelegate::Populate()
     if (obj_data.prim_type() == HdPrimTypeTokens->mesh) {
       LOG(INFO) << "Add mesh object: " << obj_data.name() << " id=" << obj_id;
       index.InsertRprim(obj_data.prim_type(), this, obj_id);
-      objects[obj_id] = obj_data;
       updateMaterial(obj_data);
+      objects[obj_id] = obj_data;
       continue;
     }
     
@@ -245,10 +243,10 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
     ret = 16;
   }
   else if (key.GetString() == "MaterialXFilename") {
-    //MaterialData &matData = materials[id];
-    //if (!matData.mtlxPath.GetResolvedPath().empty()) {
-    //  ret = matData.mtlxPath;
-    //}
+    MaterialData &mat_data = materials[id];
+    if (!mat_data.mtlx_path.GetResolvedPath().empty()) {
+      ret = mat_data.mtlx_path;
+    }
   }
   return ret;
 }
@@ -277,13 +275,12 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
 SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
 {
   SdfPath ret;
-  //__ObjectData &objData = objects[rprimId];
-  //auto it = objData.data.find("materialId");
-  //if (it != objData.data.end()) {
-  //  ret = it->second.Get<SdfPath>();
-  //}
+  ObjectData *obj_data = object_data(rprimId);
+  if (obj_data && obj_data->has_data(TfToken("materialId"))) {
+    ret = obj_data->get_data<SdfPath>(TfToken("materialId"));
+  }
 
-  //LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
+  LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
   return ret;
 }
 

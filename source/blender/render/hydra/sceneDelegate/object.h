@@ -7,6 +7,7 @@
 
 #include <pxr/base/gf/matrix4d.h>
 #include <pxr/base/tf/hashmap.h>
+#include <pxr/usd/sdf/path.h>
 
 #include "MEM_guardedalloc.h"
 #include "RNA_blender_cpp.h"
@@ -47,13 +48,16 @@ public:
   pxr::TfToken prim_type();
   pxr::GfMatrix4d transform();
   std::string path_name();
+  Material *material();
 
   pxr::VtValue &get_data(const pxr::TfToken &key);
   template<class T>
   const T &get_data(const pxr::TfToken &key);
   bool has_data(const pxr::TfToken &key);
 
-private:
+  void set_material_id(pxr::SdfPath const &id);
+
+ private:
   Object *object;
   std::map<pxr::TfToken, pxr::VtValue> data;
 
@@ -61,6 +65,8 @@ private:
   void set_as_meshable();
   void set_as_light();
 };
+
+using ObjectDataMap = std::map<pxr::SdfPath, ObjectData>;
 
 template<class T>
 const T &ObjectData::get_data(const pxr::TfToken &key)

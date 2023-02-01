@@ -159,6 +159,11 @@ std::string ObjectData::path_name()
   return str;
 }
 
+Material *ObjectData::material()
+{
+  return nullptr;
+}
+
 VtValue &ObjectData::get_data(const TfToken &key)
 {
   return data[key];
@@ -167,6 +172,17 @@ VtValue &ObjectData::get_data(const TfToken &key)
 bool ObjectData::has_data(const TfToken &key)
 {
   return data.find(key) != data.end();
+}
+
+void ObjectData::set_material_id(SdfPath const &id)
+{
+  TfToken matId("materialId");
+  if (id.IsEmpty()) {
+    data.erase(matId);
+  }
+  else {
+    data[matId] = id;
+  }
 }
 
 void ObjectData::set_as_mesh()

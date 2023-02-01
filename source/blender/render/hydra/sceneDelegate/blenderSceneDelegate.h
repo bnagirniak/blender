@@ -41,33 +41,12 @@ private:
   bool isPopulated;
 
   std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
-  void updateMaterial(ObjectExport &objExport);
-  ObjectData *get_object_data(SdfPath const &id);
+  void updateMaterial(ObjectData &obj_data);
+  ObjectData *object_data(SdfPath const &id);
 
 private:
-  struct __ObjectData {
-    __ObjectData()
-    { }
-    __ObjectData(std::string name, TfToken type)
-      : name(name)
-      , type(type)
-    { }
-    std::string name;
-    TfToken type;
-    std::map<std::string, VtValue> data;
-  };
-  struct MaterialData {
-    MaterialData()
-    { }
-    MaterialData(std::string name)
-      : name(name)
-    { }
-    std::string name;
-    SdfAssetPath mtlxPath;
-  };
-
-  std::map<SdfPath, ObjectData> objects;
-  std::map<SdfPath, MaterialData> materials;
+  ObjectDataMap objects;
+  MaterialDataMap materials;
 };
 
 } // namespace blender::render::hydra

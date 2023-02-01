@@ -32,13 +32,11 @@ std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const &
   return nullptr;
 }
 
-void BlenderSceneDelegate::updateMaterial(ObjectExport & objExport)
+void BlenderSceneDelegate::updateMaterial(ObjectData &obj_data)
 {
   //HdRenderIndex& index = GetRenderIndex();
-  //SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
-  //__ObjectData &objData = objects[objId];
-  //MaterialExport matExport = objExport.materialExport();
-  //if (matExport) {
+  //Material *material = obj_data.material();
+  //if (material) {
   //  SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
   //  if (materials.find(matId) == materials.end()) {
   //    index.InsertSprim(HdPrimTypeTokens->material, this, matId);
@@ -54,7 +52,7 @@ void BlenderSceneDelegate::updateMaterial(ObjectExport & objExport)
   //}
 }
 
-ObjectData *BlenderSceneDelegate::get_object_data(SdfPath const &id)
+ObjectData *BlenderSceneDelegate::object_data(SdfPath const &id)
 {
   auto it = objects.find(id);
   if (it == objects.end()) {
@@ -207,7 +205,7 @@ void BlenderSceneDelegate::Populate()
       LOG(INFO) << "Add mesh object: " << obj_data.name() << " id=" << obj_id;
       index.InsertRprim(obj_data.prim_type(), this, obj_id);
       objects[obj_id] = obj_data;
-      //updateMaterial(objExport);
+      updateMaterial(obj_data);
       continue;
     }
     
@@ -236,7 +234,7 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
   LOG(INFO) << "Get: " << id.GetAsString() << " [" << key.GetString() << "]";
   
   VtValue ret;
-  ObjectData *obj_data = get_object_data(id);
+  ObjectData *obj_data = object_data(id);
   if (obj_data) {
     if (obj_data->has_data(key)) {
       ret = obj_data->get_data(key);
@@ -306,7 +304,7 @@ VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken cons
 {
   LOG(INFO) << "GetLightParamValue: " << id.GetAsString() << " [" << key.GetString() << "]";
   VtValue ret;
-  ObjectData *obj_data = get_object_data(id);
+  ObjectData *obj_data = object_data(id);
   if (obj_data) {
     if (obj_data->has_data(key)) {
       ret = obj_data->get_data(key);

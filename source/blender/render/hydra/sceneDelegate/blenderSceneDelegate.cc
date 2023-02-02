@@ -5,7 +5,6 @@
 #include <pxr/imaging/hd/material.h>
 #include <pxr/usd/usdLux/tokens.h>
 #include <pxr/imaging/hdSt/tokens.h>
-//#include <pxr/base/vt/array.h>
 
 #include "glog/logging.h"
 
@@ -204,47 +203,50 @@ void BlenderSceneDelegate::Populate()
 {
   LOG(INFO) << "Populate " << is_populated;
 
-  if (is_populated) {
-    for (auto &update : b_depsgraph.updates) {
-      BL::ID id = update.id();
-      LOG(INFO) << "Update: " << id.name_full() << " "
-                << update.is_updated_transform()
-                << update.is_updated_geometry()
-                << update.is_updated_shading();
+  if (!is_populated) {
+    /* exporting initial objects */
+    update_collection();
 
-      if (id.is_a(&RNA_Object)) {
-        Object *object = (Object *)id.ptr.data;
-        if (!supported_object(object)) {
-          continue;
-        }
-        add_update_object(object,
-                          update.is_updated_geometry(),
-                          update.is_updated_transform(),
-                          update.is_updated_shading());
-        continue;
-      }
-
-      if (id.is_a(&RNA_Material)) {
-        if (update.is_updated_shading()) {
-          Material *material = (Material *)id.ptr.data;
-          update_material(material);
-        }
-        continue;
-      }
-      
-      if (id.is_a(&RNA_Collection)) {
-        if (update.is_updated_transform() && update.is_updated_geometry()) {
-          update_collection();
-        }
-        continue;
-      }
-    }
+    is_populated = true;
     return;
   }
 
-  update_collection();
-  
-  is_populated = true;
+  /* working with updates */
+  for (auto &update : b_depsgraph.updates) {
+    BL::ID id = update.id();
+    LOG(INFO) << "Update: " << id.name_full() << " "
+              << update.is_updated_transform()
+              << update.is_updated_geometry()
+              << update.is_updated_shading();
+
+    if (id.is_a(&RNA_Object)) {
+      Object *object = (Object *)id.ptr.data;
+      if (!supported_object(object)) {
+        continue;
+      }
+      add_update_object(object,
+                        update.is_updated_geometry(),
+                        update.is_updated_transform(),
+                        update.is_updated_shading());
+      continue;
+    }
+
+    if (id.is_a(&RNA_Material)) {
+      if (update.is_updated_shading()) {
+        Material *material = (Material *)id.ptr.data;
+        update_material(material);
+      }
+      continue;
+    }
+      
+    if (id.is_a(&RNA_Collection)) {
+      if (update.is_updated_transform() && update.is_updated_geometry()) {
+        update_collection();
+      }
+      continue;
+    }
+  }
+  return;
 }
 
 HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)

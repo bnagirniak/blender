@@ -153,13 +153,6 @@ GfMatrix4d ObjectData::transform()
     m[12], m[13], m[14], m[15]);
 }
 
-std::string ObjectData::path_name()
-{
-  char str[32];
-  snprintf(str, 32, "%c%016llX", (prim_type() == HdPrimTypeTokens->mesh) ? 'R' : 'S', (uint64_t)object);
-  return str;
-}
-
 Material *ObjectData::material()
 {
   if (BKE_object_material_count_eval(object) == 0) {

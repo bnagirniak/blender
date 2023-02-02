@@ -77,13 +77,6 @@ std::string MaterialData::name()
   return str;
 }
 
-std::string MaterialData::path_name()
-{
-  char str[32];
-  snprintf(str, 32, "M%016llX", (uint64_t)material);
-  return str;
-}
-
 void MaterialData::export_mtlx()
 {
   PyObject *module, *dict, *func, *result;

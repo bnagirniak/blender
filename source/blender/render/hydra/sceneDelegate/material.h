@@ -35,7 +35,6 @@ class MaterialData {
   MaterialData(Material *material);
 
   std::string name();
-  std::string path_name();
   void export_mtlx();
   pxr::SdfAssetPath mtlx_path;
 

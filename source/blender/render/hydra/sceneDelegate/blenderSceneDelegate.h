@@ -37,14 +37,19 @@ public:
   VtValue GetMaterialResource(SdfPath const &materialId) override;
 
 private:
-  BL::Depsgraph b_depsgraph;
-  bool isPopulated;
-
-  std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
-  void updateMaterial(ObjectData &obj_data);
   ObjectData *object_data(SdfPath const &id);
+  MaterialData *material_data(SdfPath const &id);
+  SdfPath object_id(Object *object);
+  SdfPath material_id(Material *material);
+  bool supported_object(Object *object);
 
-private:
+  void add_update_object(Object *object, bool geometry, bool transform, bool shading);
+  void set_material(ObjectData &obj_data);
+  void update_material(Material *material);
+  void update_collection();
+
+  BL::Depsgraph b_depsgraph;
+  bool is_populated;
   ObjectDataMap objects;
   MaterialDataMap materials;
 };

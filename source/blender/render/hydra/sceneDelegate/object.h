@@ -47,7 +47,6 @@ public:
   int type();
   pxr::TfToken prim_type();
   pxr::GfMatrix4d transform();
-  std::string path_name();
   Material *material();
 
   pxr::VtValue &get_data(const pxr::TfToken &key);

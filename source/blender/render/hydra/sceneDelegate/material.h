@@ -10,9 +10,6 @@
 
 #include "DNA_material_types.h"
 
-#include "MEM_guardedalloc.h"
-#include "RNA_blender_cpp.h"
-
 namespace blender::render::hydra {
 
 class MaterialData {

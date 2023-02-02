@@ -51,4 +51,4 @@ void MaterialData::export_mtlx()
   mtlx_path = SdfAssetPath(path, path);
 }
 
-}  // namespace blender::render::hydra
+} // namespace blender::render::hydra

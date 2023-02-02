@@ -9,8 +9,7 @@
 #include <pxr/usd/sdf/path.h>
 #include <pxr/base/vt/value.h>
 
-//#include "MEM_guardedalloc.h"
-//#include "RNA_blender_cpp.h"
+#include "DNA_object_types.h"
 
 #include "material.h"
 

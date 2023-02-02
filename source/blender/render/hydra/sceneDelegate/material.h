@@ -15,20 +15,6 @@
 
 namespace blender::render::hydra {
 
-class MaterialExport
-{
-public:
-  MaterialExport(BL::Object &b_object);
-  MaterialExport(BL::Material &b_material);
-
-  operator bool();
-  std::string name();
-  pxr::SdfAssetPath export_mtlx();
-
-private:
-  Material *material;
-};
-
 class MaterialData {
  public:
   MaterialData();
@@ -40,7 +26,6 @@ class MaterialData {
 
  private:
   Material *material;
-
 };
 
 using MaterialDataMap = std::map<pxr::SdfPath, MaterialData>;

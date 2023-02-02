@@ -62,10 +62,6 @@ set(SRC
   sceneDelegate/blenderSceneDelegate.cc
   sceneDelegate/object.h
   sceneDelegate/object.cc
-  sceneDelegate/mesh.h
-  sceneDelegate/mesh.cc
-  sceneDelegate/light.h
-  sceneDelegate/light.cc
   sceneDelegate/scene.h
   sceneDelegate/scene.cc
   sceneDelegate/material.h

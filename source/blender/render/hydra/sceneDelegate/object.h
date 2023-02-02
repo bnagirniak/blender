@@ -6,37 +6,15 @@
 #include <map>
 
 #include <pxr/base/gf/matrix4d.h>
-#include <pxr/base/tf/hashmap.h>
 #include <pxr/usd/sdf/path.h>
+#include <pxr/base/vt/value.h>
 
-#include "MEM_guardedalloc.h"
-#include "RNA_blender_cpp.h"
+//#include "MEM_guardedalloc.h"
+//#include "RNA_blender_cpp.h"
 
-#include "mesh.h"
-#include "light.h"
 #include "material.h"
 
 namespace blender::render::hydra {
-
-class ObjectExport
-{
-public:
-  ObjectExport(BL::Object b_object, BL::Depsgraph &b_depsgraph)
-    : b_object(b_object)
-    , b_depsgraph(b_depsgraph)
-  {}
-  MeshExport meshExport();
-  LightExport lightExport();
-  MaterialExport materialExport();
-
-  pxr::GfMatrix4d transform();
-  std::string name();
-  BL::Object::type_enum type();
-
-private:
-  BL::Object b_object;
-  BL::Depsgraph &b_depsgraph;
-};
 
 class ObjectData {
 public:
@@ -63,6 +41,7 @@ public:
   void set_as_mesh();
   void set_as_meshable();
   void set_as_light();
+  void set_as_camera();
 };
 
 using ObjectDataMap = std::map<pxr::SdfPath, ObjectData>;

@@ -1,12 +1,17 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2022 Blender Foundation */
 
+#include <pxr/base/vt/array.h>
+#include <pxr/base/gf/vec2f.h>
 #include <pxr/imaging/hd/light.h>
+#include <pxr/imaging/hd/tokens.h>
 #include <pxr/usd/usdLux/tokens.h>
 
+#include "DNA_light_types.h"
 #include "BKE_object.h"
 #include "BKE_lib_id.h"
 #include "BKE_material.h"
+#include "BKE_light.h"
 #include "BKE_mesh.h"
 #include "BKE_mesh_runtime.h"
 
@@ -15,41 +20,6 @@
 using namespace pxr;
 
 namespace blender::render::hydra {
-
-MeshExport ObjectExport::meshExport()
-{
-  return MeshExport((BL::Mesh &)b_object.data());
-}
-
-LightExport ObjectExport::lightExport()
-{
-  return LightExport((BL::Light &)b_object.data());
-}
-
-MaterialExport ObjectExport::materialExport()
-{
-  return MaterialExport(b_object);
-}
-
-GfMatrix4d ObjectExport::transform()
-{
-  auto m = b_object.matrix_world();
-  return GfMatrix4d(
-    m[0], m[1], m[2], m[3],
-    m[4], m[5], m[6], m[7],
-    m[8], m[9], m[10], m[11],
-    m[12], m[13], m[14], m[15]);
-}
-
-std::string ObjectExport::name()
-{
-  return b_object.name_full();
-}
-
-BL::Object::type_enum ObjectExport::type()
-{
-  return b_object.type();
-}
 
 ObjectData::ObjectData()
   : object(nullptr)
@@ -64,14 +34,18 @@ ObjectData::ObjectData(Object *object)
       set_as_mesh();
       break;
 
-    case OB_MBALL:
     case OB_SURF:
     case OB_FONT:
+    case OB_MBALL:
       set_as_meshable();
       break;
 
     case OB_LAMP:
       set_as_light();
+      break;
+
+    case OB_CAMERA:
+      set_as_camera();
       break;
 
     default:
@@ -97,9 +71,9 @@ TfToken ObjectData::prim_type()
   Light *light;
   switch (object->type) {
     case OB_MESH:
-    case OB_MBALL:
     case OB_SURF:
     case OB_FONT:
+    case OB_MBALL:
       ret = HdPrimTypeTokens->mesh;
       break;
 
@@ -135,6 +109,10 @@ TfToken ObjectData::prim_type()
         default:
           ret = HdPrimTypeTokens->sphereLight;
       }
+      break;
+
+    case OB_CAMERA:
+      ret = HdPrimTypeTokens->camera;
       break;
 
     default:
@@ -290,6 +268,10 @@ void ObjectData::set_as_light()
     default:
       break;
   }
+}
+
+void ObjectData::set_as_camera()
+{
 }
 
 }  // namespace blender::render::hydra

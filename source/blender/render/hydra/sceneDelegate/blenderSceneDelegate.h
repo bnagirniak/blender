@@ -37,36 +37,21 @@ public:
   VtValue GetMaterialResource(SdfPath const &materialId) override;
 
 private:
+  ObjectData *object_data(SdfPath const &id);
+  MaterialData *material_data(SdfPath const &id);
+  SdfPath object_id(Object *object);
+  SdfPath material_id(Material *material);
+  bool supported_object(Object *object);
+
+  void add_update_object(Object *object, bool geometry, bool transform, bool shading);
+  void set_material(ObjectData &obj_data);
+  void update_material(Material *material);
+  void update_collection();
+
   BL::Depsgraph b_depsgraph;
-  bool isPopulated;
-
-  std::unique_ptr<ObjectExport> objectExport(SdfPath const& id);
-  void updateMaterial(ObjectExport &objExport);
-
-private:
-  struct ObjectData {
-    ObjectData()
-    { }
-    ObjectData(std::string name, TfToken type)
-      : name(name)
-      , type(type)
-    { }
-    std::string name;
-    TfToken type;
-    std::map<std::string, VtValue> data;
-  };
-  struct MaterialData {
-    MaterialData()
-    { }
-    MaterialData(std::string name)
-      : name(name)
-    { }
-    std::string name;
-    SdfAssetPath mtlxPath;
-  };
-
-  std::map<SdfPath, ObjectData> objects;
-  std::map<SdfPath, MaterialData> materials;
+  bool is_populated;
+  ObjectDataMap objects;
+  MaterialDataMap materials;
 };
 
 } // namespace blender::render::hydra

@@ -13,13 +13,14 @@ GfCamera SceneExport::gfCamera(BL::Object &b_cameraObj)
   BL::Camera &b_camera = (BL::Camera &)b_cameraObj.data();
   auto res = resolution();
   float ratio = (float)res.first / res.second;
-  
+
+  ObjectData obj_data((Object *)b_cameraObj.ptr.data);
   GfCamera gfCamera;
   gfCamera.SetClippingRange(GfRange1f(b_camera.clip_start(), b_camera.clip_end()));
   gfCamera.SetHorizontalAperture(b_camera.sensor_width());
   gfCamera.SetVerticalAperture(b_camera.sensor_width() / ratio);
   gfCamera.SetFocalLength(b_camera.lens());
-  gfCamera.SetTransform(ObjectExport(b_cameraObj, b_depsgraph).transform());
+  gfCamera.SetTransform(obj_data.transform());
 
   return gfCamera;
 }

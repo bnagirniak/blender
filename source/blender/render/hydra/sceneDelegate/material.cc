@@ -3,46 +3,39 @@
 
 #include <Python.h>
 
-#include "material.h"
 #include "BKE_material.h"
+#include "BKE_lib_id.h"
+
+#include "material.h"
 
 using namespace pxr;
 
 namespace blender::render::hydra {
 
-MaterialExport::MaterialExport(BL::Object &b_object)
+MaterialData::MaterialData()
   : material(nullptr)
 {
-  Object *object = (Object *)b_object.ptr.data;
-  if (BKE_object_material_count_eval(object) == 0) {
-    return;
-  }
-    
-  material = BKE_object_material_get_eval(object, object->actcol);
 }
 
-MaterialExport::MaterialExport(BL::Material& b_material)
-  : material((Material *)b_material.ptr.data)
+MaterialData::MaterialData(Material *material)
+  : material(material)
 {
 }
 
-MaterialExport::operator bool()
+std::string MaterialData::name()
 {
-  return bool(material);
+  char str[MAX_ID_FULL_NAME];
+  BKE_id_full_name_get(str, (ID *)material, 0);
+  return str;
 }
 
-std::string MaterialExport::name()
-{
-  return material->id.name + 2;
-}
-
-SdfAssetPath MaterialExport::export_mtlx()
+void MaterialData::export_mtlx()
 {
   PyObject *module, *dict, *func, *result;
 
   PyGILState_STATE gstate;
   gstate = PyGILState_Ensure();
-  
+
   module = PyImport_ImportModule("hydra");
   dict = PyModule_GetDict(module);
   func = PyDict_GetItemString(dict, "export_mtlx");
@@ -55,7 +48,7 @@ SdfAssetPath MaterialExport::export_mtlx()
 
   PyGILState_Release(gstate);
 
-  return SdfAssetPath(path, path);  
+  mtlx_path = SdfAssetPath(path, path);
 }
 
 } // namespace blender::render::hydra

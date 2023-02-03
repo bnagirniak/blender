@@ -16,203 +16,248 @@ namespace blender::render::hydra {
 BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID, BL::Depsgraph &b_depsgraph)
   : HdSceneDelegate(parentIndex, delegateID)
   , b_depsgraph(b_depsgraph)
-  , isPopulated(false)
+  , is_populated(false)
 {
 }
 
-std::unique_ptr<ObjectExport> BlenderSceneDelegate::objectExport(SdfPath const & id)
+void BlenderSceneDelegate::set_material(ObjectData &obj_data)
 {
-  std::string name = objects[id].name;
-  for (BL::Object &obj : b_depsgraph.objects) {
-    if (obj.name_full() == name) {
-      return std::make_unique<ObjectExport>(obj, b_depsgraph);
-    }
-  }
-  return nullptr;
-}
-
-void BlenderSceneDelegate::updateMaterial(ObjectExport & objExport)
-{
-  HdRenderIndex& index = GetRenderIndex();
-  SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
-  ObjectData &objData = objects[objId];
-  MaterialExport matExport = objExport.materialExport();
-  if (matExport) {
-    SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
-    if (materials.find(matId) == materials.end()) {
-      index.InsertSprim(HdPrimTypeTokens->material, this, matId);
-      MaterialData matData(matExport.name());
-      matData.mtlxPath = matExport.export_mtlx();
-      materials[matId] = matData;
-      LOG(INFO) << "Add material: " << matId << ", mtlx=" << matData.mtlxPath.GetResolvedPath();
-    }
-    objData.data["materialId"] = matId;
-  }
-  else if (objData.data.find("materialId") != objData.data.end()) {
-    objData.data.erase("materialId");
-  }
-}
-
-void BlenderSceneDelegate::Populate()
-{
-  LOG(INFO) << "Populate " << isPopulated;
-  HdRenderIndex& index = GetRenderIndex();
-
-  if (isPopulated) {
-    for (auto &update : b_depsgraph.updates) {
-      BL::ID id = update.id();
-      LOG(INFO) << "Update: " << id.name_full() << " " << update.is_updated_transform() << update.is_updated_geometry() << update.is_updated_shading();
-
-      if (id.is_a(&RNA_Object)) {
-        ObjectExport objExport((BL::Object &)id, b_depsgraph);
-        SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
-
-        if (objects.find(objId) == objects.end()) {
-          if (objExport.type() == BL::Object::type_MESH) {
-            LOG(INFO) << "Add mesh object: " << objId;
-            index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-            objects[objId] = ObjectData(objExport.name(), HdPrimTypeTokens->mesh);
-            updateMaterial(objExport);
-          }
-          else if (objExport.type() == BL::Object::type_LIGHT) {
-            LOG(INFO) << "Add light object: " << objId;
-            TfToken lightType = objExport.lightExport().type();
-            index.InsertSprim(lightType, this, objId);
-            objects[objId] = ObjectData(objExport.name(), lightType);
-          }
-          continue;
-        }
-
-        if (update.is_updated_geometry()) {
-          LOG(INFO) << "Full updated: " << objId;
-          if (objExport.type() == BL::Object::type_MESH) {
-            updateMaterial(objExport);
-            index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::AllDirty);
-          }
-          else if (objExport.type() == BL::Object::type_LIGHT) {
-            index.GetChangeTracker().MarkSprimDirty(objId, HdLight::AllDirty);
-          }
-          continue;
-        }
-
-        if (update.is_updated_transform()) {
-          LOG(INFO) << "Transform updated: " << objId;
-          if (objExport.type() == BL::Object::type_MESH) {
-            index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyTransform);
-          }
-          else if (objExport.type() == BL::Object::type_LIGHT) {
-            index.GetChangeTracker().MarkSprimDirty(objId, HdLight::DirtyTransform);
-          }
-        }
-
-        if (update.is_updated_shading()) {
-          LOG(INFO) << "Shading updated: " << objId;
-          if (objExport.type() == BL::Object::type_MESH) {
-            index.GetChangeTracker().MarkRprimDirty(objId, HdChangeTracker::DirtyMaterialId);
-          }
-        }
-        continue;
-      }
-
-      if (id.is_a(&RNA_Material)) {
-        if (update.is_updated_shading()) {
-          MaterialExport matExport((BL::Material &)id);
-          SdfPath matId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(matExport.name()));
-
-          auto it = materials.find(matId);
-          if (it != materials.end()) {
-            it->second.mtlxPath = matExport.export_mtlx();
-            LOG(INFO) << "Update material: " << matId << ", mtlx=" << it->second.mtlxPath.GetResolvedPath();
-            index.GetChangeTracker().MarkSprimDirty(matId, HdMaterial::AllDirty);
-          }
-        }
-      }
-      
-      if (id.is_a(&RNA_Collection)) {
-        if (update.is_updated_transform() && update.is_updated_geometry()) {
-          /* remove unused objects */
-          std::set<std::string> availableObjects;
-          for (auto &inst : b_depsgraph.object_instances) {
-            if (inst.is_instance()) {
-              continue;
-            }
-            BL::Object obj = inst.object();
-            if (obj.type() == BL::Object::type_MESH || obj.type() == BL::Object::type_LIGHT) {
-              availableObjects.insert(obj.name_full());
-            }
-          }
-          for (auto it = objects.begin(); it != objects.end(); ++it) {
-            if (availableObjects.find(it->second.name) != availableObjects.end()) {
-              continue;
-            }
-            LOG(INFO) << "Remove: " << it->first;
-            if (index.GetRprim(it->first)) {
-              index.RemoveRprim(it->first);
-            }
-            else {
-              index.RemoveSprim(it->second.type, it->first);
-            }
-            objects.erase(it);
-            it = objects.begin();
-          }
-
-          /* remove unused materials */
-          std::set<SdfPath> availableMaterials;
-          for (auto &obj : objects) {
-            if (obj.second.data.find("materialId") != obj.second.data.end()) {
-              availableMaterials.insert(obj.second.data["materialId"].Get<SdfPath>());
-            }
-          }
-          for (auto it = materials.begin(); it != materials.end(); ++it) {
-            if (availableMaterials.find(it->first) != availableMaterials.end()) {
-              continue;
-            }
-            LOG(INFO) << "Remove material: " << it->first;
-            index.RemoveSprim(HdPrimTypeTokens->material, it->first);
-            materials.erase(it);
-            it = materials.begin(); 
-          }
-        }
-        continue;
-      }
-    }
+  Material *material = obj_data.material();
+  if (!material) {
+    obj_data.set_material_id(SdfPath::EmptyPath());
     return;
   }
+  SdfPath mat_id = material_id(material);
+  if (!material_data(mat_id)) {
+    MaterialData mat_data(material);
+    GetRenderIndex().InsertSprim(HdPrimTypeTokens->material, this, mat_id);
+    mat_data.export_mtlx();
+    materials[mat_id] = mat_data;
+    LOG(INFO) << "Add material: " << mat_id << ", mtlx=" << mat_data.mtlx_path.GetResolvedPath();
+  }
+  obj_data.set_material_id(mat_id);
+}
 
+void BlenderSceneDelegate::update_material(Material *material)
+{
+  SdfPath mat_id = material_id(material);
+  MaterialData *mat_data = material_data(mat_id);
+  if (mat_data) {
+    mat_data->export_mtlx();
+    LOG(INFO) << "Update material: " << mat_id << ", mtlx=" << mat_data->mtlx_path.GetResolvedPath();
+    GetRenderIndex().GetChangeTracker().MarkSprimDirty(mat_id, HdMaterial::AllDirty);
+  }
+}
+
+void BlenderSceneDelegate::update_collection()
+{
+  HdRenderIndex &index = GetRenderIndex();
+
+  /* add new objects */
+  std::set<SdfPath> available_objects;
   for (auto &inst : b_depsgraph.object_instances) {
     if (inst.is_instance()) {
       continue;
     }
-    
-    ObjectExport objExport(inst.object(), b_depsgraph);
-    SdfPath objId = GetDelegateID().AppendElementString(TfMakeValidIdentifier(objExport.name()));
-    
-    if (objExport.type() == BL::Object::type_MESH) {
-      LOG(INFO) << "Add mesh object: " << objId;
-      index.InsertRprim(HdPrimTypeTokens->mesh, this, objId);
-      objects[objId] = ObjectData(objExport.name(), HdPrimTypeTokens->mesh);
-      updateMaterial(objExport);
+    Object *object = (Object *)inst.object().ptr.data;
+    if (!supported_object(object)) {
       continue;
     }
-    
-    if (objExport.type() == BL::Object::type_LIGHT) {
-      LOG(INFO) << "Add light object: " << objId;
-      TfToken lightType = objExport.lightExport().type();
-      index.InsertSprim(lightType, this, objId);
-      objects[objId] = ObjectData(objExport.name(), lightType);
+    SdfPath obj_id = object_id(object);
+    available_objects.insert(obj_id);
+
+    if (!is_populated) {
+      add_update_object(object, true, true, true);
+    }
+  }
+
+  if (!is_populated) {
+    return;
+  }
+
+  /* remove unused objects */
+  for (auto it = objects.begin(); it != objects.end(); ++it) {
+    if (available_objects.find(it->first) != available_objects.end()) {
+      continue;
+    }
+    LOG(INFO) << "Remove: " << it->first;
+    if (index.GetRprim(it->first)) {
+      index.RemoveRprim(it->first);
+    }
+    else {
+      index.RemoveSprim(it->second.prim_type(), it->first);
+    }
+    objects.erase(it);
+    it = objects.begin();
+  }
+
+  /* remove unused materials */
+  std::set<SdfPath> available_materials;
+  for (auto &obj : objects) {
+    if (obj.second.has_data(HdBlenderTokens->materialId)) {
+      available_materials.insert(obj.second.get_data(HdBlenderTokens->materialId).Get<SdfPath>());
+    }
+  }
+  for (auto it = materials.begin(); it != materials.end(); ++it) {
+    if (available_materials.find(it->first) != available_materials.end()) {
+      continue;
+    }
+    LOG(INFO) << "Remove material: " << it->first;
+    index.RemoveSprim(HdPrimTypeTokens->material, it->first);
+    materials.erase(it);
+    it = materials.begin();
+  }
+}
+
+void BlenderSceneDelegate::add_update_object(Object *object, bool geometry, bool transform, bool shading)
+{
+  HdRenderIndex &index = GetRenderIndex();
+
+  SdfPath obj_id = object_id(object);
+  ObjectData *obj_data = object_data(obj_id);
+  if (!obj_data) {
+    ObjectData new_obj_data(object);
+    if (new_obj_data.prim_type() == HdPrimTypeTokens->mesh) {
+      LOG(INFO) << "Add mesh object: " << new_obj_data.name() << " id=" << obj_id;
+      index.InsertRprim(new_obj_data.prim_type(), this, obj_id);
+      set_material(new_obj_data);
+    }
+    else if (new_obj_data.type() == OB_LAMP) {
+      LOG(INFO) << "Add light object: " << new_obj_data.name() << " id=" << obj_id;
+      index.InsertSprim(new_obj_data.prim_type(), this, obj_id);
+    }
+    objects[obj_id] = new_obj_data;
+    return;
+  }
+
+  if (geometry) {
+    LOG(INFO) << "Full updated: " << obj_id;
+    ObjectData new_obj_data(object);
+    if (new_obj_data.prim_type() == HdPrimTypeTokens->mesh) {
+      set_material(new_obj_data);
+      index.GetChangeTracker().MarkRprimDirty(obj_id, HdChangeTracker::AllDirty);
+    }
+    else if (new_obj_data.type() == OB_LAMP) {
+      index.GetChangeTracker().MarkSprimDirty(obj_id, HdLight::AllDirty);
+    }
+    objects[obj_id] = new_obj_data;
+    return;
+  }
+
+  if (transform) {
+    LOG(INFO) << "Transform updated: " << obj_id;
+    if (obj_data->prim_type() == HdPrimTypeTokens->mesh) {
+      index.GetChangeTracker().MarkRprimDirty(obj_id, HdChangeTracker::DirtyTransform);
+    }
+    else if (obj_data->type() == OB_LAMP) {
+      index.GetChangeTracker().MarkSprimDirty(obj_id, HdLight::DirtyTransform);
+    }
+  }
+
+  if (shading) {
+    LOG(INFO) << "Shading updated: " << obj_id;
+    if (obj_data->prim_type() == HdPrimTypeTokens->mesh) {
+      index.GetChangeTracker().MarkRprimDirty(obj_id, HdChangeTracker::DirtyMaterialId);
+    }
+  }
+}
+
+ObjectData *BlenderSceneDelegate::object_data(SdfPath const &id)
+{
+  auto it = objects.find(id);
+  if (it == objects.end()) {
+    return nullptr;
+  }
+  return &it->second;
+}
+
+MaterialData *BlenderSceneDelegate::material_data(SdfPath const &id)
+{
+  auto it = materials.find(id);
+  if (it == materials.end()) {
+    return nullptr;
+  }
+  return &it->second;
+}
+
+SdfPath BlenderSceneDelegate::object_id(Object *object)
+{
+  /* Making id of object in form like O_<pointer in 16 hex digits format>. Example: O_000002073e369608 */
+  char str[32];
+  snprintf(str, 32, "O_%016llx", (uint64_t)object);
+  return GetDelegateID().AppendElementString(str);
+}
+
+SdfPath BlenderSceneDelegate::material_id(Material *material)
+{
+  /* Making id of material in form like M_<pointer in 16 hex digits format>. Example: M_000002074e812088 */
+  char str[32];
+  snprintf(str, 32, "M_%016llx", (uint64_t)material);
+  return GetDelegateID().AppendElementString(str);
+}
+
+bool BlenderSceneDelegate::supported_object(Object *object)
+{
+  return object->type == OB_MESH || object->type == OB_LAMP;
+}
+
+void BlenderSceneDelegate::Populate()
+{
+  LOG(INFO) << "Populate " << is_populated;
+
+  if (!is_populated) {
+    /* exporting initial objects */
+    update_collection();
+
+    is_populated = true;
+    return;
+  }
+
+  /* working with updates */
+  for (auto &update : b_depsgraph.updates) {
+    BL::ID id = update.id();
+    LOG(INFO) << "Update: " << id.name_full() << " "
+              << update.is_updated_transform()
+              << update.is_updated_geometry()
+              << update.is_updated_shading();
+
+    if (id.is_a(&RNA_Object)) {
+      Object *object = (Object *)id.ptr.data;
+      if (!supported_object(object)) {
+        continue;
+      }
+      add_update_object(object,
+                        update.is_updated_geometry(),
+                        update.is_updated_transform(),
+                        update.is_updated_shading());
+      continue;
+    }
+
+    if (id.is_a(&RNA_Material)) {
+      if (update.is_updated_shading()) {
+        Material *material = (Material *)id.ptr.data;
+        update_material(material);
+      }
+      continue;
+    }
+      
+    if (id.is_a(&RNA_Collection)) {
+      if (update.is_updated_transform() && update.is_updated_geometry()) {
+        update_collection();
+      }
       continue;
     }
   }
-  
-  isPopulated = true;
+  return;
 }
 
 HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)
 {
   LOG(INFO) << "GetMeshTopology: " << id.GetAsString();
-  MeshExport meshExport = objectExport(id)->meshExport();
+  ObjectData &obj_data = objects[id];
   return HdMeshTopology(PxOsdOpenSubdivTokens->catmullClark, HdTokens->rightHanded,
-                        meshExport.faceVertexCounts(), meshExport.faceVertexIndices());
+                        obj_data.get_data<VtIntArray>(HdBlenderTokens->faceCounts),
+                        obj_data.get_data<VtIntArray>(HdTokens->pointsIndices));
 }
 
 VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
@@ -220,24 +265,21 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
   LOG(INFO) << "Get: " << id.GetAsString() << " [" << key.GetString() << "]";
   
   VtValue ret;
-  if (key == HdTokens->points) {
-    ret = objectExport(id)->meshExport().vertices();
+  ObjectData *obj_data = object_data(id);
+  if (obj_data) {
+    if (obj_data->has_data(key)) {
+      ret = obj_data->get_data(key);
+    }
   }
-  else if (key == HdTokens->normals) {
-    ret = objectExport(id)->meshExport().normals();
-  }
-  else if (key == HdPrimvarRoleTokens->textureCoordinate) {
-    ret = objectExport(id)->meshExport().uvs();
+  else if (key.GetString() == "MaterialXFilename") {
+    MaterialData &mat_data = materials[id];
+    if (!mat_data.mtlx_path.GetResolvedPath().empty()) {
+      ret = mat_data.mtlx_path;
+    }
   }
   else if (key == HdStRenderBufferTokens->stormMsaaSampleCount) {
     // TODO: temporary value, it should be delivered through Python UI
     ret = 16;
-  }
-  else if (key.GetString() == "MaterialXFilename") {
-    MaterialData &matData = materials[id];
-    if (!matData.mtlxPath.GetResolvedPath().empty()) {
-      ret = matData.mtlxPath;
-    }
   }
   return ret;
 }
@@ -246,12 +288,19 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
 {
   LOG(INFO) << "GetPrimvarDescriptors: " << id.GetAsString() << " " << interpolation;
   HdPrimvarDescriptorVector primvars;
+  ObjectData &obj_data = objects[id];
   if (interpolation == HdInterpolationVertex) {
-    primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
+    if (obj_data.has_data(HdTokens->points)) {
+      primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
+    }
   }
-  if (interpolation == HdInterpolationFaceVarying) {
-    primvars.emplace_back(HdTokens->normals, interpolation, HdPrimvarRoleTokens->normal);
-    primvars.emplace_back(HdPrimvarRoleTokens->textureCoordinate, interpolation, HdPrimvarRoleTokens->textureCoordinate);
+  else if (interpolation == HdInterpolationFaceVarying) {
+    if (obj_data.has_data(HdTokens->normals)) {
+      primvars.emplace_back(HdTokens->normals, interpolation, HdPrimvarRoleTokens->normal);
+    }
+    if (obj_data.has_data(HdPrimvarRoleTokens->textureCoordinate)) {
+      primvars.emplace_back(HdPrimvarRoleTokens->textureCoordinate, interpolation, HdPrimvarRoleTokens->textureCoordinate);
+    }
   }
   return primvars;
 }
@@ -259,64 +308,43 @@ HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath co
 SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
 {
   SdfPath ret;
-  ObjectData &objData = objects[rprimId];
-  auto it = objData.data.find("materialId");
-  if (it != objData.data.end()) {
-    ret = it->second.Get<SdfPath>();
+  ObjectData *obj_data = object_data(rprimId);
+  if (obj_data && obj_data->has_data(HdBlenderTokens->materialId)) {
+    ret = obj_data->get_data<SdfPath>(HdBlenderTokens->materialId);
   }
 
   LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
   return ret;
 }
 
-VtValue BlenderSceneDelegate::GetMaterialResource(SdfPath const& materialId)
+VtValue BlenderSceneDelegate::GetMaterialResource(SdfPath const& id)
 {
-  LOG(INFO) << "GetMaterialResource: " << materialId.GetAsString();
+  LOG(INFO) << "GetMaterialResource: " << id.GetAsString();
   return VtValue();
 }
 
 GfMatrix4d BlenderSceneDelegate::GetTransform(SdfPath const& id)
 {
   LOG(INFO) << "GetTransform: " << id.GetAsString();
-  return objectExport(id)->transform();
+
+  return objects[id].transform();
 }
 
 VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken const& key)
 {
   LOG(INFO) << "GetLightParamValue: " << id.GetAsString() << " [" << key.GetString() << "]";
-
-  if (key == HdLightTokens->intensity) {
-    return objectExport(id)->lightExport().intensity();
+  VtValue ret;
+  ObjectData *obj_data = object_data(id);
+  if (obj_data) {
+    if (obj_data->has_data(key)) {
+      ret = obj_data->get_data(key);
+    }
+    else if (key == HdLightTokens->exposure) {
+      // TODO: temporary value, it should be delivered through Python UI
+      ret = 1.0f;
+    }
   }
-  if (key == HdLightTokens->width) {
-    return objectExport(id)->lightExport().width();
-  }
-  if (key == HdLightTokens->height) {
-    return objectExport(id)->lightExport().height();
-  }
-  if (key == HdLightTokens->radius) {
-    return objectExport(id)->lightExport().radius();
-  }
-  if (key == HdLightTokens->color) {
-    return objectExport(id)->lightExport().color();
-  }  
-  if (key == HdLightTokens->angle) {
-    return objectExport(id)->lightExport().angle();
-  }
-  if (key == HdLightTokens->shapingConeAngle) {
-    return objectExport(id)->lightExport().shapingConeAngle();
-  }
-  if (key == HdLightTokens->shapingConeSoftness) {
-    return objectExport(id)->lightExport().shapingConeSoftness();
-  }
-  if (key == UsdLuxTokens->treatAsPoint) {
-    return objectExport(id)->lightExport().treatAsPoint();
-  }
-  if (key == HdLightTokens->exposure) {
-    // TODO: temporary value, it should be delivered through Python UI
-    return VtValue(1.0f);
-  } 
-  return VtValue();
+  return ret;
 }
 
 } // namespace blender::render::hydra

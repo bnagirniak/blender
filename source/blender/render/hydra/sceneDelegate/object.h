@@ -3,35 +3,62 @@
 
 #pragma once
 
+#include <map>
+
 #include <pxr/base/gf/matrix4d.h>
+#include <pxr/usd/sdf/path.h>
+#include <pxr/base/vt/value.h>
+#include "pxr/base/tf/staticTokens.h"
 
-#include "MEM_guardedalloc.h"
-#include "RNA_blender_cpp.h"
+#include "DNA_object_types.h"
 
-#include "mesh.h"
-#include "light.h"
 #include "material.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+#define HD_BLENDER_TOKENS \
+  (materialId) \
+  (faceCounts)
+
+TF_DECLARE_PUBLIC_TOKENS(HdBlenderTokens, HD_BLENDER_TOKENS);
+PXR_NAMESPACE_CLOSE_SCOPE
 
 namespace blender::render::hydra {
 
-class ObjectExport
-{
+
+class ObjectData {
 public:
-  ObjectExport(BL::Object b_object, BL::Depsgraph &b_depsgraph)
-    : b_object(b_object)
-    , b_depsgraph(b_depsgraph)
-  {}
-  MeshExport meshExport();
-  LightExport lightExport();
-  MaterialExport materialExport();
+  ObjectData();
+  ObjectData(Object *object);
 
-  pxr::GfMatrix4d transform();
   std::string name();
-  BL::Object::type_enum type();
+  int type();
+  pxr::TfToken prim_type();
+  pxr::GfMatrix4d transform();
+  Material *material();
 
-private:
-  BL::Object b_object;
-  BL::Depsgraph &b_depsgraph;
+  pxr::VtValue &get_data(pxr::TfToken const &key);
+  template<class T>
+  const T &get_data(pxr::TfToken const &key);
+  bool has_data(pxr::TfToken const &key);
+
+  void set_material_id(pxr::SdfPath const &id);
+
+ private:
+  Object *object;
+  std::map<pxr::TfToken, pxr::VtValue> data;
+
+  void set_as_mesh();
+  void set_as_meshable();
+  void set_as_light();
+  void set_as_camera();
 };
+
+using ObjectDataMap = std::map<pxr::SdfPath, ObjectData>;
+
+template<class T>
+const T &ObjectData::get_data(pxr::TfToken const &key)
+{
+  return get_data(key).Get<T>();
+}
 
 } // namespace blender::render::hydra

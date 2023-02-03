@@ -17,6 +17,10 @@
 
 #include "object.h"
 
+PXR_NAMESPACE_OPEN_SCOPE
+TF_DEFINE_PUBLIC_TOKENS(HdBlenderTokens, HD_BLENDER_TOKENS);
+PXR_NAMESPACE_CLOSE_SCOPE
+
 using namespace pxr;
 
 namespace blender::render::hydra {
@@ -24,6 +28,7 @@ namespace blender::render::hydra {
 ObjectData::ObjectData()
   : object(nullptr)
 {
+  
 }
 
 ObjectData::ObjectData(Object *object)
@@ -139,12 +144,12 @@ Material *ObjectData::material()
   return BKE_object_material_get_eval(object, object->actcol);
 }
 
-VtValue &ObjectData::get_data(const TfToken &key)
+VtValue &ObjectData::get_data(TfToken const &key)
 {
   return data[key];
 }
 
-bool ObjectData::has_data(const TfToken &key)
+bool ObjectData::has_data(TfToken const &key)
 {
   return data.find(key) != data.end();
 }
@@ -152,10 +157,10 @@ bool ObjectData::has_data(const TfToken &key)
 void ObjectData::set_material_id(SdfPath const &id)
 {
   if (id.IsEmpty()) {
-    data.erase(TfToken("materialId"));
+    data.erase(HdBlenderTokens->materialId);
   }
   else {
-    data[TfToken("materialId")] = id;
+    data[HdBlenderTokens->materialId] = id;
   }
 }
 
@@ -167,7 +172,7 @@ void ObjectData::set_as_mesh()
   blender::Span<MLoopTri> loopTris = mesh->looptris();
 
   /* faceVertexCounts */
-  data[TfToken("faceCounts")] = VtIntArray(tris_len, 3);
+  data[HdBlenderTokens->faceCounts] = VtIntArray(tris_len, 3);
 
   /* faceVertexIndices */
   VtIntArray faceVertexIndices;

@@ -8,12 +8,22 @@
 #include <pxr/base/gf/matrix4d.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/base/vt/value.h>
+#include "pxr/base/tf/staticTokens.h"
 
 #include "DNA_object_types.h"
 
 #include "material.h"
 
+PXR_NAMESPACE_OPEN_SCOPE
+#define HD_BLENDER_TOKENS \
+  (materialId) \
+  (faceCounts)
+
+TF_DECLARE_PUBLIC_TOKENS(HdBlenderTokens, HD_BLENDER_TOKENS);
+PXR_NAMESPACE_CLOSE_SCOPE
+
 namespace blender::render::hydra {
+
 
 class ObjectData {
 public:
@@ -26,10 +36,10 @@ public:
   pxr::GfMatrix4d transform();
   Material *material();
 
-  pxr::VtValue &get_data(const pxr::TfToken &key);
+  pxr::VtValue &get_data(pxr::TfToken const &key);
   template<class T>
-  const T &get_data(const pxr::TfToken &key);
-  bool has_data(const pxr::TfToken &key);
+  const T &get_data(pxr::TfToken const &key);
+  bool has_data(pxr::TfToken const &key);
 
   void set_material_id(pxr::SdfPath const &id);
 
@@ -46,7 +56,7 @@ public:
 using ObjectDataMap = std::map<pxr::SdfPath, ObjectData>;
 
 template<class T>
-const T &ObjectData::get_data(const pxr::TfToken &key)
+const T &ObjectData::get_data(pxr::TfToken const &key)
 {
   return get_data(key).Get<T>();
 }

@@ -94,8 +94,8 @@ void BlenderSceneDelegate::update_collection()
   /* remove unused materials */
   std::set<SdfPath> available_materials;
   for (auto &obj : objects) {
-    if (obj.second.has_data(TfToken("materialId"))) {
-      available_materials.insert(obj.second.get_data(TfToken("materialId")).Get<SdfPath>());
+    if (obj.second.has_data(HdBlenderTokens->materialId)) {
+      available_materials.insert(obj.second.get_data(HdBlenderTokens->materialId).Get<SdfPath>());
     }
   }
   for (auto it = materials.begin(); it != materials.end(); ++it) {
@@ -182,15 +182,17 @@ MaterialData *BlenderSceneDelegate::material_data(SdfPath const &id)
 
 SdfPath BlenderSceneDelegate::object_id(Object *object)
 {
+  /* Making id of object in form like O_<pointer in 16 hex digits format>. Example: O_000002073e369608 */
   char str[32];
-  snprintf(str, 32, "O_%016llX", (uint64_t)object);
+  snprintf(str, 32, "O_%016llx", (uint64_t)object);
   return GetDelegateID().AppendElementString(str);
 }
 
 SdfPath BlenderSceneDelegate::material_id(Material *material)
 {
+  /* Making id of material in form like M_<pointer in 16 hex digits format>. Example: M_000002074e812088 */
   char str[32];
-  snprintf(str, 32, "M_%016llX", (uint64_t)material);
+  snprintf(str, 32, "M_%016llx", (uint64_t)material);
   return GetDelegateID().AppendElementString(str);
 }
 
@@ -254,7 +256,7 @@ HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)
   LOG(INFO) << "GetMeshTopology: " << id.GetAsString();
   ObjectData &obj_data = objects[id];
   return HdMeshTopology(PxOsdOpenSubdivTokens->catmullClark, HdTokens->rightHanded,
-                        obj_data.get_data<VtIntArray>(TfToken("faceCounts")),
+                        obj_data.get_data<VtIntArray>(HdBlenderTokens->faceCounts),
                         obj_data.get_data<VtIntArray>(HdTokens->pointsIndices));
 }
 
@@ -307,17 +309,17 @@ SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
 {
   SdfPath ret;
   ObjectData *obj_data = object_data(rprimId);
-  if (obj_data && obj_data->has_data(TfToken("materialId"))) {
-    ret = obj_data->get_data<SdfPath>(TfToken("materialId"));
+  if (obj_data && obj_data->has_data(HdBlenderTokens->materialId)) {
+    ret = obj_data->get_data<SdfPath>(HdBlenderTokens->materialId);
   }
 
   LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
   return ret;
 }
 
-VtValue BlenderSceneDelegate::GetMaterialResource(SdfPath const& materialId)
+VtValue BlenderSceneDelegate::GetMaterialResource(SdfPath const& id)
 {
-  LOG(INFO) << "GetMaterialResource: " << materialId.GetAsString();
+  LOG(INFO) << "GetMaterialResource: " << id.GetAsString();
   return VtValue();
 }
 

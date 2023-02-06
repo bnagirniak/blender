@@ -36,7 +36,12 @@ ObjectData::ObjectData(Object *object)
 {
   switch (object->type) {
     case OB_MESH:
-      set_as_mesh();
+      if (object->mode == OB_MODE_OBJECT) {
+        set_as_mesh();
+      }
+      else {
+        set_as_meshable();
+      }
       break;
 
     case OB_SURF:
@@ -166,7 +171,17 @@ void ObjectData::set_material_id(SdfPath const &id)
 
 void ObjectData::set_as_mesh()
 {
-  Mesh *mesh = (Mesh *)object->data;
+  Mesh *mesh;
+
+  if (object->type == OB_SURF ||
+      object->type == OB_FONT ||
+      object->type == OB_MBALL) {
+    mesh = object->runtime.object_as_temp_mesh;
+  }
+  else {
+    mesh = (Mesh *)object->data;
+  }
+
   BKE_mesh_calc_normals_split(mesh);
   int tris_len = BKE_mesh_runtime_looptri_len(mesh);
   blender::Span<MLoopTri> loopTris = mesh->looptris();
@@ -223,6 +238,9 @@ void ObjectData::set_as_mesh()
 
 void ObjectData::set_as_meshable()
 {
+  BKE_object_to_mesh(nullptr, object, false);
+  set_as_mesh();
+  BKE_object_to_mesh_clear(object);
 }
 
 void ObjectData::set_as_light()

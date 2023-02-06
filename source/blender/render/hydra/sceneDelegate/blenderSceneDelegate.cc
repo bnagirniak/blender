@@ -198,7 +198,11 @@ SdfPath BlenderSceneDelegate::material_id(Material *material)
 
 bool BlenderSceneDelegate::supported_object(Object *object)
 {
-  return object->type == OB_MESH || object->type == OB_LAMP;
+  return object->type == OB_MESH ||
+         object->type == OB_LAMP ||
+         object->type == OB_SURF ||
+         object->type == OB_FONT ||
+         object->type == OB_MBALL;
 }
 
 void BlenderSceneDelegate::Populate()

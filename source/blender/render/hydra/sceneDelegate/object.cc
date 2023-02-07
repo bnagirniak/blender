@@ -36,7 +36,7 @@ ObjectData::ObjectData(Object *object)
 {
   switch (object->type) {
     case OB_MESH:
-      if (object->mode == OB_MODE_OBJECT) {
+      if (object->mode == OB_MODE_OBJECT && BLI_listbase_is_empty(&object->modifiers)) {
         set_as_mesh();
       }
       else {
@@ -46,6 +46,8 @@ ObjectData::ObjectData(Object *object)
 
     case OB_SURF:
     case OB_FONT:
+    case OB_CURVES:
+    case OB_CURVES_LEGACY:
     case OB_MBALL:
       set_as_meshable();
       break;
@@ -83,6 +85,8 @@ TfToken ObjectData::prim_type()
     case OB_MESH:
     case OB_SURF:
     case OB_FONT:
+    case OB_CURVES:
+    case OB_CURVES_LEGACY:
     case OB_MBALL:
       ret = HdPrimTypeTokens->mesh;
       break;
@@ -128,6 +132,11 @@ TfToken ObjectData::prim_type()
     default:
       break;
   }
+
+  if (ret == HdPrimTypeTokens->mesh && !has_data(HdTokens->points)) {
+    ret = HdBlenderTokens->empty;
+  }
+
   return ret;
 }
 
@@ -171,19 +180,25 @@ void ObjectData::set_material_id(SdfPath const &id)
 
 void ObjectData::set_as_mesh()
 {
-  Mesh *mesh;
+  Mesh *mesh = (Mesh *)object->data;
+  set_mesh(mesh);
+}
 
-  if (object->type == OB_SURF ||
-      object->type == OB_FONT ||
-      object->type == OB_MBALL) {
-    mesh = object->runtime.object_as_temp_mesh;
-  }
-  else {
-    mesh = (Mesh *)object->data;
-  }
+void ObjectData::set_as_meshable()
+{
+  Mesh *mesh = BKE_object_to_mesh(nullptr, object, false);
+  set_mesh(mesh);
+  BKE_object_to_mesh_clear(object);
+}
 
+void ObjectData::set_mesh(Mesh *mesh)
+{
   BKE_mesh_calc_normals_split(mesh);
   int tris_len = BKE_mesh_runtime_looptri_len(mesh);
+  if (tris_len == 0) {
+    return;
+  }
+
   blender::Span<MLoopTri> loopTris = mesh->looptris();
 
   /* faceVertexCounts */
@@ -234,13 +249,6 @@ void ObjectData::set_as_mesh()
     }
     data[HdPrimvarRoleTokens->textureCoordinate] = uvs;
   }
-}
-
-void ObjectData::set_as_meshable()
-{
-  BKE_object_to_mesh(nullptr, object, false);
-  set_as_mesh();
-  BKE_object_to_mesh_clear(object);
 }
 
 void ObjectData::set_as_light()

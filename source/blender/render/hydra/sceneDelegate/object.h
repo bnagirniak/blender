@@ -17,7 +17,8 @@
 PXR_NAMESPACE_OPEN_SCOPE
 #define HD_BLENDER_TOKENS \
   (materialId) \
-  (faceCounts)
+  (faceCounts) \
+  (empty)
 
 TF_DECLARE_PUBLIC_TOKENS(HdBlenderTokens, HD_BLENDER_TOKENS);
 PXR_NAMESPACE_CLOSE_SCOPE
@@ -49,6 +50,7 @@ public:
 
   void set_as_mesh();
   void set_as_meshable();
+  void set_mesh(Mesh *mesh);
   void set_as_light();
   void set_as_camera();
 };

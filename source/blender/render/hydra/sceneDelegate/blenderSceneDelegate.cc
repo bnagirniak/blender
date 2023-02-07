@@ -81,10 +81,10 @@ void BlenderSceneDelegate::update_collection()
       continue;
     }
     LOG(INFO) << "Remove: " << it->first;
-    if (index.GetRprim(it->first)) {
+    if (it->second.prim_type() == HdPrimTypeTokens->mesh) {
       index.RemoveRprim(it->first);
     }
-    else {
+    else if (it->second.prim_type() != HdBlenderTokens->empty) {
       index.RemoveSprim(it->second.prim_type(), it->first);
     }
     objects.erase(it);
@@ -202,6 +202,8 @@ bool BlenderSceneDelegate::supported_object(Object *object)
          object->type == OB_LAMP ||
          object->type == OB_SURF ||
          object->type == OB_FONT ||
+         object->type == OB_CURVES ||
+         object->type == OB_CURVES_LEGACY ||
          object->type == OB_MBALL;
 }
 

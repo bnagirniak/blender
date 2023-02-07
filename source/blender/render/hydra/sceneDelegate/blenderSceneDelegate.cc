@@ -259,22 +259,19 @@ void BlenderSceneDelegate::Populate()
 
 HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)
 {
+  LOG(INFO) << "GetMeshTopology: " << id.GetAsString();
   ObjectData &obj_data = objects[id];
-
-  LOG(INFO) << "GetMeshTopology: " << id.GetAsString() << " " << obj_data.name();
-  
   return HdMeshTopology(PxOsdOpenSubdivTokens->catmullClark, HdTokens->rightHanded,
                         obj_data.get_data<VtIntArray>(HdBlenderTokens->faceCounts),
                         obj_data.get_data<VtIntArray>(HdTokens->pointsIndices));
 }
 
 VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
-{ 
+{
+  LOG(INFO) << "Get: " << id.GetAsString() << " [" << key.GetString() << "]";
+  
   VtValue ret;
   ObjectData *obj_data = object_data(id);
-
-  LOG(INFO) << "Get: " << id.GetAsString() << " " << obj_data->name() << " [" << key.GetString() << "]";
-
   if (obj_data) {
     if (obj_data->has_data(key)) {
       ret = obj_data->get_data(key);
@@ -295,11 +292,9 @@ VtValue BlenderSceneDelegate::Get(SdfPath const& id, TfToken const& key)
 
 HdPrimvarDescriptorVector BlenderSceneDelegate::GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation)
 {
+  LOG(INFO) << "GetPrimvarDescriptors: " << id.GetAsString() << " " << interpolation;
   HdPrimvarDescriptorVector primvars;
   ObjectData &obj_data = objects[id];
-
-  LOG(INFO) << "GetPrimvarDescriptors: " << id.GetAsString() << " " << obj_data.name() << " " << interpolation;
-
   if (interpolation == HdInterpolationVertex) {
     if (obj_data.has_data(HdTokens->points)) {
       primvars.emplace_back(HdTokens->points, interpolation, HdPrimvarRoleTokens->point);
@@ -324,29 +319,28 @@ SdfPath BlenderSceneDelegate::GetMaterialId(SdfPath const & rprimId)
     ret = obj_data->get_data<SdfPath>(HdBlenderTokens->materialId);
   }
 
-  LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << " " << obj_data->name() << "] = " << ret.GetAsString();
+  LOG(INFO) << "GetMaterialId [" << rprimId.GetAsString() << "] = " << ret.GetAsString();
   return ret;
 }
 
 VtValue BlenderSceneDelegate::GetMaterialResource(SdfPath const& id)
 {
-  LOG(INFO) << "GetMaterialResource: " << id.GetAsString() << " " << object_data(id)->name();
+  LOG(INFO) << "GetMaterialResource: " << id.GetAsString();
   return VtValue();
 }
 
 GfMatrix4d BlenderSceneDelegate::GetTransform(SdfPath const& id)
 {
-  LOG(INFO) << "GetTransform: " << id.GetAsString() << " " << object_data(id)->name();
+  LOG(INFO) << "GetTransform: " << id.GetAsString();
+
   return objects[id].transform();
 }
 
 VtValue BlenderSceneDelegate::GetLightParamValue(SdfPath const& id, TfToken const& key)
 {
+  LOG(INFO) << "GetLightParamValue: " << id.GetAsString() << " [" << key.GetString() << "]";
   VtValue ret;
   ObjectData *obj_data = object_data(id);
-
-  LOG(INFO) << "GetLightParamValue: " << id.GetAsString() << " " << obj_data->name() << " [" << key.GetString() << "]";
-
   if (obj_data) {
     if (obj_data->has_data(key)) {
       ret = obj_data->get_data(key);

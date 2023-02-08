@@ -22,8 +22,8 @@ namespace blender::render::hydra {
 void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
 {
   sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
-    SdfPath::AbsoluteRootPath().AppendElementString("scene"), b_depsgraph);
-  sceneDelegate->Populate();
+    SdfPath::AbsoluteRootPath().AppendElementString("scene"));
+  sceneDelegate->Populate(b_depsgraph);
 
   for (auto const& setting : renderSettings) {
     renderDelegate->SetRenderSetting(setting.first, setting.second);

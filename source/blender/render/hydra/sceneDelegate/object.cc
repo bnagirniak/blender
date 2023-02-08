@@ -14,6 +14,7 @@
 #include "BKE_light.h"
 #include "BKE_mesh.h"
 #include "BKE_mesh_runtime.h"
+#include "BKE_layer.h"
 
 #include "object.h"
 
@@ -27,6 +28,7 @@ namespace blender::render::hydra {
 
 ObjectData::ObjectData()
   : object(nullptr)
+  , visible(true)
 {
   
 }
@@ -176,6 +178,23 @@ void ObjectData::set_material_id(SdfPath const &id)
   else {
     data[HdBlenderTokens->materialId] = id;
   }
+}
+
+bool ObjectData::update_visibility(View3D *view3d)
+{
+  if (!view3d) {
+    return false;
+  }
+  bool vis = BKE_object_is_visible_in_viewport(view3d, object);
+  bool ret = visible != vis;
+  visible = vis;
+
+  return ret;
+}
+
+bool ObjectData::is_visible()
+{
+  return visible;
 }
 
 void ObjectData::set_as_mesh()

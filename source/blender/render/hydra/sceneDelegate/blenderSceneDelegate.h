@@ -22,10 +22,10 @@ namespace blender::render::hydra {
 
 class BlenderSceneDelegate : public HdSceneDelegate {
 public:
-  BlenderSceneDelegate(HdRenderIndex* renderIndex, SdfPath const &delegateId, BL::Depsgraph &b_depsgraph);
+  BlenderSceneDelegate(HdRenderIndex* renderIndex, SdfPath const &delegateId);
   ~BlenderSceneDelegate() override = default;
 
-  void Populate();
+  void Populate(BL::Depsgraph &b_deps, View3D *v3d = nullptr);
 
   // delegate methods
   HdMeshTopology GetMeshTopology(SdfPath const& id) override;
@@ -35,6 +35,7 @@ public:
   HdPrimvarDescriptorVector GetPrimvarDescriptors(SdfPath const& id, HdInterpolation interpolation) override;
   SdfPath GetMaterialId(SdfPath const &rprimId) override;
   VtValue GetMaterialResource(SdfPath const &materialId) override;
+  bool GetVisible(SdfPath const &id) override;
 
 private:
   ObjectData *object_data(SdfPath const &id);
@@ -47,11 +48,16 @@ private:
   void set_material(ObjectData &obj_data);
   void update_material(Material *material);
   void update_collection();
+  void update_visibility();
 
-  BL::Depsgraph b_depsgraph;
+private:  
+  BL::Depsgraph *b_depsgraph;
   bool is_populated;
   ObjectDataMap objects;
   MaterialDataMap materials;
+
+  View3D *view3d;
+
 };
 
 } // namespace blender::render::hydra

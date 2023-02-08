@@ -52,12 +52,10 @@ private:
 
 private:  
   BL::Depsgraph *b_depsgraph;
+  View3D *view3d;
   bool is_populated;
   ObjectDataMap objects;
   MaterialDataMap materials;
-
-  View3D *view3d;
-
 };
 
 } // namespace blender::render::hydra

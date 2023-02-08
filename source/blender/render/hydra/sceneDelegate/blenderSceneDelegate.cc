@@ -6,10 +6,6 @@
 #include <pxr/usd/usdLux/tokens.h>
 #include <pxr/imaging/hdSt/tokens.h>
 
-#include "DEG_depsgraph_query.h"
-#include "BKE_object.h"
-#include "BKE_layer.h"
-
 #include "glog/logging.h"
 
 #include "blenderSceneDelegate.h"
@@ -18,9 +14,10 @@
 namespace blender::render::hydra {
 
 BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
-  : HdSceneDelegate(parentIndex, delegateID)
-  , is_populated(false)
-  , view3d(nullptr)
+  : HdSceneDelegate(parentIndex, delegateID),
+    b_depsgraph(nullptr),
+    view3d(nullptr),
+    is_populated(false)
 {
 }
 
@@ -55,11 +52,10 @@ void BlenderSceneDelegate::update_material(Material *material)
 
 bool BlenderSceneDelegate::GetVisible(SdfPath const &id)
 {
-
-
   ObjectData *obj_data = object_data(id);
 
   LOG(INFO) << "GetVisible: " << id.GetAsString() << " " << obj_data->is_visible();
+
   return obj_data->is_visible();
 }
 
@@ -287,10 +283,15 @@ void BlenderSceneDelegate::update_visibility()
 {
   HdRenderIndex &index = GetRenderIndex();
 
-  for (auto &it : objects) {
-    if (it.second.update_visibility(view3d)) {
-      LOG(INFO) << "Visible changed: " << it.first.GetAsString() << " " << it.second.is_visible();
-      index.GetChangeTracker().MarkRprimDirty(it.first, HdChangeTracker::DirtyVisibility);
+  for (auto &obj : objects) {
+    if (obj.second.update_visibility(view3d)) {
+      LOG(INFO) << "Visible changed: " << obj.first.GetAsString() << " " << obj.second.is_visible();
+      if (obj.second.prim_type() == HdPrimTypeTokens->mesh) {
+        index.GetChangeTracker().MarkRprimDirty(obj.first, HdChangeTracker::DirtyVisibility);
+      }
+      else if (obj.second.type() == OB_LAMP) {
+        index.GetChangeTracker().MarkSprimDirty(obj.first, HdLight::DirtyParams);
+      }
     };
   }
 }

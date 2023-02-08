@@ -12,7 +12,6 @@
 
 #include "finalEngine.h"
 #include "utils.h"
-#include "sceneDelegate/scene.h"
 
 using namespace std;
 using namespace pxr;
@@ -32,13 +31,14 @@ void FinalEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::
 
 void FinalEngine::render(BL::Depsgraph &b_depsgraph)
 {
-  SceneExport sceneExport(b_depsgraph);
-  auto resolution = sceneExport.resolution();
-  int width = resolution.first, height = resolution.second;
+  BL::Scene b_scene = b_depsgraph.scene();
+  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
+  string sceneName = b_scene.name(), layerName = b_view_layer.name();
+  GfVec2i res = getResolution(b_scene.render());
 
-  GfCamera gfCamera = sceneExport.gfCamera();
+  GfCamera gfCamera = gf_camera_from_camera_object((Object *)b_scene.camera().ptr.data, res, GfVec4f(0, 0, 1, 1));
   freeCameraDelegate->SetCamera(gfCamera);
-  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, width, height));
+  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, res[0], res[1]));
   renderTaskDelegate->SetRendererAov(HdAovTokens->color);
   
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
@@ -47,9 +47,9 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   chrono::milliseconds elapsedTime;
 
   float percentDone = 0.0;
-  string sceneName = sceneExport.sceneName(), layerName = sceneExport.layerName();
 
-  map<string, vector<float>> renderImages{{"Combined", vector<float>(width * height * 4)}};   // 4 - number of channels
+  map<string, vector<float>> renderImages{
+    {"Combined", vector<float>(res[0] * res[1] * 4)}};  // 4 - number of channels
   vector<float> &pixels = renderImages["Combined"];
 
   {
@@ -75,14 +75,14 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
     }
 
     renderTaskDelegate->GetRendererAovData(HdAovTokens->color, pixels.data());
-    updateRenderResult(renderImages, layerName, width, height);
+    updateRenderResult(renderImages, layerName, res[0], res[1]);
   }
 
   renderTaskDelegate->GetRendererAovData(HdAovTokens->color, pixels.data());
-  updateRenderResult(renderImages, layerName, width, height);
+  updateRenderResult(renderImages, layerName, res[0], res[1]);
 }
 
-void FinalEngine::getResolution(BL::RenderSettings b_render, int &width, int &height)
+GfVec2i FinalEngine::getResolution(BL::RenderSettings b_render)
 {
   float border_w = 1.0, border_h = 1.0;
   if (b_render.use_border()) {
@@ -90,8 +90,8 @@ void FinalEngine::getResolution(BL::RenderSettings b_render, int &width, int &he
     border_h = b_render.border_max_y() - b_render.border_min_y();
   }
 
-  width = int(b_render.resolution_x() * border_w * b_render.resolution_percentage() / 100);
-  height = int(b_render.resolution_y() * border_h * b_render.resolution_percentage() / 100);
+  return GfVec2i(int(b_render.resolution_x() * border_w * b_render.resolution_percentage() / 100),
+                 int(b_render.resolution_y() * border_h * b_render.resolution_percentage() / 100));
 }
 
 void FinalEngine::updateRenderResult(map<string, vector<float>>& renderImages, const string &layerName, int width, int height)
@@ -117,14 +117,14 @@ void FinalEngine::notifyStatus(float progress, const string &title, const string
 
 void FinalEngineGL::render(BL::Depsgraph &b_depsgraph)
 {
-  SceneExport sceneExport(b_depsgraph);
-  auto resolution = sceneExport.resolution();
-  int width = resolution.first, height = resolution.second;
+  BL::Scene b_scene = b_depsgraph.scene();
+  BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
+  string sceneName = b_scene.name(), layerName = b_view_layer.name();
+  GfVec2i res = getResolution(b_scene.render());
 
-  GfCamera gfCamera = sceneExport.gfCamera();
+  GfCamera gfCamera = gf_camera_from_camera_object((Object *)b_scene.camera().ptr.data, res, GfVec4f(0, 0, 1, 1));
   freeCameraDelegate->SetCamera(gfCamera);
-  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(),
-                                           GfVec4d(0, 0, width, height));
+  renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, res[0], res[1]));
 
   HdTaskSharedPtrVector tasks = renderTaskDelegate->GetTasks();
 
@@ -132,10 +132,9 @@ void FinalEngineGL::render(BL::Depsgraph &b_depsgraph)
   chrono::milliseconds elapsedTime;
 
   float percentDone = 0.0;
-  string sceneName = sceneExport.sceneName(), layerName = sceneExport.layerName();
 
   map<string, vector<float>> renderImages{
-      {"Combined", vector<float>(width * height * 4)}};  // 4 - number of channels
+    {"Combined", vector<float>(res[0] * res[1] * 4)}};  // 4 - number of channels
   vector<float> &pixels = renderImages["Combined"];
 
   GLuint FramebufferName = 0;
@@ -150,7 +149,7 @@ void FinalEngineGL::render(BL::Depsgraph &b_depsgraph)
   glBindTexture(GL_TEXTURE_2D, renderedTexture);
 
   // Give an empty image to OpenGL ( the last "0" )
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, res[0], res[1], 0, GL_RGBA, GL_FLOAT, 0);
 
   // Poor filtering. Needed !
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -189,11 +188,11 @@ void FinalEngineGL::render(BL::Depsgraph &b_depsgraph)
     }
 
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
-    updateRenderResult(renderImages, layerName, width, height);
+    updateRenderResult(renderImages, layerName, res[0], res[1]);
   }
 
   glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
-  updateRenderResult(renderImages, layerName, width, height);
+  updateRenderResult(renderImages, layerName, res[0], res[1]);
 }
 
 }   // namespace blender::render::hydra

@@ -62,8 +62,6 @@ set(SRC
   sceneDelegate/blenderSceneDelegate.cc
   sceneDelegate/object.h
   sceneDelegate/object.cc
-  sceneDelegate/scene.h
-  sceneDelegate/scene.cc
   sceneDelegate/material.h
   sceneDelegate/material.cc
 )

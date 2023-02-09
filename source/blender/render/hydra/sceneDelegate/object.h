@@ -43,10 +43,13 @@ public:
   bool has_data(pxr::TfToken const &key);
 
   void set_material_id(pxr::SdfPath const &id);
+  bool update_visibility(View3D *view3d);
+  bool is_visible();
 
  private:
   Object *object;
   std::map<pxr::TfToken, pxr::VtValue> data;
+  bool visible;
 
   void set_as_mesh();
   void set_as_meshable();

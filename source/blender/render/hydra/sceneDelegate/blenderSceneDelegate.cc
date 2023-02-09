@@ -13,10 +13,11 @@
 
 namespace blender::render::hydra {
 
-BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID, BL::Depsgraph &b_depsgraph)
-  : HdSceneDelegate(parentIndex, delegateID)
-  , b_depsgraph(b_depsgraph)
-  , is_populated(false)
+BlenderSceneDelegate::BlenderSceneDelegate(HdRenderIndex* parentIndex, SdfPath const& delegateID)
+  : HdSceneDelegate(parentIndex, delegateID),
+    b_depsgraph(nullptr),
+    view3d(nullptr),
+    is_populated(false)
 {
 }
 
@@ -49,13 +50,21 @@ void BlenderSceneDelegate::update_material(Material *material)
   }
 }
 
+bool BlenderSceneDelegate::GetVisible(SdfPath const &id)
+{
+  ObjectData *obj_data = object_data(id);
+  LOG(INFO) << "GetVisible: " << id.GetAsString() << " " << obj_data->is_visible();
+
+  return obj_data->is_visible();
+}
+
 void BlenderSceneDelegate::update_collection()
 {
   HdRenderIndex &index = GetRenderIndex();
 
   /* add new objects */
   std::set<SdfPath> available_objects;
-  for (auto &inst : b_depsgraph.object_instances) {
+  for (auto &inst : b_depsgraph->object_instances) {
     if (inst.is_instance()) {
       continue;
     }
@@ -117,6 +126,7 @@ void BlenderSceneDelegate::add_update_object(Object *object, bool geometry, bool
   ObjectData *obj_data = object_data(obj_id);
   if (!obj_data) {
     ObjectData new_obj_data(object);
+    new_obj_data.update_visibility(view3d);
     if (new_obj_data.prim_type() == HdPrimTypeTokens->mesh) {
       LOG(INFO) << "Add mesh object: " << new_obj_data.name() << " id=" << obj_id;
       index.InsertRprim(new_obj_data.prim_type(), this, obj_id);
@@ -133,6 +143,7 @@ void BlenderSceneDelegate::add_update_object(Object *object, bool geometry, bool
   if (geometry) {
     LOG(INFO) << "Full updated: " << obj_id;
     ObjectData new_obj_data(object);
+    new_obj_data.update_visibility(view3d);
     if (new_obj_data.prim_type() == HdPrimTypeTokens->mesh) {
       set_material(new_obj_data);
       index.GetChangeTracker().MarkRprimDirty(obj_id, HdChangeTracker::AllDirty);
@@ -207,20 +218,26 @@ bool BlenderSceneDelegate::supported_object(Object *object)
          object->type == OB_MBALL;
 }
 
-void BlenderSceneDelegate::Populate()
+void BlenderSceneDelegate::Populate(BL::Depsgraph &b_deps, View3D *v3d)
 {
   LOG(INFO) << "Populate " << is_populated;
 
+  view3d = v3d;
+  b_depsgraph = &b_deps;
+
   if (!is_populated) {
-    /* exporting initial objects */
+    /* Export initial objects */
     update_collection();
 
     is_populated = true;
     return;
   }
 
-  /* working with updates */
-  for (auto &update : b_depsgraph.updates) {
+  /* Working with updates */
+  bool do_update_collection = false;
+  bool do_update_visibility = false;
+
+  for (auto &update : b_depsgraph->updates) {
     BL::ID id = update.id();
     LOG(INFO) << "Update: " << id.name_full() << " "
               << update.is_updated_transform()
@@ -249,12 +266,59 @@ void BlenderSceneDelegate::Populate()
       
     if (id.is_a(&RNA_Collection)) {
       if (update.is_updated_transform() && update.is_updated_geometry()) {
-        update_collection();
+        do_update_collection = true;
+      }
+      continue;
+    }
+
+    if (id.is_a(&RNA_Scene)) {
+      if (!update.is_updated_geometry() && !update.is_updated_transform() && !update.is_updated_shading()) {
+        do_update_visibility = true;
       }
       continue;
     }
   }
-  return;
+
+  if (do_update_collection) {
+    update_collection();
+  }
+  if (do_update_visibility) {
+    update_visibility();
+  }
+}
+
+void BlenderSceneDelegate::update_visibility()
+{
+  HdRenderIndex &index = GetRenderIndex();
+
+  /* Check and update visibility */
+  for (auto &obj : objects) {
+    if (obj.second.update_visibility(view3d)) {
+      LOG(INFO) << "Visible changed: " << obj.first.GetAsString() << " " << obj.second.is_visible();
+      if (obj.second.prim_type() == HdPrimTypeTokens->mesh) {
+        index.GetChangeTracker().MarkRprimDirty(obj.first, HdChangeTracker::DirtyVisibility);
+      }
+      else if (obj.second.type() == OB_LAMP) {
+        index.GetChangeTracker().MarkSprimDirty(obj.first, HdLight::DirtyParams);
+      }
+    };
+  }
+
+  /* Export of new visible objects which were not exported before */
+  for (auto &inst : b_depsgraph->object_instances) {
+    if (inst.is_instance()) {
+      continue;
+    }
+    Object *object = (Object *)inst.object().ptr.data;
+    if (!supported_object(object)) {
+      continue;
+    }
+
+    SdfPath obj_id = object_id(object);
+    if (!object_data(obj_id)) {
+      add_update_object(object, true, true, true);
+    }
+  }
 }
 
 HdMeshTopology BlenderSceneDelegate::GetMeshTopology(SdfPath const& id)

@@ -8,6 +8,7 @@
 #include <pxr/usd/usdGeom/camera.h>
 
 #include "BLI_math_matrix.h"
+#include "DNA_camera_types.h"
 
 #include "glog/logging.h"
 
@@ -20,14 +21,14 @@ using namespace pxr;
 namespace blender::render::hydra {
 
 struct CameraData {
-  CameraData(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2]);
+  CameraData(Object *camera_obj, float ratio, float border[2][2]);
   CameraData(BL::Context &b_context);
 
-  pxr::GfCamera export_gf(float tile[4]);
+  GfCamera export_gf(float tile[4]);
 
-  BL::Camera::type_enum mode;
+  int mode;
   GfVec2f clip_range;
-  float focal_length = 0.0;
+  float focal_length;
   GfVec2f sensor_size;
   float transform[4][4];
   GfVec2f lens_shift;
@@ -41,7 +42,7 @@ struct ViewSettings {
   int get_width();
   int get_height();
 
-  pxr::GfCamera export_camera();
+  GfCamera export_camera();
 
   CameraData camera_data;
 
@@ -50,25 +51,28 @@ struct ViewSettings {
   int border[2][2];
 };
 
-CameraData::CameraData(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2])
+CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
 {
+  Camera *camera = (Camera *)camera_obj->data;
+
   float pos[2] = {border[0][0], border[0][1]};
   float size[2] = {border[1][0], border[1][1]};
 
-  copy_m4_m4(this->transform, transform);
+  copy_m4_m4(transform, camera_obj->object_to_world);
 
-  clip_range = GfVec2f(b_camera.clip_start(), b_camera.clip_end());
-  mode = b_camera.type();
+  clip_range = GfVec2f(camera->clip_start, camera->clip_end);
+  mode = camera->type;
 
-  if (b_camera.dof().use_dof()) {
+  if (camera->dof.flag & CAM_DOF_ENABLED)
+  {
     float focus_distance;
-    if (!b_camera.dof().focus_object()) {
-      focus_distance = b_camera.dof().focus_distance();
+    if (!camera->dof.focus_object) {
+      focus_distance = camera->dof.focus_distance;
     } 
     else {
-      float obj_pos[] = {b_camera.dof().focus_object().matrix_world()[3],
-                         b_camera.dof().focus_object().matrix_world()[7],
-                         b_camera.dof().focus_object().matrix_world()[11]};
+      float obj_pos[] = {camera->dof.focus_object->object_to_world[0][3],
+                         camera->dof.focus_object->object_to_world[1][3],
+                         camera->dof.focus_object->object_to_world[2][3]};
 
       float camera_pos[] = {transform[0][3],
                             transform[1][3],
@@ -80,91 +84,111 @@ CameraData::CameraData(BL::Camera &b_camera, float transform[4][4], float ratio,
     }
 
     dof_data = tuple(max(focus_distance, 0.001f),
-                          b_camera.dof().aperture_fstop(),
-                          b_camera.dof().aperture_blades());
+                     camera->dof.aperture_fstop,
+                     camera->dof.aperture_blades);
   }
 
-  if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-    lens_shift = GfVec2f(b_camera.shift_x() / ratio, b_camera.shift_y());
-  } 
-  else if ((b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL)) {
-    lens_shift = GfVec2f(b_camera.shift_x(), b_camera.shift_y() * ratio);
-  } 
-  else if ((b_camera.sensor_fit() == BL::Camera::sensor_fit_AUTO)) {
-    if (ratio > 1.0f) {
-      lens_shift = GfVec2f(b_camera.shift_x(), b_camera.shift_y() * ratio);
-    } 
-    else {
-      lens_shift = GfVec2f(b_camera.shift_x() / ratio, b_camera.shift_y());
-    }
-  } 
-  else {
-    lens_shift = GfVec2f(b_camera.shift_x(), b_camera.shift_y());
+  switch (camera->sensor_fit) {
+    case CAMERA_SENSOR_FIT_VERT:
+      lens_shift = GfVec2f(camera->shiftx / ratio, camera->shifty);
+      break;
+    case CAMERA_SENSOR_FIT_HOR:
+      lens_shift = GfVec2f(camera->shiftx, camera->shifty * ratio);
+      break;
+    case CAMERA_SENSOR_FIT_AUTO:
+      if (ratio > 1.0f) {
+        lens_shift = GfVec2f(camera->shiftx, camera->shifty * ratio);
+      }
+      else {
+        lens_shift = GfVec2f(camera->shiftx / ratio, camera->shifty);
+      }
+      break;
+    default:
+      lens_shift = GfVec2f(camera->shiftx, camera->shifty);
+      break;
   }
 
   lens_shift = GfVec2f(lens_shift[0] / size[0] + (pos[0] + size[0] * 0.5 - 0.5) / size[0],
                        lens_shift[1] / size[1] + (pos[1] + size[1] * 0.5 - 0.5) / size[1]);
 
-  if (b_camera.type() == BL::Camera::type_PERSP) {
-    focal_length = b_camera.lens();
+  switch (camera->type) {
+    case CAM_PERSP:
+      focal_length = camera->lens;
 
-    if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-      sensor_size = GfVec2f(b_camera.sensor_height() * ratio, b_camera.sensor_height());
-    } 
-    else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
-      sensor_size = GfVec2f(b_camera.sensor_width(), b_camera.sensor_width() / ratio);
-    } 
-    else {
-      if (ratio > 1.0f) {
-        sensor_size = GfVec2f(b_camera.sensor_width(), b_camera.sensor_width() / ratio);
-      } 
-      else {
-        sensor_size = GfVec2f(b_camera.sensor_width() * ratio, b_camera.sensor_width());
+      switch (camera->sensor_fit) {
+        case CAMERA_SENSOR_FIT_VERT:
+          sensor_size = GfVec2f(camera->sensor_y * ratio, camera->sensor_y);
+          break;
+        case CAMERA_SENSOR_FIT_HOR:
+          sensor_size = GfVec2f(camera->sensor_x, camera->sensor_x / ratio);
+          break;
+        case CAMERA_SENSOR_FIT_AUTO:
+          if (ratio > 1.0f) {
+            sensor_size = GfVec2f(camera->sensor_x, camera->sensor_x / ratio);
+          }
+          else {
+            sensor_size = GfVec2f(camera->sensor_x * ratio, camera->sensor_x);
+          }
+          break;
+        default:
+          sensor_size = GfVec2f(camera->sensor_x, camera->sensor_y);
+          break;
       }
-    }
-    sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
-  } 
-  else if (b_camera.type() == BL::Camera::type_ORTHO) {
-    if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-      ortho_size = GfVec2f(b_camera.ortho_scale() * ratio, b_camera.ortho_scale());
-    } 
-    else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
-      ortho_size = GfVec2f(b_camera.ortho_scale(), b_camera.ortho_scale() / ratio);
-    } 
-    else {
-      if (ratio > 1.0f) {
-        ortho_size = GfVec2f(b_camera.ortho_scale(), b_camera.ortho_scale() / ratio);
-      } 
-      else {
-        ortho_size = GfVec2f(b_camera.ortho_scale() * ratio, b_camera.ortho_scale());
-      }
-    }
-    ortho_size = GfVec2f(ortho_size[0] * size[0], ortho_size[1] * size[1]);
+      sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
+      break;
 
-    clip_range = GfVec2f(b_camera.clip_start(), b_camera.clip_end());
-  } 
-  else if (b_camera.type() == BL::Camera::type_PANO) {
-    /* TODO: Recheck parameters for PANO camera */
-    focal_length = b_camera.lens();
-    if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-      sensor_size = GfVec2f(b_camera.sensor_height() * ratio, b_camera.sensor_height());
-    } 
-    else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
-      sensor_size = GfVec2f(b_camera.sensor_height(), b_camera.sensor_height() / ratio);
-    } 
-    else {
-      if (ratio > 1.0f) {
-        sensor_size = GfVec2f(b_camera.sensor_width(), b_camera.sensor_width() / ratio);
-      } 
-      else {
-        sensor_size = GfVec2f(b_camera.sensor_width() * ratio, b_camera.sensor_width());
+    case CAM_ORTHO:
+      focal_length = 0.0f;
+      switch (camera->sensor_fit) {
+        case CAMERA_SENSOR_FIT_VERT:
+          ortho_size = GfVec2f(camera->ortho_scale * ratio, camera->ortho_scale);
+          break;
+        case CAMERA_SENSOR_FIT_HOR:
+          ortho_size = GfVec2f(camera->ortho_scale, camera->ortho_scale / ratio);
+          break;
+        case CAMERA_SENSOR_FIT_AUTO:
+          if (ratio > 1.0f) {
+            ortho_size = GfVec2f(camera->ortho_scale, camera->ortho_scale / ratio);
+          }
+          else {
+            ortho_size = GfVec2f(camera->ortho_scale * ratio, camera->ortho_scale);
+          }
+          break;
+        default:
+          ortho_size = GfVec2f(camera->ortho_scale, camera->ortho_scale);
+          break;
       }
-    }
-    sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
-  } 
-  else {
-    focal_length = b_camera.lens();
-    sensor_size = GfVec2f(b_camera.sensor_height() * ratio, b_camera.sensor_height());
+      ortho_size = GfVec2f(ortho_size[0] * size[0], ortho_size[1] * size[1]);
+      break;
+
+    case CAM_PANO:
+      /* TODO: Recheck parameters for PANO camera */
+      focal_length = camera->lens;
+
+      switch (camera->sensor_fit) {
+        case CAMERA_SENSOR_FIT_VERT:
+          sensor_size = GfVec2f(camera->sensor_y * ratio, camera->sensor_y);
+          break;
+        case CAMERA_SENSOR_FIT_HOR:
+          sensor_size = GfVec2f(camera->sensor_x, camera->sensor_x / ratio);
+          break;
+        case CAMERA_SENSOR_FIT_AUTO:
+          if (ratio > 1.0f) {
+            sensor_size = GfVec2f(camera->sensor_x, camera->sensor_x / ratio);
+          }
+          else {
+            sensor_size = GfVec2f(camera->sensor_x * ratio, camera->sensor_x);
+          }
+          break;
+        default:
+          sensor_size = GfVec2f(camera->sensor_x, camera->sensor_y);
+          break;
+      }
+      sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
+
+    default:
+      focal_length = camera->lens;
+      sensor_size = GfVec2f(camera->sensor_y * ratio, camera->sensor_y);
   }
 }
 
@@ -177,62 +201,72 @@ CameraData::CameraData(BL::Context &b_context)
   BL::SpaceView3D space_data = (BL::SpaceView3D)b_context.space_data();
 
   float ratio = (float)b_context.region().width() / (float)b_context.region().height();
-  if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_PERSP) {
-    mode = BL::Camera::type_PERSP;
-    clip_range = GfVec2f(space_data.clip_start(), space_data.clip_end());
-    lens_shift = GfVec2f(0.0, 0.0);
-    focal_length = space_data.lens();
 
-    if (ratio > 1.0) {
-      sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE, VIEWPORT_SENSOR_SIZE / ratio);
+  switch (b_context.region_data().view_perspective()) {
+    case BL::RegionView3D::view_perspective_PERSP: {
+      mode = CAM_PERSP;
+      clip_range = GfVec2f(space_data.clip_start(), space_data.clip_end());
+      lens_shift = GfVec2f(0.0, 0.0);
+      focal_length = space_data.lens();
+
+      if (ratio > 1.0) {
+        sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE, VIEWPORT_SENSOR_SIZE / ratio);
+      }
+      else {
+        sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE * ratio, VIEWPORT_SENSOR_SIZE);
+      }
+
+      invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
+      break;
     }
-    else {
-      sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE * ratio, VIEWPORT_SENSOR_SIZE);
-    }
 
-    invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
-  }
-  else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_ORTHO) {
-    mode = BL::Camera::type_ORTHO;
-    lens_shift = GfVec2f(0.0f, 0.0f);
+    case BL::RegionView3D::view_perspective_ORTHO: {
+      mode = CAM_ORTHO;
+      lens_shift = GfVec2f(0.0f, 0.0f);
 
-    float o_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
-    float o_depth = space_data.clip_end();
+      float o_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
+      float o_depth = space_data.clip_end();
 
-    clip_range = GfVec2f(-o_depth * 0.5, o_depth * 0.5);
+      clip_range = GfVec2f(-o_depth * 0.5, o_depth * 0.5);
 
-    if (ratio > 1.0f) {
-      ortho_size = GfVec2f(o_size, o_size / ratio);
-    } else {
-      ortho_size = GfVec2f(o_size * ratio, o_size);
-    }
+      if (ratio > 1.0f) {
+        ortho_size = GfVec2f(o_size, o_size / ratio);
+      } else {
+        ortho_size = GfVec2f(o_size * ratio, o_size);
+      }
     
-    invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
-  }
-  else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
-    BL::Object camera_obj = space_data.camera();
-
-    float border[2][2] = {{0, 0}, {1, 1}};
-    float inverted_transform[4][4];
-    invert_m4_m4(inverted_transform, (float(*)[4])b_context.region_data().view_matrix().data);    
-
-    *this = CameraData((BL::Camera &)camera_obj.data(), inverted_transform, ratio, border);
-
-    // This formula was taken from previous plugin with corresponded comment
-    // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
-    float zoom = 4.0 / pow((pow(2.0, 0.5) + b_context.region_data().view_camera_zoom() / 50.0), 2);
-
-    // Updating lens_shift due to viewport zoom and view_camera_offset
-    // view_camera_offset should be multiplied by 2
-    lens_shift = GfVec2f((lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
-                         (lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom);
-
-    if (mode == BL::Camera::type_ORTHO) {
-      ortho_size *= zoom;
+      invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
+      break;
     }
-    else {
-      sensor_size *= zoom;
+
+    case BL::RegionView3D::view_perspective_CAMERA: {
+      BL::Object camera_obj = space_data.camera();
+
+      float border[2][2] = {{0, 0}, {1, 1}};
+      *this = CameraData((Object *)camera_obj.ptr.data, ratio, border);
+
+      invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);    
+
+      // This formula was taken from previous plugin with corresponded comment
+      // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
+      float zoom = 4.0 / pow((pow(2.0, 0.5) + b_context.region_data().view_camera_zoom() / 50.0), 2);
+
+      // Updating lens_shift due to viewport zoom and view_camera_offset
+      // view_camera_offset should be multiplied by 2
+      lens_shift = GfVec2f((lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
+                           (lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom);
+
+      if (mode == BL::Camera::type_ORTHO) {
+        ortho_size *= zoom;
+      }
+      else {
+        sensor_size *= zoom;
+      }
+      break;
     }
+
+    default:
+      break;
   }
 }
 

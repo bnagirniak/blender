@@ -20,18 +20,18 @@ using namespace pxr;
 namespace blender::render::hydra {
 
 struct CameraData {
-  static CameraData init_from_camera(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2]);
-  static CameraData init_from_context(BL::Context &b_context);
+  CameraData(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2]);
+  CameraData(BL::Context &b_context);
 
   pxr::GfCamera export_gf(float tile[4]);
 
   BL::Camera::type_enum mode;
-  float clip_range[2];
+  GfVec2f clip_range;
   float focal_length = 0.0;
-  float sensor_size[2];
+  GfVec2f sensor_size;
   float transform[4][4];
-  float lens_shift[2];
-  float ortho_size[2];
+  GfVec2f lens_shift;
+  GfVec2f ortho_size;
   tuple<float, float, int> dof_data;
 };
 
@@ -50,18 +50,15 @@ struct ViewSettings {
   int border[2][2];
 };
 
-CameraData CameraData::init_from_camera(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2])
+CameraData::CameraData(BL::Camera &b_camera, float transform[4][4], float ratio, float border[2][2])
 {
   float pos[2] = {border[0][0], border[0][1]};
   float size[2] = {border[1][0], border[1][1]};
 
-  CameraData data = CameraData();
+  copy_m4_m4(this->transform, transform);
 
-  copy_m4_m4(data.transform, transform);
-
-  data.clip_range[0] = b_camera.clip_start();
-  data.clip_range[1] = b_camera.clip_end();
-  data.mode = b_camera.type();
+  clip_range = GfVec2f(b_camera.clip_start(), b_camera.clip_end());
+  mode = b_camera.type();
 
   if (b_camera.dof().use_dof()) {
     float focus_distance;
@@ -82,121 +79,96 @@ CameraData CameraData::init_from_camera(BL::Camera &b_camera, float transform[4]
                             pow((obj_pos[2] - camera_pos[2]), 2));
     }
 
-    data.dof_data = tuple(max(focus_distance, 0.001f),
+    dof_data = tuple(max(focus_distance, 0.001f),
                           b_camera.dof().aperture_fstop(),
                           b_camera.dof().aperture_blades());
   }
 
   if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-    data.lens_shift[0] = b_camera.shift_x() / ratio;
-    data.lens_shift[1] = b_camera.shift_y();
+    lens_shift = GfVec2f(b_camera.shift_x() / ratio, b_camera.shift_y());
   } 
   else if ((b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL)) {
-    data.lens_shift[0] = b_camera.shift_x();
-    data.lens_shift[1] = b_camera.shift_y() * ratio;
+    lens_shift = GfVec2f(b_camera.shift_x(), b_camera.shift_y() * ratio);
   } 
   else if ((b_camera.sensor_fit() == BL::Camera::sensor_fit_AUTO)) {
     if (ratio > 1.0f) {
-      data.lens_shift[0] = b_camera.shift_x();
-      data.lens_shift[1] = b_camera.shift_y() * ratio;
+      lens_shift = GfVec2f(b_camera.shift_x(), b_camera.shift_y() * ratio);
     } 
     else {
-      data.lens_shift[0] = b_camera.shift_x() / ratio;
-      data.lens_shift[1] = b_camera.shift_y();
+      lens_shift = GfVec2f(b_camera.shift_x() / ratio, b_camera.shift_y());
     }
   } 
   else {
-    data.lens_shift[0] = b_camera.shift_x();
-    data.lens_shift[1] = b_camera.shift_y();
+    lens_shift = GfVec2f(b_camera.shift_x(), b_camera.shift_y());
   }
 
-  data.lens_shift[0] = data.lens_shift[0] / size[0] + (pos[0] + size[0] * 0.5 - 0.5) / size[0];
-  data.lens_shift[1] = data.lens_shift[1] / size[1] + (pos[1] + size[1] * 0.5 - 0.5) / size[1];
+  lens_shift = GfVec2f(lens_shift[0] / size[0] + (pos[0] + size[0] * 0.5 - 0.5) / size[0],
+                       lens_shift[1] / size[1] + (pos[1] + size[1] * 0.5 - 0.5) / size[1]);
 
   if (b_camera.type() == BL::Camera::type_PERSP) {
-    data.focal_length = b_camera.lens();
+    focal_length = b_camera.lens();
 
     if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-      data.sensor_size[0] = b_camera.sensor_height() * ratio;
-      data.sensor_size[1] = b_camera.sensor_height();
+      sensor_size = GfVec2f(b_camera.sensor_height() * ratio, b_camera.sensor_height());
     } 
     else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
-      data.sensor_size[0] = b_camera.sensor_width();
-      data.sensor_size[1] = b_camera.sensor_width() / ratio;
+      sensor_size = GfVec2f(b_camera.sensor_width(), b_camera.sensor_width() / ratio);
     } 
     else {
       if (ratio > 1.0f) {
-        data.sensor_size[0] = b_camera.sensor_width();
-        data.sensor_size[1] = b_camera.sensor_width() / ratio;
+        sensor_size = GfVec2f(b_camera.sensor_width(), b_camera.sensor_width() / ratio);
       } 
       else {
-        data.sensor_size[0] = b_camera.sensor_width() * ratio;
-        data.sensor_size[1] = b_camera.sensor_width();
+        sensor_size = GfVec2f(b_camera.sensor_width() * ratio, b_camera.sensor_width());
       }
     }
-    data.sensor_size[0] = data.sensor_size[0] * size[0];
-    data.sensor_size[1] = data.sensor_size[1] * size[1];
+    sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
   } 
   else if (b_camera.type() == BL::Camera::type_ORTHO) {
     if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-      data.ortho_size[0] = b_camera.ortho_scale() * ratio;
-      data.ortho_size[1] = b_camera.ortho_scale();
+      ortho_size = GfVec2f(b_camera.ortho_scale() * ratio, b_camera.ortho_scale());
     } 
     else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
-      data.ortho_size[0] = b_camera.ortho_scale();
-      data.ortho_size[1] = b_camera.ortho_scale() / ratio;
+      ortho_size = GfVec2f(b_camera.ortho_scale(), b_camera.ortho_scale() / ratio);
     } 
     else {
       if (ratio > 1.0f) {
-        data.ortho_size[0] = b_camera.ortho_scale();
-        data.ortho_size[1] = b_camera.ortho_scale() / ratio;
+        ortho_size = GfVec2f(b_camera.ortho_scale(), b_camera.ortho_scale() / ratio);
       } 
       else {
-        data.ortho_size[0] = b_camera.ortho_scale() * ratio;
-        data.ortho_size[1] = b_camera.ortho_scale();
+        ortho_size = GfVec2f(b_camera.ortho_scale() * ratio, b_camera.ortho_scale());
       }
     }
+    ortho_size = GfVec2f(ortho_size[0] * size[0], ortho_size[1] * size[1]);
 
-    data.ortho_size[0] = data.ortho_size[0] * size[0];
-    data.ortho_size[1] = data.ortho_size[1] * size[1];
-
-    data.clip_range[0] = b_camera.clip_start();
-    data.clip_range[1] = b_camera.clip_end();
+    clip_range = GfVec2f(b_camera.clip_start(), b_camera.clip_end());
   } 
   else if (b_camera.type() == BL::Camera::type_PANO) {
-    // TODO: Recheck parameters for PANO camera
-    data.focal_length = b_camera.lens();
+    /* TODO: Recheck parameters for PANO camera */
+    focal_length = b_camera.lens();
     if (b_camera.sensor_fit() == BL::Camera::sensor_fit_VERTICAL) {
-      data.sensor_size[0] = b_camera.sensor_height() * ratio;
-      data.sensor_size[1] = b_camera.sensor_height();
+      sensor_size = GfVec2f(b_camera.sensor_height() * ratio, b_camera.sensor_height());
     } 
     else if (b_camera.sensor_fit() == BL::Camera::sensor_fit_HORIZONTAL) {
-      data.sensor_size[0] = b_camera.sensor_height();
-      data.sensor_size[1] = b_camera.sensor_height() / ratio;
+      sensor_size = GfVec2f(b_camera.sensor_height(), b_camera.sensor_height() / ratio);
     } 
     else {
       if (ratio > 1.0f) {
-        data.sensor_size[0] = b_camera.sensor_width();
-        data.sensor_size[1] = b_camera.sensor_width() / ratio;
+        sensor_size = GfVec2f(b_camera.sensor_width(), b_camera.sensor_width() / ratio);
       } 
       else {
-        data.sensor_size[0] = b_camera.sensor_width() * ratio;
-        data.sensor_size[1] = b_camera.sensor_width();
+        sensor_size = GfVec2f(b_camera.sensor_width() * ratio, b_camera.sensor_width());
       }
     }
-    data.sensor_size[0] = data.sensor_size[0] * size[0];
-    data.sensor_size[1] = data.sensor_size[1] * size[1];
+    sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
   } 
   else {
-    data.focal_length = b_camera.lens();
-    data.sensor_size[0] = b_camera.sensor_height() * ratio;
-    data.sensor_size[1] = b_camera.sensor_height();
+    focal_length = b_camera.lens();
+    sensor_size = GfVec2f(b_camera.sensor_height() * ratio, b_camera.sensor_height());
   }
-
-  return data;
 }
 
-CameraData CameraData::init_from_context(BL::Context &b_context)
+CameraData::CameraData(BL::Context &b_context)
 {
   // this constant was found experimentally, didn't find such option in
   // context.space_data or context.region_data
@@ -204,49 +176,38 @@ CameraData CameraData::init_from_context(BL::Context &b_context)
 
   BL::SpaceView3D space_data = (BL::SpaceView3D)b_context.space_data();
 
-  CameraData data;
   float ratio = (float)b_context.region().width() / (float)b_context.region().height();
   if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_PERSP) {
-    data = CameraData();
-    data.mode = BL::Camera::type_PERSP;
-    data.clip_range[0] = space_data.clip_start();
-    data.clip_range[1] = space_data.clip_end();
-    data.lens_shift[0] = 0.0;
-    data.lens_shift[1] = 0.0;
-    data.focal_length = space_data.lens();
+    mode = BL::Camera::type_PERSP;
+    clip_range = GfVec2f(space_data.clip_start(), space_data.clip_end());
+    lens_shift = GfVec2f(0.0, 0.0);
+    focal_length = space_data.lens();
 
     if (ratio > 1.0) {
-      data.sensor_size[0] = VIEWPORT_SENSOR_SIZE;
-      data.sensor_size[1] = VIEWPORT_SENSOR_SIZE / ratio;
+      sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE, VIEWPORT_SENSOR_SIZE / ratio);
     }
     else {
-      data.sensor_size[0] = VIEWPORT_SENSOR_SIZE * ratio;
-      data.sensor_size[1] = VIEWPORT_SENSOR_SIZE;
+      sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE * ratio, VIEWPORT_SENSOR_SIZE);
     }
 
-    invert_m4_m4(data.transform, (float(*)[4])b_context.region_data().view_matrix().data);
+    invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
   }
   else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_ORTHO) {
-    data = CameraData();
-    data.mode = BL::Camera::type_ORTHO;
-    data.lens_shift[0] = 0.0f;
-    data.lens_shift[1] = 0.0f;
+    mode = BL::Camera::type_ORTHO;
+    lens_shift = GfVec2f(0.0f, 0.0f);
 
-    float ortho_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
-    float ortho_depth = space_data.clip_end();
+    float o_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
+    float o_depth = space_data.clip_end();
 
-    data.clip_range[0] = -ortho_depth * 0.5;
-    data.clip_range[1] = ortho_depth * 0.5;
+    clip_range = GfVec2f(-o_depth * 0.5, o_depth * 0.5);
 
     if (ratio > 1.0f) {
-      data.ortho_size[0] = ortho_size;
-      data.ortho_size[1] = ortho_size / ratio;
+      ortho_size = GfVec2f(o_size, o_size / ratio);
     } else {
-      data.ortho_size[0] = ortho_size * ratio;
-      data.ortho_size[1] = ortho_size;
+      ortho_size = GfVec2f(o_size * ratio, o_size);
     }
     
-    invert_m4_m4(data.transform, (float(*)[4])b_context.region_data().view_matrix().data);
+    invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
   }
   else if (b_context.region_data().view_perspective() == BL::RegionView3D::view_perspective_CAMERA) {
     BL::Object camera_obj = space_data.camera();
@@ -255,7 +216,7 @@ CameraData CameraData::init_from_context(BL::Context &b_context)
     float inverted_transform[4][4];
     invert_m4_m4(inverted_transform, (float(*)[4])b_context.region_data().view_matrix().data);    
 
-    data = CameraData::init_from_camera((BL::Camera &)camera_obj.data(), inverted_transform, ratio, border);
+    *this = CameraData((BL::Camera &)camera_obj.data(), inverted_transform, ratio, border);
 
     // This formula was taken from previous plugin with corresponded comment
     // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
@@ -263,20 +224,16 @@ CameraData CameraData::init_from_context(BL::Context &b_context)
 
     // Updating lens_shift due to viewport zoom and view_camera_offset
     // view_camera_offset should be multiplied by 2
-    data.lens_shift[0] = (data.lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom;
-    data.lens_shift[1] = (data.lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom;
+    lens_shift = GfVec2f((lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
+                         (lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom);
 
-    if (data.mode == BL::Camera::type_ORTHO) {
-      data.ortho_size[0] *= zoom;
-      data.ortho_size[1] *= zoom;
+    if (mode == BL::Camera::type_ORTHO) {
+      ortho_size *= zoom;
     }
     else {
-      data.sensor_size[0] *= zoom;
-      data.sensor_size[1] *= zoom;
+      sensor_size *= zoom;
     }
   }
-
-  return data;
 }
 
 pxr::GfCamera CameraData::export_gf(float tile[4])
@@ -331,9 +288,8 @@ pxr::GfCamera CameraData::export_gf(float tile[4])
 }
 
 ViewSettings::ViewSettings(BL::Context &b_context)
+  : camera_data(b_context)
 {
-  camera_data = CameraData::init_from_context(b_context);
-
   screen_width = b_context.region().width();
   screen_height = b_context.region().height();
 

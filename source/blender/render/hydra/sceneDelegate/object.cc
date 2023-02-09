@@ -185,11 +185,10 @@ bool ObjectData::update_visibility(View3D *view3d)
   if (!view3d) {
     return false;
   }
-  bool vis = BKE_object_is_visible_in_viewport(view3d, object);
-  bool ret = visible != vis;
-  visible = vis;
 
-  return ret;
+  bool prev_visible = visible;
+  visible = BKE_object_is_visible_in_viewport(view3d, object);
+  return visible != prev_visible;
 }
 
 bool ObjectData::is_visible()

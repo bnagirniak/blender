@@ -53,7 +53,6 @@ void BlenderSceneDelegate::update_material(Material *material)
 bool BlenderSceneDelegate::GetVisible(SdfPath const &id)
 {
   ObjectData *obj_data = object_data(id);
-
   LOG(INFO) << "GetVisible: " << id.GetAsString() << " " << obj_data->is_visible();
 
   return obj_data->is_visible();
@@ -72,7 +71,7 @@ void BlenderSceneDelegate::update_collection()
     Object *object = (Object *)inst.object().ptr.data;
     if (!supported_object(object)) {
       continue;
-    }    
+    }
     SdfPath obj_id = object_id(object);
     available_objects.insert(obj_id);
 
@@ -227,14 +226,17 @@ void BlenderSceneDelegate::Populate(BL::Depsgraph &b_deps, View3D *v3d)
   b_depsgraph = &b_deps;
 
   if (!is_populated) {
-    /* exporting initial objects */
+    /* Export initial objects */
     update_collection();
 
     is_populated = true;
     return;
   }
 
-  /* working with updates */
+  /* Working with updates */
+  bool do_update_collection = false;
+  bool do_update_visibility = false;
+
   for (auto &update : b_depsgraph->updates) {
     BL::ID id = update.id();
     LOG(INFO) << "Update: " << id.name_full() << " "
@@ -264,25 +266,32 @@ void BlenderSceneDelegate::Populate(BL::Depsgraph &b_deps, View3D *v3d)
       
     if (id.is_a(&RNA_Collection)) {
       if (update.is_updated_transform() && update.is_updated_geometry()) {
-        update_collection();
+        do_update_collection = true;
       }
       continue;
     }
 
     if (id.is_a(&RNA_Scene)) {
       if (!update.is_updated_geometry() && !update.is_updated_transform() && !update.is_updated_shading()) {
-        update_visibility();
+        do_update_visibility = true;
       }
       continue;
     }
   }
-  return;
+
+  if (do_update_collection) {
+    update_collection();
+  }
+  if (do_update_visibility) {
+    update_visibility();
+  }
 }
 
 void BlenderSceneDelegate::update_visibility()
 {
   HdRenderIndex &index = GetRenderIndex();
 
+  /* Check and update visibility */
   for (auto &obj : objects) {
     if (obj.second.update_visibility(view3d)) {
       LOG(INFO) << "Visible changed: " << obj.first.GetAsString() << " " << obj.second.is_visible();
@@ -293,6 +302,22 @@ void BlenderSceneDelegate::update_visibility()
         index.GetChangeTracker().MarkSprimDirty(obj.first, HdLight::DirtyParams);
       }
     };
+  }
+
+  /* Export of new visible objects which were not exported before */
+  for (auto &inst : b_depsgraph->object_instances) {
+    if (inst.is_instance()) {
+      continue;
+    }
+    Object *object = (Object *)inst.object().ptr.data;
+    if (!supported_object(object)) {
+      continue;
+    }
+
+    SdfPath obj_id = object_id(object);
+    if (!object_data(obj_id)) {
+      add_update_object(object, true, true, true);
+    }
   }
 }
 

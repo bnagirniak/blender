@@ -27,7 +27,7 @@ struct ViewSettings {
   int width();
   int height();
 
-  GfCamera export_camera();
+  GfCamera gf_camera();
 
   CameraData camera_data;
 
@@ -123,9 +123,9 @@ int ViewSettings::height()
   return border[3];
 }
 
-GfCamera ViewSettings::export_camera()
+GfCamera ViewSettings::gf_camera()
 {
-  return camera_data.export_gf(GfVec4f(
+  return camera_data.gf_camera(GfVec4f(
     (float)border[0] / screen_width, (float)border[1] / screen_height,
     (float)border[2] / screen_width, (float)border[3] / screen_height));
 }
@@ -262,7 +262,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   };
 
   BL::Scene b_scene = b_depsgraph.scene_eval();
-  GfCamera gfCamera = viewSettings.export_camera();
+  GfCamera gfCamera = viewSettings.gf_camera();
 
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), 

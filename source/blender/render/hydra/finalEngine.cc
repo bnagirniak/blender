@@ -11,6 +11,7 @@
 #include "glog/logging.h"
 
 #include "finalEngine.h"
+#include "sceneDelegate/camera.h"
 #include "utils.h"
 
 using namespace std;
@@ -34,9 +35,8 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   BL::Scene b_scene = b_depsgraph.scene();
   BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
   string sceneName = b_scene.name(), layerName = b_view_layer.name();
-  GfVec2i res = getResolution(b_scene.render());
-
-  GfCamera gfCamera = gf_camera_from_camera_object((Object *)b_scene.camera().ptr.data, res, GfVec4f(0, 0, 1, 1));
+  GfVec2i res = get_resolution(b_scene.render());
+  GfCamera gfCamera = CameraData((Object *)b_scene.camera().ptr.data, res, GfVec4f(0, 0, 1, 1)).gf_camera();
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, res[0], res[1]));
   renderTaskDelegate->SetRendererAov(HdAovTokens->color);
@@ -82,7 +82,7 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
   updateRenderResult(renderImages, layerName, res[0], res[1]);
 }
 
-GfVec2i FinalEngine::getResolution(BL::RenderSettings b_render)
+GfVec2i FinalEngine::get_resolution(BL::RenderSettings b_render)
 {
   float border_w = 1.0, border_h = 1.0;
   if (b_render.use_border()) {
@@ -120,9 +120,8 @@ void FinalEngineGL::render(BL::Depsgraph &b_depsgraph)
   BL::Scene b_scene = b_depsgraph.scene();
   BL::ViewLayer b_view_layer = b_depsgraph.view_layer();
   string sceneName = b_scene.name(), layerName = b_view_layer.name();
-  GfVec2i res = getResolution(b_scene.render());
-
-  GfCamera gfCamera = gf_camera_from_camera_object((Object *)b_scene.camera().ptr.data, res, GfVec4f(0, 0, 1, 1));
+  GfVec2i res = get_resolution(b_scene.render());
+  GfCamera gfCamera = CameraData((Object *)b_scene.camera().ptr.data, res, GfVec4f(0, 0, 1, 1)).gf_camera();
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), GfVec4d(0, 0, res[0], res[1]));
 

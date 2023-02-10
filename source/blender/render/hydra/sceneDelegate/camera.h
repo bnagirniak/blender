@@ -15,12 +15,15 @@
 
 namespace blender::render::hydra {
 
-struct CameraData {
+class CameraData {
+public:
   CameraData(Object *camera_obj, pxr::GfVec2i res, pxr::GfVec4f tile);
   CameraData(BL::Context &b_context);
 
-  pxr::GfCamera export_gf(pxr::GfVec4f tile);
+  pxr::GfCamera gf_camera(pxr::GfVec4f tile);
+  pxr::GfCamera gf_camera();
 
+private:
   int mode;
   pxr::GfRange1f clip_range;
   float focal_length;

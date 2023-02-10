@@ -225,7 +225,7 @@ CameraData::CameraData(BL::Context &b_context)
   }
 }
 
-GfCamera CameraData::export_gf(GfVec4f tile)
+GfCamera CameraData::gf_camera(GfVec4f tile)
 {
   float t_pos[2] = {tile[0], tile[1]}, t_size[2] = {tile[2], tile[3]};
 
@@ -273,6 +273,11 @@ GfCamera CameraData::export_gf(GfVec4f tile)
   gf_camera.SetTransform(transform);
 
   return gf_camera;
+}
+
+GfCamera CameraData::gf_camera()
+{
+  return gf_camera(GfVec4f(0, 0, 1, 1));
 }
 
 } // namespace blender::render::hydra

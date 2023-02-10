@@ -21,28 +21,6 @@ GfMatrix4d gf_matrix_from_transform(float m[4][4])
     m[3][0], m[3][1], m[3][2], m[3][3]);
 }
 
-GfCamera gf_camera_from_camera_object(Object *camera_obj, GfVec2i resolution, GfVec4f tile)
-{
-  Camera *camera = (Camera *)camera_obj->data;
-  float ratio = (float)resolution[0] / resolution[1];
-
-  GfCamera gfCamera;
-  gfCamera.SetProjection((camera->type == CAM_ORTHO) ? GfCamera::Orthographic :
-                                                       GfCamera::Perspective);
-  gfCamera.SetClippingRange(GfRange1f(camera->clip_start, camera->clip_end));
-  gfCamera.SetHorizontalAperture(camera->sensor_x);
-  gfCamera.SetVerticalAperture(camera->sensor_y / ratio);
-  gfCamera.SetFocalLength(camera->lens);
-
-  gfCamera.SetTransform(gf_matrix_from_transform(camera_obj->object_to_world));
-
-  /* TODO: include tile */
-  /* TODO: include shifts */
-  /* TODO: check orthographic */
-
-  return gfCamera;
-}
-
 string format_duration(chrono::milliseconds millisecs)
 {
   stringstream ss;

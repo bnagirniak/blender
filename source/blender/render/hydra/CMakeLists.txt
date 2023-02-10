@@ -64,6 +64,8 @@ set(SRC
   sceneDelegate/object.cc
   sceneDelegate/material.h
   sceneDelegate/material.cc
+  sceneDelegate/camera.h
+  sceneDelegate/camera.cc
 )
 
 set(LIB

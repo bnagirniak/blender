@@ -151,13 +151,13 @@ CameraData::CameraData(BL::Context &b_context)
   float VIEWPORT_SENSOR_SIZE = 72.0;
 
   BL::SpaceView3D space_data = (BL::SpaceView3D)b_context.space_data();
+  BL::RegionView3D region_data = b_context.region_data();
 
   GfVec2i res(b_context.region().width(), b_context.region().height());
   float ratio = (float)res[0] / res[1];
-  transform = gf_matrix_from_transform((float(*)[4])b_context.region_data().view_matrix().data)
-                  .GetInverse();
+  transform = gf_matrix_from_transform((float(*)[4])region_data.view_matrix().data).GetInverse();
 
-  switch (b_context.region_data().view_perspective()) {
+  switch (region_data.view_perspective()) {
     case BL::RegionView3D::view_perspective_PERSP: {
       mode = CAM_PERSP;
       clip_range = GfRange1f(space_data.clip_start(), space_data.clip_end());
@@ -177,8 +177,7 @@ CameraData::CameraData(BL::Context &b_context)
       mode = CAM_ORTHO;
       lens_shift = GfVec2f(0.0f, 0.0f);
 
-      float o_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE /
-                     space_data.lens();
+      float o_size = region_data.view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
       float o_depth = space_data.clip_end();
 
       clip_range = GfRange1f(-o_depth * 0.5, o_depth * 0.5);
@@ -202,14 +201,12 @@ CameraData::CameraData(BL::Context &b_context)
       // This formula was taken from previous plugin with corresponded comment
       // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look
       // for 1.41421f)
-      float zoom = 4.0 /
-                   pow((pow(2.0, 0.5) + b_context.region_data().view_camera_zoom() / 50.0), 2);
+      float zoom = 4.0 / pow((pow(2.0, 0.5) + region_data.view_camera_zoom() / 50.0), 2);
 
       // Updating l_shift due to viewport zoom and view_camera_offset
       // view_camera_offset should be multiplied by 2
-      lens_shift = GfVec2f(
-          (lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
-          (lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom);
+      lens_shift = GfVec2f((lens_shift[0] + region_data.view_camera_offset()[0] * 2) / zoom,
+                           (lens_shift[1] + region_data.view_camera_offset()[1] * 2) / zoom);
 
       if (mode == BL::Camera::type_ORTHO) {
         ortho_size *= zoom;
@@ -271,7 +268,6 @@ GfCamera CameraData::gf_camera(GfVec4f tile)
   }
 
   gf_camera.SetTransform(transform);
-
   return gf_camera;
 }
 

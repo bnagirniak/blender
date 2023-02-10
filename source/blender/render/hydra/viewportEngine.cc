@@ -21,13 +21,13 @@ using namespace pxr;
 namespace blender::render::hydra {
 
 struct CameraData {
-  CameraData(Object *camera_obj, float ratio, float border[2][2]);
+  CameraData(Object *camera_obj, GfVec2i res, GfVec4f tile);
   CameraData(BL::Context &b_context);
 
-  GfCamera export_gf(float tile[4]);
+  GfCamera export_gf(GfVec4f tile);
 
   int mode;
-  GfVec2f clip_range;
+  GfRange1f clip_range;
   float focal_length;
   GfVec2f sensor_size;
   float transform[4][4];
@@ -39,8 +39,8 @@ struct CameraData {
 struct ViewSettings {
   ViewSettings(BL::Context &b_context);
 
-  int get_width();
-  int get_height();
+  int width();
+  int height();
 
   GfCamera export_camera();
 
@@ -48,19 +48,19 @@ struct ViewSettings {
 
   int screen_width;
   int screen_height;
-  int border[2][2];
+  GfVec4i border;
 };
 
-CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
+CameraData::CameraData(Object *camera_obj, GfVec2i res, GfVec4f tile)
 {
   Camera *camera = (Camera *)camera_obj->data;
-
-  float pos[2] = {border[0][0], border[0][1]};
-  float size[2] = {border[1][0], border[1][1]};
+  
+  float t_pos[2] = {tile[0], tile[1]};
+  float t_size[2] = {tile[2], tile[3]};
 
   copy_m4_m4(transform, camera_obj->object_to_world);
 
-  clip_range = GfVec2f(camera->clip_start, camera->clip_end);
+  clip_range = GfRange1f(camera->clip_start, camera->clip_end);
   mode = camera->type;
 
   if (camera->dof.flag & CAM_DOF_ENABLED)
@@ -70,23 +70,21 @@ CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
       focus_distance = camera->dof.focus_distance;
     } 
     else {
-      float obj_pos[] = {camera->dof.focus_object->object_to_world[0][3],
-                         camera->dof.focus_object->object_to_world[1][3],
-                         camera->dof.focus_object->object_to_world[2][3]};
-
-      float camera_pos[] = {transform[0][3],
-                            transform[1][3],
-                            transform[2][3]};
-
-      focus_distance = sqrt(pow((obj_pos[0] - camera_pos[0]), 2) + 
-                            pow((obj_pos[1] - camera_pos[1]), 2) + 
-                            pow((obj_pos[2] - camera_pos[2]), 2));
+      GfVec3f obj_pos(camera->dof.focus_object->object_to_world[0][3],
+                      camera->dof.focus_object->object_to_world[1][3],
+                      camera->dof.focus_object->object_to_world[2][3]);
+      GfVec3f cam_pos(transform[0][3],
+                      transform[1][3],
+                      transform[2][3]);
+      focus_distance = (obj_pos - cam_pos).GetLength();
     }
 
     dof_data = tuple(max(focus_distance, 0.001f),
                      camera->dof.aperture_fstop,
                      camera->dof.aperture_blades);
   }
+
+  float ratio = (float)res[0] / res[1];
 
   switch (camera->sensor_fit) {
     case CAMERA_SENSOR_FIT_VERT:
@@ -108,8 +106,8 @@ CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
       break;
   }
 
-  lens_shift = GfVec2f(lens_shift[0] / size[0] + (pos[0] + size[0] * 0.5 - 0.5) / size[0],
-                       lens_shift[1] / size[1] + (pos[1] + size[1] * 0.5 - 0.5) / size[1]);
+  lens_shift = GfVec2f(lens_shift[0] / t_size[0] + (t_pos[0] + t_size[0] * 0.5 - 0.5) / t_size[0],
+                       lens_shift[1] / t_size[1] + (t_pos[1] + t_size[1] * 0.5 - 0.5) / t_size[1]);
 
   switch (camera->type) {
     case CAM_PERSP:
@@ -134,7 +132,7 @@ CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
           sensor_size = GfVec2f(camera->sensor_x, camera->sensor_y);
           break;
       }
-      sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
+      sensor_size = GfVec2f(sensor_size[0] * t_size[0], sensor_size[1] * t_size[1]);
       break;
 
     case CAM_ORTHO:
@@ -158,7 +156,7 @@ CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
           ortho_size = GfVec2f(camera->ortho_scale, camera->ortho_scale);
           break;
       }
-      ortho_size = GfVec2f(ortho_size[0] * size[0], ortho_size[1] * size[1]);
+      ortho_size = GfVec2f(ortho_size[0] * t_size[0], ortho_size[1] * t_size[1]);
       break;
 
     case CAM_PANO:
@@ -184,7 +182,7 @@ CameraData::CameraData(Object *camera_obj, float ratio, float border[2][2])
           sensor_size = GfVec2f(camera->sensor_x, camera->sensor_y);
           break;
       }
-      sensor_size = GfVec2f(sensor_size[0] * size[0], sensor_size[1] * size[1]);
+      sensor_size = GfVec2f(sensor_size[0] * t_size[0], sensor_size[1] * t_size[1]);
 
     default:
       focal_length = camera->lens;
@@ -200,12 +198,13 @@ CameraData::CameraData(BL::Context &b_context)
 
   BL::SpaceView3D space_data = (BL::SpaceView3D)b_context.space_data();
 
-  float ratio = (float)b_context.region().width() / (float)b_context.region().height();
+  GfVec2i res(b_context.region().width(), b_context.region().height());
+  float ratio = (float)res[0] / res[1];
 
   switch (b_context.region_data().view_perspective()) {
     case BL::RegionView3D::view_perspective_PERSP: {
       mode = CAM_PERSP;
-      clip_range = GfVec2f(space_data.clip_start(), space_data.clip_end());
+      clip_range = GfRange1f(space_data.clip_start(), space_data.clip_end());
       lens_shift = GfVec2f(0.0, 0.0);
       focal_length = space_data.lens();
 
@@ -227,7 +226,7 @@ CameraData::CameraData(BL::Context &b_context)
       float o_size = b_context.region_data().view_distance() * VIEWPORT_SENSOR_SIZE / space_data.lens();
       float o_depth = space_data.clip_end();
 
-      clip_range = GfVec2f(-o_depth * 0.5, o_depth * 0.5);
+      clip_range = GfRange1f(-o_depth * 0.5, o_depth * 0.5);
 
       if (ratio > 1.0f) {
         ortho_size = GfVec2f(o_size, o_size / ratio);
@@ -242,8 +241,7 @@ CameraData::CameraData(BL::Context &b_context)
     case BL::RegionView3D::view_perspective_CAMERA: {
       BL::Object camera_obj = space_data.camera();
 
-      float border[2][2] = {{0, 0}, {1, 1}};
-      *this = CameraData((Object *)camera_obj.ptr.data, ratio, border);
+      *this = CameraData((Object *)camera_obj.ptr.data, res, GfVec4f(0, 0, 1, 1));
 
       invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);    
 
@@ -251,7 +249,7 @@ CameraData::CameraData(BL::Context &b_context)
       // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
       float zoom = 4.0 / pow((pow(2.0, 0.5) + b_context.region_data().view_camera_zoom() / 50.0), 2);
 
-      // Updating lens_shift due to viewport zoom and view_camera_offset
+      // Updating l_shift due to viewport zoom and view_camera_offset
       // view_camera_offset should be multiplied by 2
       lens_shift = GfVec2f((lens_shift[0] + b_context.region_data().view_camera_offset()[0] * 2) / zoom,
                            (lens_shift[1] + b_context.region_data().view_camera_offset()[1] * 2) / zoom);
@@ -270,44 +268,49 @@ CameraData::CameraData(BL::Context &b_context)
   }
 }
 
-pxr::GfCamera CameraData::export_gf(float tile[4])
+GfCamera CameraData::export_gf(GfVec4f tile)
 {
-  float tile_pos[2] = {tile[0], tile[1]}, tile_size[2] = {tile[2], tile[3]};
+  float t_pos[2] = {tile[0], tile[1]}, t_size[2] = {tile[2], tile[3]};
 
-  pxr::GfCamera gf_camera = pxr::GfCamera();
+  GfCamera gf_camera = GfCamera();
 
-  gf_camera.SetClippingRange(pxr::GfRange1f(this->clip_range[0], this->clip_range[1]));
+  gf_camera.SetClippingRange(clip_range);
 
-  vector<float> lens_shift = {(float)(this->lens_shift[0] + tile_pos[0] + tile_size[0] * 0.5 - 0.5) / tile_size[0],
-                              (float)(this->lens_shift[1] + tile_pos[1] + tile_size[1] * 0.5 - 0.5) / tile_size[1]};
+  float l_shift[2] = {(lens_shift[0] + t_pos[0] + t_size[0] * 0.5f - 0.5f) / t_size[0],
+                      (lens_shift[1] + t_pos[1] + t_size[1] * 0.5f - 0.5f) / t_size[1]};
 
-  if (this->mode == BL::Camera::type_PERSP) {
-    gf_camera.SetProjection(pxr::GfCamera::Projection::Perspective);
-    gf_camera.SetFocalLength(this->focal_length);
+  switch (mode) {
+    case CAM_PERSP:
+    case CAM_PANO: {
+      /*  TODO: store panoramic camera settings */
+      gf_camera.SetProjection(GfCamera::Projection::Perspective);
+      gf_camera.SetFocalLength(focal_length);
 
-    vector<float> sensor_size = {this->sensor_size[0] * tile_size[0], this->sensor_size[1] * tile_size[1]};
+      float s_size[2] = {sensor_size[0] * t_size[0], sensor_size[1] * t_size[1]};
 
-    gf_camera.SetHorizontalAperture(sensor_size[0]);
-    gf_camera.SetVerticalAperture(sensor_size[1]);
+      gf_camera.SetHorizontalAperture(s_size[0]);
+      gf_camera.SetVerticalAperture(s_size[1]);
 
-    gf_camera.SetHorizontalApertureOffset(lens_shift[0] * sensor_size[0]);
-    gf_camera.SetVerticalApertureOffset(lens_shift[1] * sensor_size[1]);
-  }
-  else if (this->mode == BL::Camera::type_ORTHO) {
-    gf_camera.SetProjection(pxr::GfCamera::Projection::Orthographic);
+      gf_camera.SetHorizontalApertureOffset(l_shift[0] * s_size[0]);
+      gf_camera.SetVerticalApertureOffset(l_shift[1] * s_size[1]);
+      break;
+    }
+    case CAM_ORTHO: {
+      gf_camera.SetProjection(GfCamera::Projection::Orthographic);
 
-    // Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
-    float ortho_size[2] = {this->ortho_size[0] * tile_size[0] * 10, 
-                           this->ortho_size[1] * tile_size[1] * 10};
+      // Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
+      float o_size[2] = {ortho_size[0] * t_size[0] * 10, 
+                         ortho_size[1] * t_size[1] * 10};
 
-    gf_camera.SetHorizontalAperture(ortho_size[0]);
-    gf_camera.SetVerticalAperture(ortho_size[1]);
+      gf_camera.SetHorizontalAperture(o_size[0]);
+      gf_camera.SetVerticalAperture(o_size[1]);
 
-    gf_camera.SetHorizontalApertureOffset(lens_shift[0] * this->ortho_size[0] * tile_size[0] * 10);
-    gf_camera.SetVerticalApertureOffset(lens_shift[1] * this->ortho_size[1] * tile_size[1] * 10);
-  }
-  else if (this->mode == BL::Camera::type_PANO) {
-    // TODO: store panoramic camera settings
+      gf_camera.SetHorizontalApertureOffset(l_shift[0] * o_size[0]);
+      gf_camera.SetVerticalApertureOffset(l_shift[1] * o_size[1]);
+      break;
+    }
+    default:
+      break;
   }
 
   double transform_d[4][4];
@@ -316,7 +319,7 @@ pxr::GfCamera CameraData::export_gf(float tile[4])
       transform_d[i][j] = (double)transform[i][j];
     }
   }
-  gf_camera.SetTransform(pxr::GfMatrix4d(transform_d));
+  gf_camera.SetTransform(GfMatrix4d(transform_d));
   
   return gf_camera;
 }
@@ -395,27 +398,24 @@ ViewSettings::ViewSettings(BL::Context &b_context)
     }
   }
 
-  border[0][0] = x1;
-  border[0][1] = y1;
-  border[1][0] = x2 - x1;
-  border[1][1] = y2 - y1;
+  border = GfVec4i(x1, y1, x2 - x1, y2 - y1);
 }
 
-int ViewSettings::get_width()
+int ViewSettings::width()
 {
-  return border[1][0];
+  return border[2];
 }
 
-int ViewSettings::get_height()
+int ViewSettings::height()
 {
-  return border[1][1];
+  return border[3];
 }
 
 GfCamera ViewSettings::export_camera()
 {
-  float tile[4] = {(float)border[0][0] / screen_width, (float)border[0][1] / screen_height,
-                   (float)border[1][0] / screen_width, (float)border[1][1] / screen_height};
-  return camera_data.export_gf(tile);
+  return camera_data.export_gf(GfVec4f(
+    (float)border[0] / screen_width, (float)border[1] / screen_height,
+    (float)border[2] / screen_width, (float)border[3] / screen_height));
 }
 
 GLTexture::GLTexture()
@@ -433,7 +433,7 @@ GLTexture::~GLTexture()
   }
 }
 
-void GLTexture::setBuffer(pxr::HdRenderBuffer *buffer)
+void GLTexture::setBuffer(HdRenderBuffer *buffer)
 {
   if (!textureId) {
     create(buffer);
@@ -453,7 +453,7 @@ void GLTexture::setBuffer(pxr::HdRenderBuffer *buffer)
   buffer->Unmap();
 }
 
-void GLTexture::create(pxr::HdRenderBuffer *buffer)
+void GLTexture::create(HdRenderBuffer *buffer)
 {
   width = buffer->GetWidth();
   height = buffer->GetHeight();
@@ -528,7 +528,7 @@ void GLTexture::draw(GLfloat x, GLfloat y)
   glDeleteVertexArrays(1, &vertex_array);
 }
 
-void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, pxr::HdRenderSettingsMap &renderSettings)
+void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, HdRenderSettingsMap &renderSettings)
 {
   if (!sceneDelegate) {
     sceneDelegate = std::make_unique<BlenderSceneDelegate>(renderIndex.get(), 
@@ -545,7 +545,7 @@ void ViewportEngine::sync(BL::Depsgraph &b_depsgraph, BL::Context &b_context, px
 void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context)
 {
   ViewSettings viewSettings(b_context);
-  if (viewSettings.get_width() * viewSettings.get_height() == 0) {
+  if (viewSettings.width() * viewSettings.height() == 0) {
     return;
   };
 
@@ -554,7 +554,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
 
   freeCameraDelegate->SetCamera(gfCamera);
   renderTaskDelegate->SetCameraAndViewport(freeCameraDelegate->GetCameraId(), 
-    GfVec4d(viewSettings.border[0][0], viewSettings.border[0][1], viewSettings.border[1][0], viewSettings.border[1][1]));
+    GfVec4d(viewSettings.border[0], viewSettings.border[1], viewSettings.border[2], viewSettings.border[3]));
 
   if (!b_engine.bl_use_gpu_context()) {
     renderTaskDelegate->SetRendererAov(HdAovTokens->color);
@@ -575,7 +575,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
 
     if (!b_engine.bl_use_gpu_context()) {
       texture.setBuffer(renderTaskDelegate->GetRendererAov(HdAovTokens->color));
-      texture.draw((GLfloat)viewSettings.border[0][0], (GLfloat)viewSettings.border[0][1]);
+      texture.draw((GLfloat)viewSettings.border[0], (GLfloat)viewSettings.border[1]);
     }
   }
   

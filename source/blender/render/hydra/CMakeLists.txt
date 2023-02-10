@@ -51,7 +51,8 @@ set(SRC
   finalEngine.cc
   viewportEngine.h
   viewportEngine.cc
-
+  camera.h
+  camera.cc
   utils.h
   utils.cc
 
@@ -64,8 +65,6 @@ set(SRC
   sceneDelegate/object.cc
   sceneDelegate/material.h
   sceneDelegate/material.cc
-  sceneDelegate/camera.h
-  sceneDelegate/camera.cc
 )
 
 set(LIB

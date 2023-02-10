@@ -13,7 +13,7 @@
 #include "glog/logging.h"
 
 #include "viewportEngine.h"
-#include "sceneDelegate/camera.h"
+#include "camera.h"
 #include "utils.h"
 
 using namespace std;

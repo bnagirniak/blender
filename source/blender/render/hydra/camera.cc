@@ -4,7 +4,7 @@
 #include "DNA_camera_types.h"
 
 #include "camera.h"
-#include "../utils.h"
+#include "utils.h"
 
 using namespace pxr;
 

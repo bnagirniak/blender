@@ -12,6 +12,15 @@ using namespace pxr;
 
 namespace blender::render::hydra {
 
+GfMatrix4d gf_matrix_from_transform(float m[4][4])
+{
+  return GfMatrix4d(
+    m[0][0], m[0][1], m[0][2], m[0][3],
+    m[1][0], m[1][1], m[1][2], m[1][3],
+    m[2][0], m[2][1], m[2][2], m[2][3],
+    m[3][0], m[3][1], m[3][2], m[3][3]);
+}
+
 GfCamera gf_camera_from_camera_object(Object *camera_obj, GfVec2i resolution, GfVec4f tile)
 {
   Camera *camera = (Camera *)camera_obj->data;
@@ -25,12 +34,7 @@ GfCamera gf_camera_from_camera_object(Object *camera_obj, GfVec2i resolution, Gf
   gfCamera.SetVerticalAperture(camera->sensor_y / ratio);
   gfCamera.SetFocalLength(camera->lens);
 
-  float *m = (float *)camera_obj->object_to_world;
-  gfCamera.SetTransform(GfMatrix4d(
-    m[0], m[1], m[2], m[3],
-    m[4], m[5], m[6], m[7],
-    m[8], m[9], m[10], m[11],
-    m[12], m[13], m[14], m[15]));
+  gfCamera.SetTransform(gf_matrix_from_transform(camera_obj->object_to_world));
 
   /* TODO: include tile */
   /* TODO: include shifts */
@@ -39,7 +43,7 @@ GfCamera gf_camera_from_camera_object(Object *camera_obj, GfVec2i resolution, Gf
   return gfCamera;
 }
 
-string formatDuration(chrono::milliseconds millisecs)
+string format_duration(chrono::milliseconds millisecs)
 {
   stringstream ss;
   bool neg = millisecs < 0ms;

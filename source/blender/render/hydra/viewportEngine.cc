@@ -30,7 +30,7 @@ struct CameraData {
   GfRange1f clip_range;
   float focal_length;
   GfVec2f sensor_size;
-  float transform[4][4];
+  GfMatrix4d transform;
   GfVec2f lens_shift;
   GfVec2f ortho_size;
   tuple<float, float, int> dof_data;
@@ -57,9 +57,7 @@ CameraData::CameraData(Object *camera_obj, GfVec2i res, GfVec4f tile)
   
   float t_pos[2] = {tile[0], tile[1]};
   float t_size[2] = {tile[2], tile[3]};
-
-  copy_m4_m4(transform, camera_obj->object_to_world);
-
+  transform = gf_matrix_from_transform(camera_obj->object_to_world);
   clip_range = GfRange1f(camera->clip_start, camera->clip_end);
   mode = camera->type;
 
@@ -200,6 +198,7 @@ CameraData::CameraData(BL::Context &b_context)
 
   GfVec2i res(b_context.region().width(), b_context.region().height());
   float ratio = (float)res[0] / res[1];
+  transform = gf_matrix_from_transform((float(*)[4])b_context.region_data().view_matrix().data).GetInverse();
 
   switch (b_context.region_data().view_perspective()) {
     case BL::RegionView3D::view_perspective_PERSP: {
@@ -214,8 +213,6 @@ CameraData::CameraData(BL::Context &b_context)
       else {
         sensor_size = GfVec2f(VIEWPORT_SENSOR_SIZE * ratio, VIEWPORT_SENSOR_SIZE);
       }
-
-      invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
       break;
     }
 
@@ -233,17 +230,15 @@ CameraData::CameraData(BL::Context &b_context)
       } else {
         ortho_size = GfVec2f(o_size * ratio, o_size);
       }
-    
-      invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);
       break;
     }
 
     case BL::RegionView3D::view_perspective_CAMERA: {
       BL::Object camera_obj = space_data.camera();
 
+      GfMatrix4d mat = transform;
       *this = CameraData((Object *)camera_obj.ptr.data, res, GfVec4f(0, 0, 1, 1));
-
-      invert_m4_m4(transform, (float(*)[4])b_context.region_data().view_matrix().data);    
+      transform = mat;
 
       // This formula was taken from previous plugin with corresponded comment
       // See blender/intern/cycles/blender/blender_camera.cpp:blender_camera_from_view (look for 1.41421f)
@@ -313,13 +308,7 @@ GfCamera CameraData::export_gf(GfVec4f tile)
       break;
   }
 
-  double transform_d[4][4];
-  for (int i = 0 ; i < 4; i++) {
-    for (int j = 0 ; j < 4; j++) {
-      transform_d[i][j] = (double)transform[i][j];
-    }
-  }
-  gf_camera.SetTransform(GfMatrix4d(transform_d));
+  gf_camera.SetTransform(transform);
   
   return gf_camera;
 }
@@ -584,7 +573,7 @@ void ViewportEngine::viewDraw(BL::Depsgraph &b_depsgraph, BL::Context &b_context
   chrono::time_point<chrono::steady_clock> timeCurrent = chrono::steady_clock::now();
   chrono::milliseconds elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
 
-  string formattedTime = formatDuration(elapsedTime);
+  string formattedTime = format_duration(elapsedTime);
 
   if (!renderTaskDelegate->IsConverged()) {
     notifyStatus("Time: " + formattedTime + " | Done: " + to_string(int(getRendererPercentDone())) + "%",

@@ -68,7 +68,7 @@ void FinalEngine::render(BL::Depsgraph &b_depsgraph)
     elapsedTime = chrono::duration_cast<chrono::milliseconds>(timeCurrent - timeBegin);
 
     notifyStatus(percentDone / 100.0, sceneName + ": " + layerName,
-      "Render Time: " + formatDuration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
+      "Render Time: " + format_duration(elapsedTime) + " | Done: " + to_string(int(percentDone)) + "%");
 
     if (renderTaskDelegate->IsConverged()) {
       break;
@@ -180,7 +180,7 @@ void FinalEngineGL::render(BL::Depsgraph &b_depsgraph)
 
     notifyStatus(percentDone / 100.0,
                  sceneName + ": " + layerName,
-                 "Render Time: " + formatDuration(elapsedTime) +
+                 "Render Time: " + format_duration(elapsedTime) +
                      " | Done: " + to_string(int(percentDone)) + "%");
 
     if (renderTaskDelegate->IsConverged()) {

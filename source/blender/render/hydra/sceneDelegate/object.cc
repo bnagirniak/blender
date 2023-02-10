@@ -20,6 +20,7 @@
 #include "BKE_layer.h"
 
 #include "object.h"
+#include "../utils.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 TF_DEFINE_PUBLIC_TOKENS(HdBlenderTokens, HD_BLENDER_TOKENS);
@@ -138,12 +139,7 @@ TfToken ObjectData::prim_type()
 
 GfMatrix4d ObjectData::transform()
 {
-  float *m = (float *)object->object_to_world;
-  return GfMatrix4d(
-    m[0], m[1], m[2], m[3],
-    m[4], m[5], m[6], m[7],
-    m[8], m[9], m[10], m[11],
-    m[12], m[13], m[14], m[15]);
+  return gf_matrix_from_transform(object->object_to_world);
 }
 
 Material *ObjectData::material()

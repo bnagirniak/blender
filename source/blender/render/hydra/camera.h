@@ -17,11 +17,11 @@ namespace blender::render::hydra {
 
 class CameraData {
 public:
-  CameraData(Object *camera_obj, pxr::GfVec2i res, pxr::GfVec4f tile);
   CameraData(BL::Context &b_context);
+  CameraData(Object *camera_obj, pxr::GfVec2i res, pxr::GfVec4f tile);
 
-  pxr::GfCamera gf_camera(pxr::GfVec4f tile);
   pxr::GfCamera gf_camera();
+  pxr::GfCamera gf_camera(pxr::GfVec4f tile);
 
 private:
   int mode;

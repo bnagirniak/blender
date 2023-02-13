@@ -51,7 +51,8 @@ set(SRC
   finalEngine.cc
   viewportEngine.h
   viewportEngine.cc
-
+  camera.h
+  camera.cc
   utils.h
   utils.cc
 
@@ -62,8 +63,6 @@ set(SRC
   sceneDelegate/blenderSceneDelegate.cc
   sceneDelegate/object.h
   sceneDelegate/object.cc
-  sceneDelegate/scene.h
-  sceneDelegate/scene.cc
   sceneDelegate/material.h
   sceneDelegate/material.cc
 )

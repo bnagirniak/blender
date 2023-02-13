@@ -6,8 +6,11 @@
 #include <chrono>
 #include <string>
 
+#include <pxr/base/gf/matrix4d.h>
+
 namespace blender::render::hydra {
 
-std::string formatDuration(std::chrono::milliseconds secs);
+pxr::GfMatrix4d gf_matrix_from_transform(float m[4][4]);
+std::string format_duration(std::chrono::milliseconds secs);
 
 } // namespace blender::render::hydra
